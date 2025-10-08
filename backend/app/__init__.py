@@ -3,21 +3,31 @@ from flask import Flask
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from werkzeug.security import generate_password_hash
-from .models import db, User
 from flask_cors import CORS
+
+# Import your SQLAlchemy handle and models once (no duplicates)
+from .models import db, User
 
 migrate = Migrate()
 jwt = JWTManager()
 
 def create_app():
-    app = Flask(__name__)
+    # instance_relative_config=True lets us use the /instance folder cleanly
+    app = Flask(__name__, instance_relative_config=True)
     app.config.from_object("config.Config")
 
+    # If DATABASE_URL not provided, default to instance/app.db
+    if not app.config.get("SQLALCHEMY_DATABASE_URI"):
+        os.makedirs(app.instance_path, exist_ok=True)
+        db_path = os.path.join(app.instance_path, "app.db")
+        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+
+    # Init extensions
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
 
-    # Allow the extension to call our API (no cookies; we’ll use Bearer token)
+    # Allow your React app / extension to call the API in dev
     CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=False)
 
     # Blueprints
@@ -27,28 +37,36 @@ def create_app():
     from .ai import bp as ai_bp
     from .public import bp as public_bp
 
-    app.register_blueprint(auth_bp, url_prefix="/api/auth")
+    app.register_blueprint(auth_bp,  url_prefix="/api/auth")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
-    app.register_blueprint(cand_bp, url_prefix="/api/candidates")
-    app.register_blueprint(ai_bp, url_prefix="/api/ai")
+    app.register_blueprint(cand_bp,  url_prefix="/api/candidates")
+    app.register_blueprint(ai_bp,    url_prefix="/api/ai")
     app.register_blueprint(public_bp, url_prefix="/api/public")
 
     @app.get("/api/healthz")
     def health():
         return {"status": "ok"}
 
-    # Default admin bootstrap (one-time)
+    # One-time dev bootstrap: create tables (if no migrations ran) and seed admin
     with app.app_context():
+        # You can remove this create_all once you fully use Alembic migrations
         db.create_all()
-        email = os.getenv("ADMIN_EMAIL", "admin@example.com").lower()
+
+        email    = os.getenv("ADMIN_EMAIL", "admin@example.com").lower().strip()
         password = os.getenv("ADMIN_PASSWORD", "Passw0rd!")
-        mobile = os.getenv("ADMIN_MOBILE", "9999999999")
-        name = os.getenv("ADMIN_NAME", "Administrator")
-        admin = User.query.filter_by(email=email).first()
-        if not admin:
-            admin = User(name=name, email=email, mobile=mobile,
-                         password_hash=generate_password_hash(password), role="admin")
-            db.session.add(admin); db.session.commit()
+        mobile   = os.getenv("ADMIN_MOBILE", "9999999999")
+        name     = os.getenv("ADMIN_NAME", "Administrator")
+
+        if not User.query.filter_by(email=email).first():
+            admin = User(
+                name=name,
+                email=email,
+                mobile=mobile,
+                password_hash=generate_password_hash(password),
+                role="admin",
+            )
+            db.session.add(admin)
+            db.session.commit()
             app.logger.info(f"Default admin created: {email}")
 
     return app

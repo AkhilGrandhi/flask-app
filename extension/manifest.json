@@ -1,38 +1,22 @@
 {
   "manifest_version": 3,
   "name": "Candidate Autofill (Prototype)",
-  "version": "0.0.3",
-  "description": "Popup with Users & Candidates loaded from Flask.",
+  "version": "0.0.4",
+  "description": "Popup loads Users & Candidates from Flask; logs candidate + form schema.",
   "permissions": ["storage", "tabs", "scripting"],
   "host_permissions": [
     "http://localhost:5000/*",
     "http://127.0.0.1:5000/*",
     "http://*/*",
-    "https://*/*"
+    "https://*/*",
+    "file://*/*"
   ],
   "action": { "default_popup": "popup.html" },
-  "options_page": "options.html",
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["contentScript.js"],
+      "matches": ["http://*/*", "https://*/*", "file://*/*"],
+      "js": ["content.js"],
       "run_at": "document_idle"
     }
   ]
 }
-
-// {
-//   "manifest_version": 3,
-//   "name": "Candidate Autofill (Prototype)",
-//   "version": "0.0.2",
-//   "description": "Popup with Users & Candidates loaded from Flask.",
-//   "permissions": ["storage", "tabs"],
-//   "host_permissions": [
-//     "http://*/*",
-//     "https://*/*"
-//   ],
-//   "action": { "default_popup": "popup.html" },
-//   "options_page": "options.html"
-// }
-
-
