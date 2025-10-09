@@ -84,6 +84,7 @@ def _naive_map(form: dict, cand: dict) -> dict:
 def map_fields():
     payload = request.get_json() or {}
     form = payload.get("form")         # dict of { field_key: {type,label,...} }
+    # print(form)
     cand_id = payload.get("candidate_id")
     candidate = payload.get("candidate")
 
@@ -105,23 +106,47 @@ def map_fields():
 
     # Build prompt (very explicit)
     rules = """
-You will receive:
-1) FORM_SCHEMA: an object whose keys are the form field identifiers (prefer `name`, else `id`).
-2) CANDIDATE: a candidate profile with fields such as first_name, last_name, email, phone, birthdate, nationality, country, technical_skills, work_experience, etc.
+    You will receive:
+    1) FORM_SCHEMA: an object whose keys are the form field identifiers (prefer `name`, else `id`).
+    2) CANDIDATE: a candidate profile with fields such as first_name, last_name, email, phone, birthdate, nationality, country, technical_skills, work_experience, etc.
 
-Output:
-- A SINGLE JSON object mapping form keys to autofill values.
-- Keys MUST be EXACTLY the keys from FORM_SCHEMA (do not invent new keys).
-- Exclude file upload fields.
-- If a field has type "text" for date (e.g., key like "dob", "birthdate"), format as DD/MM/YYYY.
-- If a field is HTML date/datetime-local, use YYYY-MM-DD.
-- Specific mapping hints (use if those keys exist in the FORM_SCHEMA):
-  * primary_contact_no → digits-only phone (strip spaces and punctuation).
-  * country_code → "+91" if nationality/country implies India; else infer from phone if it includes a country prefix; else empty string.
-  * total_experience → compute from candidate.work_experience (full years). If uncertainty, return like "5+".
-  * dob / date_of_birth / birthdate → from candidate.birthdate, formatted as specified above.
-- When a select/radio exists, pick the best-matching option by VALUE or label text.
-- Return ONLY the JSON mapping; no commentary.
+    Output:
+    - A SINGLE JSON object mapping form keys to autofill values.
+    - Keys MUST be EXACTLY the keys from FORM_SCHEMA (do not invent new keys).
+    - Exclude any fields of type "file" (e.g., resume, coverLetter, input_file1, etc.).
+    - If a field has type "text" for date (e.g., key like "dob", "date_of_birth", "birthdate"), format as DD/MM/YYYY.
+    - If a field is of type "date" or "datetime-local", use YYYY-MM-DD.
+    - If a field is of type "time", use HH:MM (24-hour format).
+    - If a field is type "number", ensure it contains a numeric value.
+
+    Mapping hints (apply these where relevant in FORM_SCHEMA):
+    - `firstName` or similar → candidate.first_name
+    - `lastName` or similar → candidate.last_name
+    - `email` → candidate.email
+    - `primary_contact_no` or `phone` → candidate.phone (digits only; strip spaces, dashes, parentheses)
+    - `country_code`:
+        * If candidate.country or nationality is India → "+91"
+        * Else if phone has country prefix → infer and use (e.g., "+1" for US)
+        * Else → empty string
+    - `dob`, `date_of_birth`, `birthdate` → candidate.birthdate (formatted per rules above)
+    - `total_experience`:
+        * If candidate.work_experience has start and end years → calculate full years
+        * Else if textual → extract best-match number or return e.g., "5+"
+    - `previous_employer` → candidate.latest_employer or inferred from work_experience
+    - `skill`, `skills`, or checkbox-groups → match candidate.technical_skills to options
+    - `experience` (dropdown) → match best-fit to candidate.total_experience (e.g., "2-5", "6-10")
+    - `country` (dropdown) → match candidate.country or nationality
+    - `employmentType`, `remoteWork` (radio-groups):
+        * Use case-insensitive label match with candidate.employment_type or preferences
+    - `notifications` (checkbox-group) → match candidate.notification_preferences or similar
+    - If a field is `isRequired: true` and no value can be matched, leave it blank (but include the key)
+
+    Additional rules:
+    - Boolean values in schema (e.g., hasLabel, isRequired) → return `true` or `false` only if a field in candidate profile directly maps to it (e.g., boolean preferences, availability flags)
+    - Avoid default or placeholder values like "Select one" or empty dropdown values (e.g., "")
+    - For checkbox-group, map to a list of matched option values from candidate data
+    - For radio-group or dropdown, map to a single string from `options` that best matches candidate data by value or label (case-insensitive)
+    - Only return the final JSON mapping — no explanations, comments, or extra data
     """.strip()
 
     user = {
