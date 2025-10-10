@@ -5,7 +5,7 @@ from flask_jwt_extended import JWTManager
 from werkzeug.security import generate_password_hash
 from flask_cors import CORS
 
-# Import your SQLAlchemy handle and models once (no duplicates)
+# Import your SQLAlchemy handle and models once
 from .models import db, User
 
 migrate = Migrate()
@@ -16,7 +16,7 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object("config.Config")
 
-    # If DATABASE_URL not provided, default to instance/app.db
+    # Ensure instance path exists for SQLite fallback
     if not app.config.get("SQLALCHEMY_DATABASE_URI"):
         os.makedirs(app.instance_path, exist_ok=True)
         db_path = os.path.join(app.instance_path, "app.db")
@@ -27,10 +27,14 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
 
-    # Allow your React app / extension to call the API in dev
-    CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=False)
+    # Setup CORS depending on environment
+    if os.getenv("FLASK_ENV") == "production":
+        frontend_url = os.getenv("FRONTEND_URL", "")
+        CORS(app, resources={r"/api/*": {"origins": frontend_url}}, supports_credentials=True)
+    else:
+        CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=False)
 
-    # Blueprints
+    # Register blueprints
     from .auth import bp as auth_bp
     from .admin import bp as admin_bp
     from .candidates import bp as cand_bp
@@ -43,13 +47,13 @@ def create_app():
     app.register_blueprint(ai_bp,    url_prefix="/api/ai")
     app.register_blueprint(public_bp, url_prefix="/api/public")
 
+    # Health check
     @app.get("/api/healthz")
     def health():
         return {"status": "ok"}
 
-    # One-time dev bootstrap: create tables (if no migrations ran) and seed admin
+    # One-time bootstrap: create tables & default admin (only if allowed)
     with app.app_context():
-        # You can remove this create_all once you fully use Alembic migrations
         db.create_all()
 
         email    = os.getenv("ADMIN_EMAIL", "admin@example.com").lower().strip()
@@ -57,16 +61,18 @@ def create_app():
         mobile   = os.getenv("ADMIN_MOBILE", "9999999999")
         name     = os.getenv("ADMIN_NAME", "Administrator")
 
-        if not User.query.filter_by(email=email).first():
-            admin = User(
-                name=name,
-                email=email,
-                mobile=mobile,
-                password_hash=generate_password_hash(password),
-                role="admin",
-            )
-            db.session.add(admin)
-            db.session.commit()
-            app.logger.info(f"Default admin created: {email}")
+        # Only create default admin if explicitly allowed
+        if os.getenv("ADMIN_CREATE_ON_BOOT", "false").lower() == "true":
+            if not User.query.filter_by(email=email).first():
+                admin = User(
+                    name=name,
+                    email=email,
+                    mobile=mobile,
+                    password_hash=generate_password_hash(password),
+                    role="admin",
+                )
+                db.session.add(admin)
+                db.session.commit()
+                app.logger.info(f"Default admin created: {email}")
 
     return app

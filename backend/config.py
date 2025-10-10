@@ -6,17 +6,14 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt-change-me")
-
-    # Web UI uses cookies; Extension uses headers
     JWT_TOKEN_LOCATION = ["cookies", "headers"]
-    JWT_HEADER_NAME = "Authorization"  # default; can be omitted
-    JWT_HEADER_TYPE = "Bearer"         # default; can be omitted
+    JWT_HEADER_NAME = "Authorization"
+    JWT_HEADER_TYPE = "Bearer"
 
-    # Cookies (web only)
-    JWT_COOKIE_SECURE = False
+    JWT_COOKIE_SECURE = os.getenv("FLASK_ENV") == "production"  # True in prod
     JWT_COOKIE_SAMESITE = "Lax"
-    JWT_COOKIE_CSRF_PROTECT = False  # keep False in dev
+    JWT_COOKIE_CSRF_PROTECT = os.getenv("FLASK_ENV") != "production"
 
-    # (optional) make tokens last longer while testing
+    # Optional: token expiration
     # from datetime import timedelta
     # JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=12)

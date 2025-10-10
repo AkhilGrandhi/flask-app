@@ -8,8 +8,7 @@ from .utils import model_to_dict
 bp = Blueprint("ai", __name__)
 
 def _client():
-    # api_key = os.getenv("OPENAI_API_KEY")
-    api_key = "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"
+    api_key = os.getenv("OPENAI_API_KEY")  # production key from env
     if not api_key:
         return None
     return OpenAI(api_key=api_key)
