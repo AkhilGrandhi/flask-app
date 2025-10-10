@@ -151,33 +151,7 @@ async function collectFormFromPage(tabId) {
   }
 }
 
-// $btn.addEventListener("click", async () => {
-//   try {
-//     setStatus("Collecting candidate & form…");
-//     const cid = Number($cand.value);
-//     if (!cid) { setStatus("Pick a candidate"); return; }
 
-//     // 1) full candidate by id
-//     const { candidate } = await api(`/api/public/candidates/${cid}`);
-
-//     // 2) current page form schema
-//     const tabId = await getActiveTabId();
-//     if (!tabId) { setStatus("No active tab"); return; }
-//     const formSchema = await collectFormFromPage(tabId);
-
-//     // 3) log both
-//     console.log("=== SELECTED CANDIDATE ===");
-//     console.log(candidate);
-//     console.log("=== FORM SCHEMA (from page) ===");
-//     console.log(formSchema);
-
-//     const count = Array.isArray(formSchema?.fields) ? formSchema.fields.length : Object.keys(formSchema || {}).length;
-//     setStatus(`Got candidate + ${count} field(s). Check console.`);
-//   } catch (e) {
-//     console.error("[popup] error:", e);
-//     setStatus(e.message);
-//   }
-// });
 
 // --- replace the Autofill click handler with this version ---
 $btn.addEventListener("click", async () => {

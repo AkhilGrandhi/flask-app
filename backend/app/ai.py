@@ -9,7 +9,7 @@ bp = Blueprint("ai", __name__)
 
 def _client():
     # api_key = os.getenv("OPENAI_API_KEY")
-    api_key = "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"
+    api_key = "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"
     if not api_key:
         return None
     return OpenAI(api_key=api_key)
