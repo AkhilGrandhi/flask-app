@@ -78,9 +78,15 @@ def admin_update_candidate(cand_id):
         "first_name","last_name","email","phone","gender","nationality","citizenship_status",
         "visa_status","work_authorization","veteran_status","race_ethnicity","address_line1",
         "address_line2","city","state","postal_code","country","personal_website","linkedin",
-        "github","technical_skills","work_experience"
+        "github","technical_skills","work_experience",
+
+        # NEW
+        "expected_wage","contact_current_employer","recent_degree","authorized_work_us",
+        "authorized_without_sponsorship","referral_source","at_least_18",
+        "needs_visa_sponsorship","family_in_org","availability","education","certificates"
     ]:
         if field in data: setattr(c, field, data[field])
+        
     # booleans
     for field in ["willing_relocate","willing_travel","disability_status","military_experience"]:
         if field in data: setattr(c, field, bool(data[field]))

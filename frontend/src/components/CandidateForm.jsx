@@ -189,6 +189,60 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
             </Grid>
           )}
         </Grid>
+
+        
+        {/* Extra personal questions (2 per row) */}
+      <Grid container spacing={2} sx={{ mt: 0 }}>
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="Expected Salary / Hourly Wage"
+            value={v.expected_wage||""} onChange={set("expected_wage")} fullWidth />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="May we contact your current employer?"
+            value={v.contact_current_employer||""} onChange={set("contact_current_employer")} fullWidth />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="Most Recent Degree / Qualification"
+            value={v.recent_degree||""} onChange={set("recent_degree")} fullWidth />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="Legally authorized to work in the U.S.?"
+            value={v.authorized_work_us||""} onChange={set("authorized_work_us")} fullWidth />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="Authorized to work without sponsorship?"
+            value={v.authorized_without_sponsorship||""} onChange={set("authorized_without_sponsorship")} fullWidth />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="How did you learn about this opportunity?"
+            value={v.referral_source||""} onChange={set("referral_source")} fullWidth />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="Are you at least 18 years of age?"
+            value={v.at_least_18||""} onChange={set("at_least_18")} fullWidth />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="Require visa sponsorship now or in future?"
+            value={v.needs_visa_sponsorship||""} onChange={set("needs_visa_sponsorship")} fullWidth />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="Family member employed with our organization?"
+            value={v.family_in_org||""} onChange={set("family_in_org")} fullWidth />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField size="small" label="Availability to start"
+            value={v.availability||""} onChange={set("availability")} fullWidth />
+        </Grid>
+      </Grid>
       </Paper>
 
       {/* ADDRESS */}
@@ -262,6 +316,16 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
               required fullWidth multiline minRows={3}
               error={!!errors.work_experience} helperText={errors.work_experience}/>
           </Grid>
+          <Grid item xs={12}>
+          <TextField size="small" label="Education"
+            value={v.education||""} onChange={set("education")}
+            fullWidth multiline minRows={3}/>
+        </Grid>
+        <Grid item xs={12}>
+          <TextField size="small" label="Certificates"
+            value={v.certificates||""} onChange={set("certificates")}
+            fullWidth multiline minRows={3}/>
+        </Grid>
         </Grid>
       </Paper>
     </Box>

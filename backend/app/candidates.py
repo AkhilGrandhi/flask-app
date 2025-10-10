@@ -48,7 +48,22 @@ def create_candidate():
         linkedin=data.get("linkedin"), github=data.get("github"),
         technical_skills=data.get("technical_skills"),
         work_experience=data.get("work_experience"),
+
+        # NEW fields
+        expected_wage=data.get("expected_wage"),
+        contact_current_employer=data.get("contact_current_employer"),
+        recent_degree=data.get("recent_degree"),
+        authorized_work_us=data.get("authorized_work_us"),
+        authorized_without_sponsorship=data.get("authorized_without_sponsorship"),
+        referral_source=data.get("referral_source"),
+        at_least_18=data.get("at_least_18"),
+        needs_visa_sponsorship=data.get("needs_visa_sponsorship"),
+        family_in_org=data.get("family_in_org"),
+        availability=data.get("availability"),
+        education=data.get("education"),
+        certificates=data.get("certificates"),
     )
+
     if data.get("birthdate"):
         from datetime import date
         y,m,d = map(int, data["birthdate"].split("-")); c.birthdate = date(y,m,d)
@@ -68,11 +83,18 @@ def update_candidate(cand_id):
         "first_name","last_name","email","phone","gender","nationality","citizenship_status",
         "visa_status","work_authorization","veteran_status","race_ethnicity","address_line1",
         "address_line2","city","state","postal_code","country","personal_website","linkedin",
-        "github","technical_skills","work_experience"
+        "github","technical_skills","work_experience",
+
+        # NEW
+        "expected_wage","contact_current_employer","recent_degree","authorized_work_us",
+        "authorized_without_sponsorship","referral_source","at_least_18",
+        "needs_visa_sponsorship","family_in_org","availability","education","certificates"
     ]:
         if field in data: setattr(c, field, data[field])
+
     for field in ["willing_relocate","willing_travel","disability_status","military_experience"]:
         if field in data: setattr(c, field, bool(data[field]))
+        
     if "birthdate" in data:
         from datetime import date
         if data["birthdate"]:
