@@ -45,3 +45,18 @@ export const listCandidateJobs = (id)               => api(`/candidates/${id}/jo
 export const addCandidateJob   = (id, payload)      => api(`/candidates/${id}/jobs`, { method: "POST", body: payload });
 export const deleteCandidateJob = (id, jobRowId)    => api(`/candidates/${id}/jobs/${jobRowId}`, { method: "DELETE" });
 
+// Resume generation
+export const generateResume = async (job_desc, candidate_info, file_type = "word") => {
+  const res = await fetch(`${API}/resume/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ job_desc, candidate_info, file_type })
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || res.statusText);
+  }
+  return res.blob(); // Return blob for download
+};
+

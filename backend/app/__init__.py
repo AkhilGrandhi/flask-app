@@ -36,12 +36,14 @@ def create_app():
     from .candidates import bp as cand_bp
     from .ai import bp as ai_bp
     from .public import bp as public_bp
+    from .candidateresumebuilder import bp as resume_bp
 
     app.register_blueprint(auth_bp,  url_prefix="/api/auth")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
     app.register_blueprint(cand_bp,  url_prefix="/api/candidates")
     app.register_blueprint(ai_bp,    url_prefix="/api/ai")
     app.register_blueprint(public_bp, url_prefix="/api/public")
+    app.register_blueprint(resume_bp, url_prefix="/api/resume")
 
     @app.get("/api/healthz")
     def health():

@@ -157,4 +157,9 @@ class CandidateJob(db.Model):
     candidate_id = db.Column(db.Integer, db.ForeignKey("candidate.id"), nullable=False, index=True)
     job_id = db.Column(db.String(120), nullable=False)
     job_description = db.Column(db.Text, nullable=False)
+
+    # NEW: what we generate + where we saved the .docx
+    # resume_content = db.Column(db.Text)
+    # docx_path = db.Column(db.String(512))
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
