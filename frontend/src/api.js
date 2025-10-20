@@ -38,3 +38,10 @@ export const listMyCandidates = () => api("/candidates");
 export const createCandidate = (payload) => api("/candidates", { method:"POST", body: payload });
 export const updateCandidate = (id, payload) => api(`/candidates/${id}`, { method:"PUT", body: payload });
 export const deleteCandidate = (id) => api(`/candidates/${id}`, { method:"DELETE" });
+
+// Candidate details + jobs
+export const getCandidate     = (id)                => api(`/candidates/${id}`);
+export const listCandidateJobs = (id)               => api(`/candidates/${id}/jobs`);
+export const addCandidateJob   = (id, payload)      => api(`/candidates/${id}/jobs`, { method: "POST", body: payload });
+export const deleteCandidateJob = (id, jobRowId)    => api(`/candidates/${id}/jobs/${jobRowId}`, { method: "DELETE" });
+
