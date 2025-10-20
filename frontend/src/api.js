@@ -43,6 +43,7 @@ export const deleteCandidate = (id) => api(`/candidates/${id}`, { method:"DELETE
 export const getCandidate     = (id)                => api(`/candidates/${id}`);
 export const listCandidateJobs = (id)               => api(`/candidates/${id}/jobs`);
 export const addCandidateJob   = (id, payload)      => api(`/candidates/${id}/jobs`, { method: "POST", body: payload });
+export const updateCandidateJob = (id, jobRowId, payload) => api(`/candidates/${id}/jobs/${jobRowId}`, { method: "PUT", body: payload });
 export const deleteCandidateJob = (id, jobRowId)    => api(`/candidates/${id}/jobs/${jobRowId}`, { method: "DELETE" });
 
 // Resume generation
