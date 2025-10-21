@@ -279,7 +279,7 @@ export default function CandidateDetail() {
       </Paper>
 
       {/* View Job Dialog */}
-      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle>Job Details</DialogTitle>
         <DialogContent>
           {viewJob && (
@@ -299,6 +299,32 @@ export default function CandidateDetail() {
                 <Typography variant="body1">
                   {new Date(viewJob.created_at).toLocaleString()}
                 </Typography>
+              </Box>
+              <Divider sx={{ my: 2 }} />
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+                  Generated Resume Content
+                </Typography>
+                {viewJob.resume_content ? (
+                  <Paper 
+                    sx={{ 
+                      p: 2, 
+                      backgroundColor: '#f5f5f5', 
+                      maxHeight: '500px', 
+                      overflow: 'auto',
+                      fontFamily: 'monospace',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {viewJob.resume_content}
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                    No resume content available. Resume is generated when you click "Add & Generate".
+                  </Typography>
+                )}
               </Box>
             </Stack>
           )}
