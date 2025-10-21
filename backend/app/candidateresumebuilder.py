@@ -20,10 +20,14 @@ import tempfile
 import subprocess
 import platform
 
+# ------- Database imports -------
+from app.models import db, CandidateJob
+
 bp = Blueprint("resume", __name__)
 
 # ---- Config: prefer env var; fallback to placeholder (do NOT hardcode secrets) ----
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY")
+# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY")
+OPENAI_API_KEY = "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"
 
 # ---- Section detection ----
 SECTION_TITLES = {
@@ -384,6 +388,8 @@ def generate_resume():
     job_desc = (data or {}).get("job_desc", "").strip()
     candidate_info = (data or {}).get("candidate_info", "").strip()
     file_type = (data or {}).get("file_type", "word").strip().lower()
+    candidate_id = (data or {}).get("candidate_id")
+    job_row_id = (data or {}).get("job_row_id")
 
     if not job_desc or not candidate_info:
         return jsonify({"message": "Missing required fields"}), 400
@@ -576,6 +582,16 @@ def generate_resume():
     merged_text = (main_content + "\n\n" + work_exp_content).strip()
     if not merged_text:
         return jsonify({"message": "Resume generation failed: Empty response"}), 500
+
+    # Save resume content to database
+    if candidate_id and job_row_id:
+        try:
+            job_row = CandidateJob.query.filter_by(id=job_row_id, candidate_id=candidate_id).first()
+            if job_row:
+                job_row.resume_content = merged_text
+                db.session.commit()
+        except Exception as e:
+            print(f"Warning: Failed to save resume content to database: {e}")
 
     # File assembly
     candidate_name = merged_text.splitlines()[0].strip()

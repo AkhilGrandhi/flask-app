@@ -73,12 +73,13 @@ export default function CandidateDetail() {
       setErr("");
       setGenerating(true);
       
-      // Add job first
-      await addCandidateJob(id, { job_id: jobId, job_description: jobDesc });
+      // Add job first and get the job row ID
+      const response = await addCandidateJob(id, { job_id: jobId, job_description: jobDesc });
+      const jobRowId = response.id;
       
-      // Generate and download resume
+      // Generate and download resume, passing candidate_id and job_row_id
       const candidateInfo = formatCandidateInfo(cand);
-      const blob = await generateResume(jobDesc, candidateInfo, "word");
+      const blob = await generateResume(jobDesc, candidateInfo, "word", id, jobRowId);
       
       // Trigger download
       const url = window.URL.createObjectURL(blob);
@@ -233,6 +234,7 @@ export default function CandidateDetail() {
             <TableRow>
               <TableCell>Job ID</TableCell>
               <TableCell>Job Description</TableCell>
+              <TableCell>Resume</TableCell>
               <TableCell>Time</TableCell>
               <TableCell align="right">Actions</TableCell>
             </TableRow>
@@ -245,6 +247,17 @@ export default function CandidateDetail() {
                   {j.job_description.length > 100 
                     ? j.job_description.substring(0, 100) + '...' 
                     : j.job_description}
+                </TableCell>
+                <TableCell>
+                  {j.resume_content ? (
+                    j.resume_content.length > 100 
+                      ? j.resume_content.substring(0, 100) + '...' 
+                      : j.resume_content
+                  ) : (
+                    <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                      Not generated
+                    </Typography>
+                  )}
                 </TableCell>
                 <TableCell sx={{ whiteSpace:"nowrap" }}>
                   {new Date(j.created_at).toLocaleString()}
@@ -259,7 +272,7 @@ export default function CandidateDetail() {
               </TableRow>
             ))}
             {(!cand.jobs || cand.jobs.length===0) && (
-              <TableRow><TableCell colSpan={4}>No rows yet.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5}>No rows yet.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

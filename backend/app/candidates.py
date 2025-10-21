@@ -154,6 +154,7 @@ def list_jobs(cand_id):
                 "id": j.id,
                 "job_id": j.job_id,
                 "job_description": j.job_description,
+                "resume_content": j.resume_content,
                 "created_at": j.created_at.isoformat(),
             }
             for j in sorted(c.jobs, key=lambda x: x.id, reverse=True)

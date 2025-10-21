@@ -143,6 +143,7 @@ class Candidate(db.Model):
                     "id": j.id,
                     "job_id": j.job_id,
                     "job_description": j.job_description,
+                    "resume_content": j.resume_content,
                     "created_at": j.created_at.isoformat(),
                 }
                 for j in sorted(self.jobs, key=lambda x: x.id, reverse=True)
@@ -159,7 +160,7 @@ class CandidateJob(db.Model):
     job_description = db.Column(db.Text, nullable=False)
 
     # NEW: what we generate + where we saved the .docx
-    # resume_content = db.Column(db.Text)
-    # docx_path = db.Column(db.String(512))
+    resume_content = db.Column(db.Text)
+    docx_path = db.Column(db.String(512))
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
