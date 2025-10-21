@@ -27,7 +27,7 @@ bp = Blueprint("resume", __name__)
 
 # ---- Config: prefer env var; fallback to placeholder (do NOT hardcode secrets) ----
 # OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY")
-OPENAI_API_KEY = "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"
+
 
 # ---- Section detection ----
 SECTION_TITLES = {
