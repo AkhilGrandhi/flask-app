@@ -1,10 +1,12 @@
+# resume_blueprint.py
 from flask import Blueprint, request, send_file, jsonify
 from openai import OpenAI
 from io import BytesIO
+import os
 import re
 import traceback
-import os
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 # ------- Word (python-docx) -------
 from docx import Document
@@ -13,11 +15,16 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
+# ------- PDF (LibreOffice conversion) -------
+import tempfile
+import subprocess
+import platform
+
 bp = Blueprint("resume", __name__)
 
+# ---- Config: prefer env var; fallback to placeholder (do NOT hardcode secrets) ----
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY")
 
-# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_API_KEY = "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"
 # ---- Section detection ----
 SECTION_TITLES = {
     "professional summary",
@@ -52,7 +59,13 @@ def is_contact_line(line: str) -> bool:
     if not line:
         return False
     l = line.lower()
-    return ("email" in l or "@" in l or "phone" in l or re.search(r"\b\d{10}\b", l) or re.search(r"\+\d", l))
+    return (
+        "email" in l
+        or "@" in l
+        or "phone" in l
+        or re.search(r"\b\d{10}\b", l) is not None
+        or re.search(r"\+\d", l) is not None
+    )
 
 def is_section_title(line: str) -> bool:
     if not line:
@@ -127,22 +140,20 @@ def add_skills_section(doc, lines, idx):
     idx = add_section_title(doc, lines[idx], idx)
     category = None
     skills = []
-
     while idx < len(lines) and not is_section_title(lines[idx]):
         line = lines[idx].strip()
-
         if not line:
             idx += 1
             continue
 
-        # Case 1: Inline format (comma-separated skills, no "-")
+        # Case 1: Inline list under an existing category
         if category and not line.startswith("-") and "," in line:
             skills = [s.strip() for s in line.split(",") if s.strip()]
             p = doc.add_paragraph()
             r1 = p.add_run(category + ": ")
             r1.bold = True
-            r2 = p.add_run(", ".join(skills))
-            category, skills = None, []  # reset after flush
+            p.add_run(", ".join(skills))
+            category, skills = None, []
 
         # Case 2: New category line
         elif not line.startswith("-"):
@@ -150,39 +161,37 @@ def add_skills_section(doc, lines, idx):
                 p = doc.add_paragraph()
                 r1 = p.add_run(category + ": ")
                 r1.bold = True
-                r2 = p.add_run(", ".join(skills))
+                p.add_run(", ".join(skills))
             category = line
             skills = []
 
         # Case 3: Bulleted skill
         else:
             skills.append(line.lstrip("- ").strip())
-
         idx += 1
 
-    # flush last category
+    # Flush last category
     if category and skills:
         p = doc.add_paragraph()
         r1 = p.add_run(category + ": ")
         r1.bold = True
-        r2 = p.add_run(", ".join(skills))
-
+        p.add_run(", ".join(skills))
     return idx
 
 def add_experience_section(doc, lines, idx):
     idx = add_section_title(doc, lines[idx], idx)
-    company_seen = False  # track first company
+    company_seen = False
     while idx < len(lines) and not is_section_title(lines[idx]):
         line = lines[idx]
 
-        # ✅ Company – Location OR Role – Dates
+        # Company – Location OR Role – Dates
         if " – " in line and ":" not in line:
-            if " to " in line:  # ✅ Role line
+            if " to " in line:  # role line
                 p = doc.add_paragraph(line)
                 run = p.runs[0]
                 run.bold = True
                 run.font.size = Pt(10)
-            else:  # ✅ Company line
+            else:  # company line
                 p = doc.add_paragraph(line)
                 run = p.runs[0]
                 run.bold = True
@@ -191,7 +200,7 @@ def add_experience_section(doc, lines, idx):
                     p.paragraph_format.space_before = Pt(10)
                 company_seen = True
 
-        elif " – " in line and ":" in line:  # job + bullet description
+        elif " – " in line and ":" in line:  # job + bullets in same line
             job_title, rest = line.split(":", 1)
             p = doc.add_paragraph(job_title.strip())
             p.runs[0].bold = True
@@ -201,10 +210,6 @@ def add_experience_section(doc, lines, idx):
                     bullet_para = doc.add_paragraph(part.strip(), style="List Bullet")
                     bullet_para.paragraph_format.left_indent = Inches(0.25)
 
-        elif line.startswith("- "):  # bullets with -
-            bullet_para = doc.add_paragraph(line[2:].strip(), style="List Bullet")
-            bullet_para.paragraph_format.left_indent = Inches(0.25)
-
         elif line.startswith("Technologies Used"):
             heading, _, techs = line.partition(":")
             p = doc.add_paragraph()
@@ -213,9 +218,11 @@ def add_experience_section(doc, lines, idx):
             p.add_run(techs.strip())
             p.paragraph_format.space_after = Pt(10)
 
+        elif line.startswith("- "):  # standard bullets
+            bullet_para = doc.add_paragraph(line[2:].strip(), style="List Bullet")
+            bullet_para.paragraph_format.left_indent = Inches(0.25)
         else:
             doc.add_paragraph(line)
-
         idx += 1
     return idx
 
@@ -224,8 +231,7 @@ def add_certifications_section(doc, lines, idx):
     while idx < len(lines) and not is_section_title(lines[idx]):
         line = lines[idx].lstrip("- ").strip()
         if line:
-            # Use Word bullets (keep your formatting)
-            p = doc.add_paragraph(line, style="List Bullet")
+            doc.add_paragraph(line, style="List Bullet")
         idx += 1
     return idx
 
@@ -260,11 +266,12 @@ def extract_total_experience(candidate_info: str) -> str:
         if len(parts) != 2:
             continue
         start_str, end_str = parts
+        # parse start
         try:
             start_date = datetime.strptime(start_str, "%b %Y")
         except ValueError:
             start_date = datetime.strptime(start_str, "%B %Y")
-
+        # parse end
         if "present" in end_str.lower():
             end_date = today
         else:
@@ -272,14 +279,13 @@ def extract_total_experience(candidate_info: str) -> str:
                 end_date = datetime.strptime(end_str, "%b %Y")
             except ValueError:
                 end_date = datetime.strptime(end_str, "%B %Y")
-
         months = (end_date.year - start_date.year) * 12 + (end_date.month - start_date.month)
         total_months += months
 
-    total_years, total_m = divmod(total_months, 12)
-    print(f"Total Experience: {total_years} years {total_m} months")
-    return f"Total Experience: {total_years} years {total_m} months"
+    years, m = divmod(total_months, 12)
+    return f"Total Experience: {years} years {m} months"
 
+# ---- Word generator ----
 def create_resume_word(content: str) -> Document:
     doc = Document()
     for section in doc.sections:
@@ -301,13 +307,9 @@ def create_resume_word(content: str) -> Document:
     lines = [ln.strip("• ").strip() for ln in content.splitlines() if ln and str(ln).strip()]
     idx = 0
 
-    # Candidate Name
     idx = add_candidate_name(doc, lines, idx)
-
-    # Contact Info
     idx = add_contact_info(doc, lines, idx)
 
-    # Sections
     while idx < len(lines):
         if is_section_title(lines[idx]):
             section_key = lines[idx].strip().rstrip(":").lower()
@@ -325,37 +327,55 @@ def create_resume_word(content: str) -> Document:
                 idx = add_section_title(doc, lines[idx], idx)
         else:
             idx += 1
-
     return doc
+
+def create_resume_pdf(resume_text: str) -> BytesIO:
+    # 1) Create a DOCX via the same builder
+    tmp_docx = tempfile.NamedTemporaryFile(delete=False, suffix=".docx")
+    doc = create_resume_word(resume_text)
+    doc.save(tmp_docx.name)
+
+    # 2) Choose LibreOffice executable
+    system = platform.system()
+    soffice_path = (
+        r"C:\Program Files\LibreOffice\program\soffice.exe" if system == "Windows" else "libreoffice"
+    )
+
+    # 3) Convert DOCX -> PDF
+    try:
+        subprocess.run(
+            [soffice_path, "--headless", "--convert-to", "pdf", tmp_docx.name, "--outdir", os.path.dirname(tmp_docx.name)],
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"LibreOffice PDF conversion failed: {e}")
+    except FileNotFoundError:
+        raise RuntimeError(f"LibreOffice not found at {soffice_path}. Install it or update the path.")
+
+    tmp_pdf_path = os.path.splitext(tmp_docx.name)[0] + ".pdf"
+    with open(tmp_pdf_path, "rb") as f:
+        pdf_bytes = BytesIO(f.read())
+
+    # 4) Cleanup temps
+    try:
+        os.remove(tmp_docx.name)
+        os.remove(tmp_pdf_path)
+    except OSError:
+        pass
+
+    pdf_bytes.seek(0)
+    return pdf_bytes
 
 # ----------------------------
 # Helpers for merging sections
 # ----------------------------
-
 def _ensure_title(text: str) -> str:
-    """Normalize section titles to match your detector and renderer."""
-    # Make sure common titles are uppercase and standalone lines
     return re.sub(r"\b(work experience)\b", "WORK EXPERIENCE", text, flags=re.IGNORECASE)
 
-def _insert_before_section(base_text: str, insert_title: str, insert_block: str) -> str:
-    """
-    Insert `insert_block` before the first occurrence of `insert_title`
-    (title should be exact like 'CERTIFICATIONS' or 'EDUCATION'). 
-    If not found, return base_text + insert_block at the end.
-    """
-    pattern = rf"(^|\n){re.escape(insert_title)}\s*\n"
-    m = re.search(pattern, base_text)
-    if m:
-        pos = m.start()
-        return base_text[:pos].rstrip() + "\n\n" + insert_block.strip() + "\n\n" + base_text[pos:].lstrip()
-    # fallback append
-    return base_text.rstrip() + "\n\n" + insert_block.strip() + "\n"
-
-
-# ---- API endpoint ----
+# ---- API endpoint (Blueprint) ----
 @bp.post("/generate")
 def generate_resume():
-    """Generate and download a resume in Word format"""
+    # Inputs
     try:
         data = request.get_json(force=True, silent=False)
     except Exception:
@@ -365,208 +385,224 @@ def generate_resume():
     candidate_info = (data or {}).get("candidate_info", "").strip()
     file_type = (data or {}).get("file_type", "word").strip().lower()
 
-    work_exp_str = extract_total_experience(candidate_info)
-
     if not job_desc or not candidate_info:
         return jsonify({"message": "Missing required fields"}), 400
 
+    work_exp_str = extract_total_experience(candidate_info)
+
+    # OpenAI client
     try:
         client = OpenAI(api_key=OPENAI_API_KEY)
+    except Exception as e:
+        return jsonify({"message": f"OpenAI client init error: {e}"}), 500
 
-        # ----------- FIRST CALL (Header + Summary + Skills + Certifications + Education, NO Work Experience) -----------
-        main_prompt = f"""
-        You are a professional resume writer. Using the Job Description and Candidate Information provided below, generate a clean, ATS-optimized resume that strictly follows the section order and formatting rules listed here:
+    # --- Prompts from the new script (main sections + experience), run in parallel ---
+    def generate_main_sections():
+        prompt = f"""
+            You are a professional resume writer. Using the Job Description and Candidate Information provided below, generate a clean, ATS-optimized resume that strictly follows the section order and formatting rules listed here:
 
-        ⚠️ IMPORTANT: Output must contain the **resume only** — do not include explanations, disclaimers, notes, or extra text outside of the resume.
+            ⚠️ IMPORTANT: Output must contain the **resume only** — do not include explanations, disclaimers, notes, or extra text outside of the resume.
 
-        SECTION ORDER:
+            SECTION ORDER:
 
-        1. **PROFESSIONAL SUMMARY** – Include **6 to 8 bullet points**.  
-            - The **first bullet point must always mention the candidate’s total years of professional experience**
-            WORK Experience: {work_exp_str}  
-            - Represent the total as “X+ years of experience” (e.g., 5+ years, 6+ years), based **strictly on the earliest start date and the latest end year found in the CANDIDATE INFORMATION**, ignoring any "Present" or current date mentions.  
-            - Do not infer, estimate, or change the experience from the Job Description or any other source.  
-            - The remaining bullet points (5–7) must highlight key skills, achievements, career highlights, and qualifications aligned with the Job Description.  
-            - Each bullet must start with "- ".  
+            1. **PROFESSIONAL SUMMARY** – Include **6 to 8 bullet points**.  
+                - The first bullet point under WORK EXPERIENCE must always mention the candidate's total years of professional experience. If this information is available in the JOB DESCRIPTION, use the role mentioned there when framing the experience.
+                  WORK EXPERIENCE: {work_exp_str}
+                - Represent the total as "X+ years of experience" (e.g., 5+ years, 6+ years)
+                - The remaining 3 liner detailed bullet points (6–8) must highlight key skills, achievements, career highlights, and qualifications aligned with the Job Description.  
+                - Each bullet must start with "- ".  
 
+            2. **SKILLS** – Based on the Job Description and Candidate Information:
 
-        2. **SKILLS** – Based on the Job Description and Candidate Information:
+                1. Identify the **most relevant role/position** (e.g., .NET Developer, Java Backend Engineer, Salesforce Developer, Data Engineer, DevOps Engineer).
+                2. Create a **resume-ready Skills section** with **10–12 subsections**, tailored to that role and the JD.
 
-            1. Identify the **most relevant role/position** (e.g., .NET Developer, Java Backend Engineer, Salesforce Developer, Data Engineer, DevOps Engineer).
-            2. Create a **resume-ready Skills section** with **15–20 subsections**, tailored to that role and the JD.
+                ⚠️ RULES:
+                - Subsections must be **category-based** and recruiter-friendly (e.g., Programming Languages, Frameworks & Libraries, Databases, Cloud Platforms, DevOps & CI/CD, Testing & QA, Security & Compliance, Monitoring & Observability, Collaboration Tools).
+                - Use concise, ATS-optimized, professional wording for subsection titles.
+                - Fill each subsection with **8–20 related technologies/tools**, directly matching the JD and candidate info.
+                - Where possible, **expand categories with specific services or tools** (e.g., list AWS services like EC2, S3, Glue, Lambda, CloudWatch — not just "AWS").
+                - Always mirror exact JD keywords (e.g., if JD says "GCP, Spark, BigQuery, Kafka" → those must appear under correct categories).
+                - Include versions where impactful (e.g., Java 11/17, .NET 6/7, Spring Boot 3.x, Hadoop 3.x).
+                - Do not invent irrelevant categories or mix unrelated technologies into the wrong subsection.
+                - Always include these **mandatory baseline categories**, even if not explicitly in the JD:
+                    - Programming Languages  
+                    - Operating Systems  
+                    - Cloud Platforms
+                    - DevOps & CI/CD Tools  
+                    - Development Tools                   
 
-            ⚠️ RULES:
-            - Subsections must be **category-based** and recruiter-friendly (e.g., Programming Languages, Frameworks & Libraries, Databases, Cloud Platforms, DevOps & CI/CD, Testing & QA, Security & Compliance, Monitoring & Observability, Collaboration Tools).
-            - Use concise, ATS-optimized, professional wording for subsection titles.
-            - Fill each subsection with **8–20 related technologies/tools**, directly matching the JD and candidate info.
-            - Where possible, **expand categories with specific services or tools** (e.g., list AWS services like EC2, S3, Glue, Lambda, CloudWatch — not just "AWS").
-            - Always mirror exact JD keywords (e.g., if JD says “GCP, Spark, BigQuery, Kafka” → those must appear under correct categories).
-            - Include versions where impactful (e.g., Java 11/17, .NET 6/7, Spring Boot 3.x, Hadoop 3.x).
-            - Do not invent irrelevant categories or mix unrelated technologies into the wrong subsection.
-            - Always include these **mandatory baseline categories**, even if not explicitly in the JD:
+                Example subsections (adjust dynamically per JD):  
                 - Programming Languages  
-                - Operating Systems  
-                - Cloud Platforms
+                - Frameworks & Libraries  
+                - Databases & Data Warehousing  
+                - Big Data & Streaming  
+                - Cloud Platforms  
                 - DevOps & CI/CD Tools  
-                - Development Tools                   
+                - Testing & QA  
+                - Security & Compliance  
+                - Monitoring & Observability  
+                - Collaboration Tools  
+                - Documentation Tools  
+                - Operating Systems  
 
-            Example subsections (adjust dynamically per JD):  
-            - Programming Languages  
-            - Frameworks & Libraries  
-            - Databases & Data Warehousing  
-            - Big Data & Streaming  
-            - Cloud Platforms  
-            - DevOps & CI/CD Tools  
-            - Testing & QA  
-            - Security & Compliance  
-            - Monitoring & Observability  
-            - Collaboration Tools  
-            - Documentation Tools  
-            - Operating Systems  
+                ⚠️ Ensure each subsection is **fully loaded with at least 8 skills** and contains **16–20 skills where possible**.
+                ⚠️ All technologies listed here must also appear in the **Technologies Used** lines under the WORK EXPERIENCE section.
 
-            ⚠️ Ensure each subsection is **fully loaded with at least 8 skills** and contains **16–20 skills where possible**.
-            ⚠️ All technologies listed here must also appear in the **Technologies Used** lines under the WORK EXPERIENCE section.
 
-        4. **CERTIFICATIONS**
 
-        5. **EDUCATION**
+            3. **CERTIFICATIONS**
 
-        FORMATTING RULES:
-        - Display the candidate’s **Name** at the top.
-        - Center **Email**, **Phone Number**, and **Candidate Location** on the same line directly below the name, using the format:  
-        Email: | Mobile: | Location:
-        - Use 0.5-inch page margins.
-        - Add a tab space before each bullet point.
-        - Do not use markdown or bullet characters like "-", "*", or "•".
-        - The **SKILLS** section must always follow the defined categories above—never as a plain list.
-        - Always ensure the final resume spans at least 2 full pages of Word or PDF output.
+            4. **EDUCATION** 
+                Format the education section clearly and consistently using the structure shown below. 
 
-        JOB DESCRIPTION:
-        {job_desc}
+                Example Format:
+                    MS in Computer Science
+                    University of XYZ, USA | GPA: 3.8/4.0
+                    B.Tech in Computer Science Engineering
+                    JNTU Hyderabad | Percentage: 85%
 
-        CANDIDATE INFORMATION:
-        {candidate_info}
-        """
+                Make sure the formatting follows this structure exactly:
+                [Degree] in [Field of Study]
+                [University Name] | [GPA or Percentage]
 
-        resp_main = client.chat.completions.create(  # <- fixed: chat.completions
+                Do not include additional details like thesis titles, coursework, or graduation years unless specifically asked.
+            
+            ⚠️ IMPORTANT: Do NOT generate the WORK EXPERIENCE section. It will be added separately.
+
+            FORMATTING RULES:
+            - Display the candidate's **Name** at the top.
+            - Center **Email**, **Phone Number**, and **Candidate Location** on the same line directly below the name, using the format:  
+            Email: | Mobile: | Location:
+            - Use 0.5-inch page margins.
+            - Add a tab space before each bullet point.
+            - Do not use markdown or bullet characters like "-", "*", or "•".
+            - The **SKILLS** section must always follow the defined categories above—never as a plain list.
+            - Always ensure the final resume spans at least 2 full pages of Word or PDF output.
+
+            JOB DESCRIPTION:
+            {job_desc}
+
+            CANDIDATE INFORMATION:
+            {candidate_info}
+            """
+        resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You write polished, ATS-friendly resumes."},
-                {"role": "user", "content": main_prompt},
+                {"role": "user", "content": prompt},
             ],
-            temperature=0.6,
+            temperature=0.3,
         )
-        main_resume_text = resp_main.choices[0].message.content or ""
+        return resp.choices[0].message.content or ""
 
-        # ----------- SECOND CALL (ONLY Work Experience Section) -----------
+    def generate_work_experience():
         exp_prompt = f"""
-        Generate ONLY the WORK EXPERIENCE section for this resume.
+            Generate ONLY the WORK EXPERIENCE section for this resume.
 
-                WORK EXPERIENCE – Merge WORK HISTORY and WORK EXPERIENCE into a unified section. For each job role:
+            3. **WORK EXPERIENCE** – Merge **Work History** and **Work Experience** into a unified section. For each job role:
+                - ⚠️ IMPORTANT: Use WORK EXPERIENCE from the CANDIDATE INFORMATION only
+                - Include the Job Title, Company Name (bold), Job Location, and timeline using the format:
+                    [Company Name] – [Job Location]  
+                    [Job Title] – [Start Month Year] to [End Month Year]
 
-        - ⚠️ IMPORTANT: Use WORK EXPERIENCE from the CANDIDATE_INFORMATION only.
-        - For each job role, include:
-        - Job Title
-        - Company Name (bold)
-        - Job Location
-        - Timeline: Format as [Company Name] – [Job Location]  
-            [Job Title] – [Start Month Year] to [End Month Year]
+            - Add 10 to 15 high-impact bullet points per role. Each bullet point must:
+            - Each bullet point must be exactly 2 lines long, with rich and specific details — including technologies used, metrics, project outcomes, team collaboration, challenges faced, and business impact.
+            - "When generating points for each company, first identify the industry it operates in, and then tailor the points to be relevant to that specific industry projects.
+            - Start with a strong action verb (e.g., Spearheaded, Engineered, Optimized, Automated, Delivered).
+            - Focus on achievements, measurable outcomes, and business value rather than just responsibilities.
+            - Include quantifiable results wherever possible (e.g., improved ETL performance by 35%, reduced deployment time by 40%, cut costs by 20% annually).
+            - Highlight leadership, innovation, automation, and cross-functional collaboration.
+            - Showcase modern practices (e.g., Cloud Migration, DevOps, CI/CD automation, Data Engineering, AI/ML, Security, Scalability).
+            - Be specific, technical, and results-driven — not generic.
+            
 
-        - Add 10 to 15 high-impact bullet points per role. Each bullet point must:
-        - Each bullet point must be exactly 2 lines long, with rich and specific details — including technologies used, metrics, project outcomes, team collaboration, challenges faced, and business impact.
-        - "When generating points for each company, first identify the industry it operates in, and then tailor the points to be relevant to that specific industry projects.
-        - Start with a strong action verb (e.g., Spearheaded, Engineered, Optimized, Automated, Delivered).
-        - Focus on achievements, measurable outcomes, and business value rather than just responsibilities.
-        - Include quantifiable results wherever possible (e.g., improved ETL performance by 35%, reduced deployment time by 40%, cut costs by 20% annually).
-        - Highlight leadership, innovation, automation, and cross-functional collaboration.
-        - Showcase modern practices (e.g., Cloud Migration, DevOps, CI/CD automation, Data Engineering, AI/ML, Security, Scalability).
-        - Be specific, technical, and results-driven — not generic.
-        
+            - ⚠️ Validate technology usage against the job timeline:
+            - ONLY include technologies, tools, frameworks, or platforms that were **publicly available and in practical use** during the given employment period.
+            - Example: Do NOT include Generative AI, Azure OpenAI, MS Fabric, or other technologies launched post-2021 in roles dated 2020 or earlier.
+            - Ensure all technologies and practices mentioned are **realistically applicable** based on release year and industry adoption timeline.
 
-        - ⚠️ Validate technology usage against the job timeline:
-        - ONLY include technologies, tools, frameworks, or platforms that were **publicly available and in practical use** during the given employment period.
-        - Example: Do NOT include Generative AI, Azure OpenAI, MS Fabric, or other technologies launched post-2021 in roles dated 2020 or earlier.
-        - Ensure all technologies and practices mentioned are **realistically applicable** based on release year and industry adoption timeline.
+            - Total bullet points should follow this logic:
+            - For 1 company: 15 to 20 bullet points.
+            - For 2 companies: 15 to 20 bullet points each (total: 30-40 points).
+            - For 3 companies: 10 to 15 bullet points each (total: 30-45 points).
+            - For 4 companies: 10 to 15 bullet points each (total: 40-60 points).
+            - For 5 companies: 10 to 15 bullet points each (total: 60-70 points).
+            - For 6 companies: 10 to 15 bullet points each (total: 70-80 points).
+            - For 7 companies: 10 to 15 bullet points each (total: 70-80 points).
 
-        - Total bullet points should follow this logic:
-        - For 1 company: 15 to 20 bullet points.
-        - For 2 companies: 15 to 20 bullet points each (total: 30-40 points).
-        - For 3 companies: 10 to 15 bullet points each (total: 30-45 points).
-        - For 4 companies: 10 to 15 bullet points each (total: 40-60 points).
-        - For 5 companies: 10 to 15 bullet points each (total: 60-70 points).
-        - For 6 companies: 10 to 15 bullet points each (total: 70-80 points).
-        - For 7 companies: 10 to 15 bullet points each (total: 70-80 points).
+            - No filler or repetition: Each bullet point must offer unique, concrete contributions or achievements.
 
-        - No filler or repetition: Each bullet point must offer unique, concrete contributions or achievements.
+            - Write in professional resume tone, use strong action verbs, and focus on clarity, impact, and relevance to technical or engineering roles.
 
-        - Write in professional resume tone, use strong action verbs, and focus on clarity, impact, and relevance to technical or engineering roles.
+            - End each job section with the line:  
+            Technologies Used: tech1, tech2, ..., tech15  
+                ⚠️ Ensure each role includes 10 to 15 technologies mapped directly from the SKILLS section.  
+                ⚠️ Across all roles, the union of technologies must comprehensively cover the entire SKILLS section.
 
-        - End each job section with the line:  
-        Technologies Used: tech1, tech2, ..., tech15  
-            ⚠️ Ensure each role includes 10 to 15 technologies mapped directly from the SKILLS section.  
-            ⚠️ Across all roles, the union of technologies must comprehensively cover the entire SKILLS section.
+            JOB DESCRIPTION:
+            {job_desc}
 
-        JOB DESCRIPTION:
-        {job_desc}
-
-        CANDIDATE INFORMATION:
-        {candidate_info}
-        """
-
-        resp_exp = client.chat.completions.create(  # <- fixed: chat.completions
+            CANDIDATE INFORMATION:
+            {candidate_info}
+            """
+        resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You write only the Work Experience section for ATS resumes."},
                 {"role": "user", "content": exp_prompt},
             ],
-            temperature=0.6,
+            temperature=0.3,
         )
-        exp_text = resp_exp.choices[0].message.content or ""
+        return resp.choices[0].message.content or ""
 
-        # ----------- MERGE (Inject WORK EXPERIENCE before CERTIFICATIONS, else before EDUCATION, else append) -----------
-        main_resume_text = _ensure_title(main_resume_text)
-        
-        merged = main_resume_text.strip()
-
-        if re.search(r"(^|\n)CERTIFICATIONS\s*\n", merged):
-            merged = _insert_before_section(merged, "CERTIFICATIONS", exp_text)
-        elif re.search(r"(^|\n)EDUCATION\s*\n", merged):
-            merged = _insert_before_section(merged, "EDUCATION", exp_text)
-        else:
-            merged = merged.rstrip() + "\n\n" + exp_text.strip() + "\n"
-
-        raw_resume = merged
-
+    try:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            main_future = executor.submit(generate_main_sections)
+            exp_future = executor.submit(generate_work_experience)
+            raw_main = main_future.result()
+            raw_exp = exp_future.result()
     except Exception as e:
         traceback.print_exc()
         return jsonify({"message": f"OpenAI error: {e}"}), 500
 
-    resume_text = clean_markdown(raw_resume).strip()
+    # Merge like new script (append Work Experience at the end), with cleanup
+    main_content = clean_markdown(raw_main).strip()
+    work_exp_content = clean_markdown(raw_exp).strip()
 
-    if not resume_text:
-        return jsonify({"message": "Resume generation failed: Empty response from AI"}), 500
+    if work_exp_content and not work_exp_content.upper().startswith("WORK EXPERIENCE"):
+        work_exp_content = "WORK EXPERIENCE\n" + work_exp_content
 
-    candidate_name = resume_text.splitlines()[0].strip()
-    safe_name = re.sub(r'[^A-Za-z0-9]+', '_', candidate_name)
+    merged_text = (main_content + "\n\n" + work_exp_content).strip()
+    if not merged_text:
+        return jsonify({"message": "Resume generation failed: Empty response"}), 500
+
+    # File assembly
+    candidate_name = merged_text.splitlines()[0].strip()
+    safe_name = re.sub(r'[^A-Za-z0-9]+', '_', candidate_name) or "Candidate"
 
     try:
         if file_type == "word":
             buffer = BytesIO()
-            doc = create_resume_word(resume_text)
+            doc = create_resume_word(merged_text)
             doc.save(buffer)
             buffer.seek(0)
             return send_file(
                 buffer,
                 as_attachment=True,
-                download_name = safe_name + "_resume.docx",
+                download_name=f"{safe_name}_resume.docx",
                 mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             )
         elif file_type == "pdf":
-            # TODO: PDF generation not yet implemented
-            return jsonify({"message": "PDF generation not yet implemented. Please use 'word' file_type."}), 501
+            buffer = create_resume_pdf(merged_text)
+            return send_file(
+                buffer,
+                as_attachment=True,
+                download_name=f"{safe_name}_resume.pdf",
+                mimetype="application/pdf"
+            )
         else:
             return jsonify({"message": "Invalid file_type. Use 'word' or 'pdf'."}), 400
     except Exception as e:
         traceback.print_exc()
         return jsonify({"message": f"File generation error: {e}"}), 500
-
