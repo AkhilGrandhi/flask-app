@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { useParams, Link as RouterLink } from "react-router-dom";
 import {
   Container, Box, Paper, Typography, Stack, Divider,
-  TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress
+  TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions
 } from "@mui/material";
-import { getCandidate, addCandidateJob, deleteCandidateJob, generateResume } from "../api";
+import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume } from "../api";
 import { fullName } from "../utils/display";
 
 export default function CandidateDetail() {
@@ -15,6 +16,16 @@ export default function CandidateDetail() {
   const [jobDesc, setJobDesc] = useState("");
   const [err, setErr] = useState("");
   const [generating, setGenerating] = useState(false);
+  
+  // View dialog state
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewJob, setViewJob] = useState(null);
+  
+  // Edit dialog state
+  const [editOpen, setEditOpen] = useState(false);
+  const [editJob, setEditJob] = useState(null);
+  const [editJobId, setEditJobId] = useState("");
+  const [editJobDesc, setEditJobDesc] = useState("");
 
   const load = async () => {
     try {
@@ -96,6 +107,36 @@ export default function CandidateDetail() {
     } catch (e) {
       console.error("Error deleting job:", e);
       setErr("Failed to delete job: " + e.message);
+    }
+  };
+
+  const handleViewJob = (job) => {
+    setViewJob(job);
+    setViewOpen(true);
+  };
+
+  const handleEditJob = (job) => {
+    setEditJob(job);
+    setEditJobId(job.job_id);
+    setEditJobDesc(job.job_description);
+    setEditOpen(true);
+  };
+
+  const handleUpdateJob = async () => {
+    try {
+      setErr("");
+      await updateCandidateJob(id, editJob.id, { 
+        job_id: editJobId, 
+        job_description: editJobDesc 
+      });
+      setEditOpen(false);
+      setEditJob(null);
+      setEditJobId("");
+      setEditJobDesc("");
+      await load();
+    } catch (e) {
+      console.error("Error updating job:", e);
+      setErr("Failed to update job: " + e.message);
     }
   };
 
@@ -200,12 +241,20 @@ export default function CandidateDetail() {
             {(cand.jobs || []).map(j => (
               <TableRow key={j.id}>
                 <TableCell sx={{ whiteSpace:"nowrap" }}>{j.job_id}</TableCell>
-                <TableCell>{j.job_description}</TableCell>
+                <TableCell>
+                  {j.job_description.length > 100 
+                    ? j.job_description.substring(0, 100) + '...' 
+                    : j.job_description}
+                </TableCell>
                 <TableCell sx={{ whiteSpace:"nowrap" }}>
                   {new Date(j.created_at).toLocaleString()}
                 </TableCell>
                 <TableCell align="right">
-                  <Button size="small" color="error" onClick={()=>removeJob(j.id)}>Delete</Button>
+                  <Stack direction="row" spacing={1} justifyContent="flex-end">
+                    <Button size="small" variant="outlined" onClick={()=>handleViewJob(j)}>View</Button>
+                    <Button size="small" variant="outlined" color="primary" onClick={()=>handleEditJob(j)}>Edit</Button>
+                    <Button size="small" color="error" onClick={()=>removeJob(j.id)}>Delete</Button>
+                  </Stack>
                 </TableCell>
               </TableRow>
             ))}
@@ -215,6 +264,69 @@ export default function CandidateDetail() {
           </TableBody>
         </Table>
       </Paper>
+
+      {/* View Job Dialog */}
+      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Job Details</DialogTitle>
+        <DialogContent>
+          {viewJob && (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">Job ID</Typography>
+                <Typography variant="body1">{viewJob.job_id}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">Job Description</Typography>
+                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
+                  {viewJob.job_description}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
+                <Typography variant="body1">
+                  {new Date(viewJob.created_at).toLocaleString()}
+                </Typography>
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Job Dialog */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Job</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Job ID"
+              value={editJobId}
+              onChange={(e) => setEditJobId(e.target.value)}
+              fullWidth
+            />
+            <TextField
+              label="Job Description"
+              value={editJobDesc}
+              onChange={(e) => setEditJobDesc(e.target.value)}
+              fullWidth
+              multiline
+              rows={6}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={handleUpdateJob} 
+            variant="contained" 
+            disabled={!editJobId || !editJobDesc}
+          >
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

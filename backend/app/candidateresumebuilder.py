@@ -17,7 +17,7 @@ bp = Blueprint("resume", __name__)
 
 
 # OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 # ---- Section detection ----
 SECTION_TITLES = {
     "professional summary",

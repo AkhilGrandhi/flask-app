@@ -177,6 +177,29 @@ def add_job(cand_id):
     db.session.commit()
     return {"message": "added", "id": row.id}, 201
 
+@bp.put("/<int:cand_id>/jobs/<int:row_id>")
+@jwt_required()
+def update_job(cand_id, row_id):
+    uid = current_user_id()
+    c = Candidate.query.get_or_404(cand_id)
+    owns_or_404(c, uid)
+    
+    row = CandidateJob.query.filter_by(id=row_id, candidate_id=c.id).first_or_404()
+    data = request.get_json() or {}
+    
+    if "job_id" in data:
+        job_id = (data.get("job_id") or "").strip()
+        if job_id:
+            row.job_id = job_id
+    
+    if "job_description" in data:
+        job_desc = (data.get("job_description") or "").strip()
+        if job_desc:
+            row.job_description = job_desc
+    
+    db.session.commit()
+    return {"message": "updated"}
+
 @bp.delete("/<int:cand_id>/jobs/<int:row_id>")
 @jwt_required()
 def delete_job(cand_id, row_id):
