@@ -73,15 +73,14 @@ export default function CandidateDetail() {
       setErr("");
       setGenerating(true);
       
-      // Add job first and get the job row ID
-      const response = await addCandidateJob(id, { job_id: jobId, job_description: jobDesc });
-      const jobRowId = response.id;
-      
-      // Generate and download resume, passing candidate_id and job_row_id
+      // Step 1: Generate resume FIRST (before saving to database)
       const candidateInfo = formatCandidateInfo(cand);
-      const blob = await generateResume(jobDesc, candidateInfo, "word", id, jobRowId);
+      const blob = await generateResume(jobDesc, candidateInfo, "word", id, null);
       
-      // Trigger download
+      // Step 2: Only if resume generation succeeds, save job to database
+      const response = await addCandidateJob(id, { job_id: jobId, job_description: jobDesc });
+      
+      // Step 3: Trigger download
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -220,8 +219,8 @@ export default function CandidateDetail() {
         </Stack>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
           When you click "Add & Generate", the system will:
-          <br />1. Save the job description
-          <br />2. Generate a tailored resume using AI
+          <br />1. Generate a tailored resume using AI
+          <br />2. Save the job description to database (only if resume generation succeeds)
           <br />3. Automatically download the Word document
         </Typography>
       </Paper>
