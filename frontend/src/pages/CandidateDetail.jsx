@@ -69,16 +69,18 @@ export default function CandidateDetail() {
   };
 
   const addJob = async () => {
+    let jobRowId = null;
     try {
       setErr("");
       setGenerating(true);
       
-      // Step 1: Generate resume FIRST (before saving to database)
-      const candidateInfo = formatCandidateInfo(cand);
-      const blob = await generateResume(jobDesc, candidateInfo, "word", id, null);
-      
-      // Step 2: Only if resume generation succeeds, save job to database
+      // Step 1: Create job record FIRST to get job_row_id
       const response = await addCandidateJob(id, { job_id: jobId, job_description: jobDesc });
+      jobRowId = response.id; // Store the job ID for cleanup if needed
+      
+      // Step 2: Generate resume with job_row_id so content gets saved to database
+      const candidateInfo = formatCandidateInfo(cand);
+      const blob = await generateResume(jobDesc, candidateInfo, "word", id, jobRowId);
       
       // Step 3: Trigger download
       const url = window.URL.createObjectURL(blob);
@@ -94,7 +96,17 @@ export default function CandidateDetail() {
       setJobDesc("");
       await load();
     } catch (e) { 
-      setErr(e.message); 
+      setErr(e.message);
+      
+      // If resume generation failed after creating job, delete the job record
+      if (jobRowId) {
+        try {
+          await deleteCandidateJob(id, jobRowId);
+          console.log("Cleaned up job record after resume generation failure");
+        } catch (cleanupError) {
+          console.error("Failed to cleanup job record:", cleanupError);
+        }
+      }
     } finally {
       setGenerating(false);
     }
@@ -219,9 +231,10 @@ export default function CandidateDetail() {
         </Stack>
         <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
           When you click "Add & Generate", the system will:
-          <br />1. Generate a tailored resume using AI
-          <br />2. Save the job description to database (only if resume generation succeeds)
+          <br />1. Save the job to database
+          <br />2. Generate a tailored resume using AI and save the content to database
           <br />3. Automatically download the Word document
+          <br />Note: If resume generation fails, the job record will be automatically removed.
         </Typography>
       </Paper>
 
