@@ -7,6 +7,7 @@ import { useAuth } from "../AuthContext";
 export default function LoginAdmin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
   const nav = useNavigate();
   const { setUser } = useAuth();
@@ -28,7 +29,31 @@ export default function LoginAdmin() {
         {err && <Typography color="error" sx={{ mb:1 }}>{err}</Typography>}
         <Box component="form" onSubmit={onSubmit} sx={{ display:"grid", gap:2 }}>
           <TextField label="Email" value={email} onChange={e=>setEmail(e.target.value)} required />
-          <TextField label="Password" type="password" value={password} onChange={e=>setPassword(e.target.value)} required />
+          <Box sx={{ position: 'relative' }}>
+            <TextField 
+              label="Password" 
+              type={showPassword ? "text" : "password"}
+              value={password} 
+              onChange={e=>setPassword(e.target.value)} 
+              required 
+              fullWidth
+            />
+            <Button
+              size="small"
+              onClick={() => setShowPassword(!showPassword)}
+              sx={{
+                position: 'absolute',
+                right: 8,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                minWidth: 'auto',
+                p: 1,
+                fontSize: '0.75rem'
+              }}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </Button>
+          </Box>
           <Button type="submit" variant="contained">Login</Button>
         </Box>
         <Box sx={{ mt:2 }}>
