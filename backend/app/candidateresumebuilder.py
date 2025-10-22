@@ -25,9 +25,8 @@ from app.models import db, CandidateJob
 
 bp = Blueprint("resume", __name__)
 
-# ---- Config: prefer env var; fallback to placeholder (do NOT hardcode secrets) ----
-# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY")
-
+# ---- Config: Load API key from environment variable ----
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # ---- Section detection ----
 SECTION_TITLES = {
