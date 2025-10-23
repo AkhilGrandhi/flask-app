@@ -102,7 +102,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Nationality" value={v.nationality} onChange={set("nationality")}
+            <RequiredSelect label="Nationality" value={v.nationality ?? "India"} onChange={set("nationality")}
               options={COUNTRY_OPTIONS} error={errors.nationality}/>
           </Grid>
           {v.nationality === OTHER && (
@@ -114,7 +114,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Citizenship Status" value={v.citizenship_status} onChange={set("citizenship_status")}
+            <RequiredSelect label="Citizenship Status" value={v.citizenship_status ?? "Non-Resident"} onChange={set("citizenship_status")}
               options={CITIZENSHIP_OPTIONS} error={errors.citizenship_status}/>
           </Grid>
           {v.citizenship_status === OTHER && (
@@ -150,35 +150,35 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Willing to Relocate" value={String(v.willing_relocate ?? true)}
-              onChange={(val)=>onChange({...v, willing_relocate: val==="true"})}
-              options={["true","false"]} error={errors.willing_relocate}/>
+            <RequiredSelect label="Willing to Relocate" value={v.willing_relocate ?? "Yes"}
+              onChange={(val)=>onChange({...v, willing_relocate: val})}
+              options={["Yes","No"]} error={errors.willing_relocate}/>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Willing to Travel" value={String(v.willing_travel ?? true)}
-              onChange={(val)=>onChange({...v, willing_travel: val==="true"})}
-              options={["true","false"]} error={errors.willing_travel}/>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Disability Status" value={String(v.disability_status ?? false)}
-              onChange={(val)=>onChange({...v, disability_status: val==="true"})}
-              options={["true","false"]} error={errors.disability_status}/>
+            <RequiredSelect label="Willing to Travel" value={v.willing_travel ?? "Yes"}
+              onChange={(val)=>onChange({...v, willing_travel: val})}
+              options={["Yes","No"]} error={errors.willing_travel}/>
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Veteran Status" value={v.veteran_status} onChange={set("veteran_status")}
+            <RequiredSelect label="Disability Status" value={v.disability_status ?? "No"}
+              onChange={(val)=>onChange({...v, disability_status: val})}
+              options={["Yes","No"]} error={errors.disability_status}/>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <RequiredSelect label="Veteran Status" value={v.veteran_status ?? "Not a Veteran"} onChange={set("veteran_status")}
               options={VETERAN_OPTIONS} error={errors.veteran_status}/>
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Military Experience" value={String(v.military_experience ?? false)}
-              onChange={(val)=>onChange({...v, military_experience: val==="true"})}
-              options={["true","false"]} error={errors.military_experience}/>
+            <RequiredSelect label="Military Experience" value={v.military_experience ?? "No"}
+              onChange={(val)=>onChange({...v, military_experience: val})}
+              options={["Yes","No"]} error={errors.military_experience}/>
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Race / Ethnicity" value={v.race_ethnicity} onChange={set("race_ethnicity")}
+            <RequiredSelect label="Race / Ethnicity" value={v.race_ethnicity ?? "Asian"} onChange={set("race_ethnicity")}
               options={RACE_ETHNICITY_OPTIONS} error={errors.race_ethnicity}/>
           </Grid>
           {v.race_ethnicity === OTHER && (
@@ -188,6 +188,13 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
                 error={!!errors.race_other_value} helperText={errors.race_other_value}/>
             </Grid>
           )}
+          <Grid item xs={12} sm={6}>
+          <RequiredSelect label="Are you at least 18 years of age?" 
+            value={v.at_least_18 ?? "Yes"} 
+            onChange={set("at_least_18")}
+            options={["Yes","No"]} 
+            error={errors.at_least_18}/>
+          </Grid>
         </Grid>
 
         
@@ -223,10 +230,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
             value={v.referral_source||""} onChange={set("referral_source")} fullWidth />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
-          <TextField size="small" label="Are you at least 18 years of age?"
-            value={v.at_least_18||""} onChange={set("at_least_18")} fullWidth />
-        </Grid>
+        
 
         <Grid item xs={12} sm={6}>
           <TextField size="small" label="Require visa sponsorship now or in future?"
@@ -270,7 +274,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
               required fullWidth error={!!errors.postal_code} helperText={errors.postal_code}/>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Country" value={v.country} onChange={set("country")}
+            <RequiredSelect label="Country" value={v.country ?? "India"} onChange={set("country")}
               options={COUNTRY_OPTIONS} error={errors.country}/>
           </Grid>
           {v.country === OTHER && (

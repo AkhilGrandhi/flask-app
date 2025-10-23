@@ -91,6 +91,12 @@ class Candidate(db.Model):
     )
 
     def to_dict(self, include_creator: bool = False, include_jobs: bool = False):
+        # Helper to convert boolean to Yes/No for frontend
+        def to_yes_no(val):
+            if val is None:
+                return None
+            return "Yes" if val else "No"
+        
         d = {
             "id": self.id,
             "first_name": self.first_name, "last_name": self.last_name,
@@ -100,11 +106,11 @@ class Candidate(db.Model):
             "citizenship_status": self.citizenship_status,
             "visa_status": self.visa_status,
             "work_authorization": self.work_authorization,
-            "willing_relocate": self.willing_relocate,
-            "willing_travel": self.willing_travel,
-            "disability_status": self.disability_status,
+            "willing_relocate": to_yes_no(self.willing_relocate),
+            "willing_travel": to_yes_no(self.willing_travel),
+            "disability_status": to_yes_no(self.disability_status),
             "veteran_status": self.veteran_status,
-            "military_experience": self.military_experience,
+            "military_experience": to_yes_no(self.military_experience),
             "race_ethnicity": self.race_ethnicity,
 
             "address_line1": self.address_line1, "address_line2": self.address_line2,

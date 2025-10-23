@@ -87,9 +87,16 @@ def admin_update_candidate(cand_id):
     ]:
         if field in data: setattr(c, field, data[field])
         
-    # booleans
+    # booleans - convert Yes/No to boolean
+    def to_bool(val):
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            return val.lower() in ("yes", "true", "1")
+        return bool(val)
+    
     for field in ["willing_relocate","willing_travel","disability_status","military_experience"]:
-        if field in data: setattr(c, field, bool(data[field]))
+        if field in data: setattr(c, field, to_bool(data[field]))
     # birthdate (YYYY-MM-DD)
     if "birthdate" in data and data["birthdate"]:
         from datetime import date
