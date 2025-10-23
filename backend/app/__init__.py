@@ -26,7 +26,16 @@ def create_app():
     jwt.init_app(app)
 
     # Allow your React app / extension to call the API in dev
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://localhost:3000"]}}, supports_credentials=True)
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    CORS(app, 
+     resources={r"/api/*": {
+         "origins": [
+             "http://localhost:5173",
+             "http://localhost:3000",
+             frontend_url
+         ]
+     }}, 
+     supports_credentials=True)
 
     # Blueprints
     from .auth import bp as auth_bp
