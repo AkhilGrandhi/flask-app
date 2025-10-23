@@ -29,8 +29,10 @@ class Config:
     JWT_HEADER_TYPE = "Bearer"         # default; can be omitted
 
     # Cookies (web only)
-    JWT_COOKIE_SECURE = False
-    JWT_COOKIE_SAMESITE = "Lax"
+    # Use secure cookies in production (HTTPS), regular in development
+    JWT_COOKIE_SECURE = os.getenv("FLASK_ENV") != "development"
+    # SameSite=None required for cross-origin cookies (frontend and backend on different domains)
+    JWT_COOKIE_SAMESITE = "None" if os.getenv("FLASK_ENV") != "development" else "Lax"
     JWT_COOKIE_CSRF_PROTECT = False  # keep False in dev
 
     # (optional) make tokens last longer while testing
