@@ -1,671 +1,998 @@
-# Render Deployment Guide for Flask-App
+# Flask + React Application Deployment Guide for Render
 
-This guide provides step-by-step instructions for deploying your Flask + React application to Render.
+This guide will walk you through deploying your Flask backend and React frontend application to Render.
 
-## Table of Contents
+---
+
+## 📋 **Table of Contents**
+
 1. [Prerequisites](#prerequisites)
-2. [Application Architecture](#application-architecture)
-3. [Backend Deployment (Flask API)](#backend-deployment-flask-api)
-4. [Frontend Deployment (React App)](#frontend-deployment-react-app)
-5. [Database Setup (PostgreSQL)](#database-setup-postgresql)
-6. [Environment Variables Configuration](#environment-variables-configuration)
-7. [Post-Deployment Steps](#post-deployment-steps)
-8. [Troubleshooting](#troubleshooting)
+2. [Application Overview](#application-overview)
+3. [Step 1: Prepare Your Code](#step-1-prepare-your-code)
+4. [Step 2: Push to GitHub](#step-2-push-to-github)
+5. [Step 3: Create PostgreSQL Database](#step-3-create-postgresql-database)
+6. [Step 4: Deploy Flask Backend](#step-4-deploy-flask-backend)
+7. [Step 5: Deploy React Frontend](#step-5-deploy-react-frontend)
+8. [Step 6: Configure Environment Variables](#step-6-configure-environment-variables)
+9. [Step 7: Run Database Migrations](#step-7-run-database-migrations)
+10. [Step 8: Test Your Deployment](#step-8-test-your-deployment)
+11. [Troubleshooting](#troubleshooting)
+12. [Updating Your Application](#updating-your-application)
 
 ---
 
 ## Prerequisites
 
-Before starting, ensure you have:
-- A [Render account](https://render.com/) (free tier available)
-- Git repository with your code (GitHub, GitLab, or Bitbucket)
-- OpenAI API key (for resume generation and AI features)
-- Basic understanding of environment variables
+Before you begin, make sure you have:
+
+- ✅ **Render Account**: Sign up at [render.com](https://render.com) (free tier available)
+- ✅ **GitHub Account**: Your code must be in a GitHub repository
+- ✅ **Git Installed**: On your local machine
+- ✅ **Working Application**: Your app works locally
 
 ---
 
-## Application Architecture
+## Application Overview
 
-Your application consists of three main components:
+Your application consists of:
 
-1. **Backend**: Flask REST API (`/backend` directory)
-   - Handles authentication, candidate management, AI operations, resume generation
-   - Uses SQLAlchemy ORM with PostgreSQL database
-   - Serves API endpoints at `/api/*`
-
-2. **Frontend**: React SPA (`/frontend` directory)
-   - Built with Vite
-   - Uses Material-UI components
-   - Consumes backend API
-
-3. **Database**: PostgreSQL
-   - Stores users, candidates, and job records
-   - Managed via Flask-Migrate (Alembic)
-
-4. **Chrome Extension**: Browser extension (`/extension` directory)
-   - Note: This component is not deployed to Render; users install it locally
+- **Backend**: Flask REST API (Python)
+  - Port: 5000 (local)
+  - Database: PostgreSQL (production) or SQLite (local)
+  - Authentication: JWT with cookies
+  
+- **Frontend**: React (Vite)
+  - Port: 5173 (local)
+  - Build tool: Vite
+  
+- **Extension**: Chrome Extension (optional, deployed separately)
 
 ---
 
-## Backend Deployment (Flask API)
+## Step 1: Prepare Your Code
 
-### Step 1: Create a New Web Service
+### 1.1 Create `.gitignore` (if not exists)
 
-1. Log in to your [Render Dashboard](https://dashboard.render.com/)
-2. Click **"New +"** → **"Web Service"**
-3. Connect your Git repository
-4. Configure the service:
+Create `.gitignore` in your project root:
 
-   **Basic Settings:**
-   - **Name**: `flask-app-backend` (or your preferred name)
-   - **Region**: Choose closest to your users
-   - **Branch**: `main` (or your default branch)
-   - **Root Directory**: `backend`
-   - **Runtime**: `Python 3`
+```gitignore
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+venv/
+env/
 
-   **Build & Deploy Settings:**
-   - **Build Command**: 
-     ```bash
-     pip install -r requirements.txt
-     ```
-   - **Start Command**:
-     ```bash
-     gunicorn wsgi:app
-     ```
+# Environment variables
+.env
+*.env
+.env.local
 
-   **Instance Type:**
-   - Select **Free** or **Starter** (recommended for production)
+# Database
+*.db
+*.sqlite
+*.sqlite3
+instance/
 
-### Step 2: Add Gunicorn to Requirements
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-Your `backend/requirements.txt` should include:
+# Build outputs
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
 ```
+
+### 1.2 Verify `requirements.txt`
+
+Check `backend/requirements.txt` includes all dependencies:
+
+```txt
+Flask==3.0.3
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.7
+Flask-JWT-Extended==4.6.0
+Flask-CORS==6.0.1
+python-dotenv==1.0.1
+openai==1.102.0
+python-docx==1.2.0
+Werkzeug==3.1.3
+psycopg2-binary==2.9.9
 gunicorn==21.2.0
 ```
 
-If not present, add this line to `backend/requirements.txt` before deploying.
+**Important**: Use `psycopg2-binary` instead of `psycopg2` (easier to install on Render).
 
-### Step 3: Configure Environment Variables
+### 1.3 Create `runtime.txt` (Pin Python Version)
 
-In the Render dashboard for your backend service, go to the **Environment** tab and add these variables:
+Create `backend/runtime.txt` to avoid Python 3.13 compatibility issues:
 
-| Key | Value | Notes |
-|-----|-------|-------|
-| `PYTHON_VERSION` | `3.11.0` | Specify Python version |
-| `SECRET_KEY` | `<generate-random-string>` | Flask secret key (use a strong random string) |
-| `JWT_SECRET_KEY` | `<generate-random-string>` | JWT signing key (use a strong random string) |
-| `OPENAI_API_KEY` | `sk-proj-...` | Your OpenAI API key |
-| `DATABASE_URL` | `<postgres-connection-string>` | Auto-filled by Render if using Render PostgreSQL |
-| `ADMIN_EMAIL` | `admin@yourdomain.com` | Default admin email |
-| `ADMIN_PASSWORD` | `SecurePassword123!` | Default admin password |
-| `ADMIN_MOBILE` | `9876543210` | Default admin mobile |
-| `ADMIN_NAME` | `Administrator` | Default admin name |
-
-**Important Security Notes:**
-- Generate strong random strings for `SECRET_KEY` and `JWT_SECRET_KEY` (use tools like `openssl rand -hex 32`)
-- Keep your `OPENAI_API_KEY` private
-- Change the default admin password after first login
-
-### Step 4: Deploy Backend
-
-1. Click **"Create Web Service"**
-2. Render will automatically:
-   - Clone your repository
-   - Install dependencies
-   - Start your Flask app with Gunicorn
-3. Monitor the deployment logs for any errors
-4. Once deployed, note your backend URL: `https://flask-app-backend.onrender.com`
-
----
-
-## Database Setup (PostgreSQL)
-
-### Step 1: Create PostgreSQL Database
-
-1. In Render Dashboard, click **"New +"** → **"PostgreSQL"**
-2. Configure:
-   - **Name**: `flask-app-database`
-   - **Database**: `flask_app_db`
-   - **User**: (auto-generated)
-   - **Region**: Same as your backend service
-   - **PostgreSQL Version**: `15` (or latest)
-   - **Instance Type**: **Free** or **Starter**
-
-3. Click **"Create Database"**
-
-### Step 2: Link Database to Backend
-
-1. Go to your backend web service
-2. Navigate to **Environment** tab
-3. Render automatically provides these variables:
-   - `DATABASE_URL` (Internal connection string)
-   - You can also use the External connection string if needed
-
-**Note**: Your `config.py` already handles `DATABASE_URL` from environment variables, so no code changes needed.
-
-### Step 3: Run Database Migrations
-
-After your backend service is deployed:
-
-1. Go to your backend service in Render
-2. Click **"Shell"** tab (opens a terminal to your running instance)
-3. Run these commands:
-
-```bash
-cd /opt/render/project/src
-flask db upgrade
+```txt
+python-3.11.8
 ```
 
-This will:
-- Create all database tables
-- Run any pending migrations
-- Create the default admin user (based on environment variables)
+This ensures Render uses Python 3.11 which is stable and fully compatible with all dependencies.
 
-**Alternative**: Add a **Deploy Hook** or use Render's **Build Command**:
-```bash
-pip install -r requirements.txt && flask db upgrade
-```
+### 1.4 Verify `package.json`
 
----
+Check `frontend/package.json` has build script:
 
-## Frontend Deployment (React App)
-
-### Step 1: Create a Static Site
-
-1. In Render Dashboard, click **"New +"** → **"Static Site"**
-2. Connect your Git repository
-3. Configure:
-
-   **Basic Settings:**
-   - **Name**: `flask-app-frontend`
-   - **Branch**: `main`
-   - **Root Directory**: `frontend`
-
-   **Build Settings:**
-   - **Build Command**:
-     ```bash
-     npm install && npm run build
-     ```
-   - **Publish Directory**:
-     ```
-     dist
-     ```
-
-### Step 2: Configure API Base URL
-
-Update `frontend/src/api.js` to use your deployed backend URL:
-
-```javascript
-const API = import.meta.env.PROD 
-  ? "https://flask-app-backend.onrender.com/api"  // Replace with your actual backend URL
-  : "http://localhost:5000/api";
-```
-
-**Alternative (Recommended)**: Use environment variables in Vite:
-
-1. Create `frontend/.env.production`:
-   ```
-   VITE_API_URL=https://flask-app-backend.onrender.com/api
-   ```
-
-2. Update `frontend/src/api.js`:
-   ```javascript
-   const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-   ```
-
-### Step 3: Update Backend CORS Configuration
-
-In `backend/app/__init__.py`, update the CORS configuration to allow your frontend domain:
-
-```python
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "https://flask-app-frontend.onrender.com"  # Add your frontend URL
-        ]
-    }
-}, supports_credentials=True)
-```
-
-**Important**: Replace `flask-app-frontend.onrender.com` with your actual Render frontend URL.
-
-### Step 4: Deploy Frontend
-
-1. Click **"Create Static Site"**
-2. Render will:
-   - Install Node.js dependencies
-   - Build your React app
-   - Serve static files
-3. Your frontend will be available at: `https://flask-app-frontend.onrender.com`
-
----
-
-## Environment Variables Configuration
-
-### Backend Environment Variables (Complete List)
-
-| Variable | Required | Description | Example |
-|----------|----------|-------------|---------|
-| `PYTHON_VERSION` | Yes | Python runtime version | `3.11.0` |
-| `SECRET_KEY` | Yes | Flask session secret | `5f2d6c8b9a3e1f7d4a6b8c9e1f2a3b4c` |
-| `JWT_SECRET_KEY` | Yes | JWT token signing key | `a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6` |
-| `OPENAI_API_KEY` | Yes | OpenAI API key | `sk-proj-...` |
-| `DATABASE_URL` | Yes | PostgreSQL connection string | Auto-filled by Render |
-| `ADMIN_EMAIL` | No | Default admin email | `admin@example.com` |
-| `ADMIN_PASSWORD` | No | Default admin password | `Passw0rd!` |
-| `ADMIN_MOBILE` | No | Default admin mobile | `9999999999` |
-| `ADMIN_NAME` | No | Default admin name | `Administrator` |
-
-### Frontend Environment Variables
-
-Add these in the **Environment** section of your Static Site (if using env vars):
-
-| Variable | Value | Notes |
-|----------|-------|-------|
-| `VITE_API_URL` | `https://flask-app-backend.onrender.com/api` | Backend API URL |
-
----
-
-## Post-Deployment Steps
-
-### 1. Verify Backend Health
-
-Visit: `https://flask-app-backend.onrender.com/api/healthz`
-
-Expected response:
 ```json
 {
-  "status": "ok"
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
 }
 ```
 
-### 2. Test Admin Login
+### 1.5 Update CORS Settings
 
-1. Go to your frontend URL
-2. Navigate to Admin Login
-3. Use credentials from `ADMIN_EMAIL` and `ADMIN_PASSWORD` environment variables
+In `backend/app/__init__.py`, update CORS to accept your Render domains:
 
-### 3. Run Database Migrations (If Not Done)
+```python
+# Will update after deployment with actual URLs
+CORS(app, 
+     resources={r"/api/*": {
+         "origins": [
+             "http://localhost:5173",
+             "http://localhost:3000",
+             "https://your-frontend-app.onrender.com"  # Add after frontend is deployed
+         ]
+     }}, 
+     supports_credentials=True)
+```
+
+---
+
+## Step 2: Push to GitHub
+
+### 2.1 Initialize Git Repository
+
+If you haven't already:
 
 ```bash
-# In Render Shell for backend service
-flask db upgrade
+cd C:\Users\AkhilGrandhi\Downloads\flask-app
+git init
+git add .
+git commit -m "Initial commit - Flask + React app"
 ```
 
-### 4. Update Chrome Extension
+### 2.2 Create GitHub Repository
 
-Update `extension/background.js` and `extension/contentScript.js` to point to your deployed backend:
+1. Go to [github.com](https://github.com)
+2. Click **"New repository"**
+3. Name: `flask-react-app` (or your preferred name)
+4. **Don't** initialize with README (we already have code)
+5. Click **"Create repository"**
+
+### 2.3 Push Code to GitHub
+
+```bash
+git remote add origin https://github.com/YOUR_USERNAME/flask-react-app.git
+git branch -M main
+git push -u origin main
+```
+
+**Replace** `YOUR_USERNAME` with your GitHub username.
+
+---
+
+## Step 3: Create PostgreSQL Database
+
+### 3.1 Create Database on Render
+
+1. **Go to Render Dashboard**: [dashboard.render.com](https://dashboard.render.com)
+2. Click **"New +"** → **"PostgreSQL"**
+3. **Configure Database**:
+   - **Name**: `flask-app-database`
+   - **Database**: `flask_app_db` (auto-filled)
+   - **User**: `flask_app_db_user` (auto-filled)
+   - **Region**: Choose closest to you (e.g., Oregon, Ohio, Frankfurt)
+   - **Plan**: **Free** (for testing) or **Starter $7/month** (for production)
+
+4. Click **"Create Database"**
+
+5. **Wait 2-3 minutes** for database to provision
+
+### 3.2 Get Database Credentials
+
+After database is created, you'll see:
+
+- **Internal Database URL**: `postgresql://user:pass@hostname/dbname` (use this for backend)
+- **External Database URL**: For connecting from your local machine
+- **PSQL Command**: For command-line access
+
+**Copy the Internal Database URL** - you'll need it for the backend.
+
+---
+
+## Step 4: Deploy Flask Backend
+
+### 4.1 Create Web Service
+
+1. Click **"New +"** → **"Web Service"**
+2. **Connect Repository**:
+   - If first time: Click **"Connect GitHub"** and authorize Render
+   - Select your repository: `flask-react-app`
+
+3. **Configure Service**:
+
+   | Setting | Value |
+   |---------|-------|
+   | **Name** | `flask-app-backend` |
+   | **Region** | Same as database |
+   | **Branch** | `main` |
+   | **Root Directory** | `backend` |
+   | **Runtime** | `Python 3` |
+   | **Build Command** | `pip install -r requirements.txt` |
+   | **Start Command** | `gunicorn wsgi:app` |
+   | **Plan** | **Free** or **Starter $7/month** |
+
+4. **Advanced Settings** (click to expand):
+   - **Auto-Deploy**: `Yes` (deploys automatically on git push)
+
+### 4.2 Add Environment Variables
+
+Scroll to **"Environment Variables"** section and add:
+
+| Key | Value |
+|-----|-------|
+| `DATABASE_URL` | Internal Database URL from Step 3.2 |
+| `SECRET_KEY` | Generate random string (use: `python -c "import secrets; print(secrets.token_hex(32))"`) |
+| `JWT_SECRET_KEY` | Generate random string (different from SECRET_KEY) |
+| `OPENAI_API_KEY` | Your OpenAI API key |
+| `ADMIN_EMAIL` | `admin@example.com` |
+| `ADMIN_PASSWORD` | Strong password for admin |
+| `ADMIN_MOBILE` | `9999999999` |
+| `ADMIN_NAME` | `Administrator` |
+| `PYTHON_VERSION` | `3.10.0` |
+
+**To generate secure keys**:
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Run this twice to get two different keys for `SECRET_KEY` and `JWT_SECRET_KEY`.
+
+### 4.3 Deploy Backend
+
+1. Click **"Create Web Service"**
+2. Wait for deployment (5-10 minutes)
+3. Watch the logs - should see:
+   ```
+   ==> Building...
+   ==> Installing dependencies...
+   ==> Starting...
+   [INFO] Starting gunicorn...
+   ```
+
+4. Once deployed, you'll get a URL like:
+   ```
+   https://flask-app-backend.onrender.com
+   ```
+
+### 4.4 Verify Backend is Running
+
+Open in browser:
+```
+https://flask-app-backend.onrender.com/api/healthz
+```
+
+Should return:
+```json
+{"status": "ok"}
+```
+
+---
+
+## Step 5: Deploy React Frontend
+
+### 5.1 Update API Configuration
+
+In `frontend/src/api.js`, update the API URL:
 
 ```javascript
-const API_BASE = "https://flask-app-backend.onrender.com";
+// Change this line:
+const API = "/api";
+
+// To use environment variable:
+const API = import.meta.env.VITE_API_URL || "/api";
 ```
 
-**Note**: Users will need to manually update and reload the extension after deployment.
+### 5.2 Create Build Configuration
 
-### 5. Monitor Application Logs
+Create `frontend/render-build.sh`:
 
-- Go to Render Dashboard
-- Select your service
-- Click **"Logs"** tab to monitor real-time logs
+```bash
+#!/usr/bin/env bash
+# exit on error
+set -o errexit
+
+npm install
+npm run build
+```
+
+Make it executable (on Mac/Linux):
+```bash
+chmod +x frontend/render-build.sh
+```
+
+On Windows, Git Bash will handle this automatically.
+
+### 5.3 Create Web Service for Frontend
+
+1. Click **"New +"** → **"Static Site"**
+2. **Connect Repository**: Select `flask-react-app`
+
+3. **Configure Static Site**:
+
+   | Setting | Value |
+   |---------|-------|
+   | **Name** | `flask-app-frontend` |
+   | **Branch** | `main` |
+   | **Root Directory** | `frontend` |
+   | **Build Command** | `npm install && npm run build` |
+   | **Publish Directory** | `dist` |
+
+4. **Environment Variables**:
+   - Click **"Advanced"**
+   - Add variable:
+     - **Key**: `VITE_API_URL`
+     - **Value**: `https://flask-app-backend.onrender.com/api`
+     
+   **Replace** `flask-app-backend` with your actual backend URL from Step 4.3.
+
+5. Click **"Create Static Site"**
+
+6. Wait for deployment (3-5 minutes)
+
+7. Once deployed, you'll get a URL like:
+   ```
+   https://flask-app-frontend.onrender.com
+   ```
+
+---
+
+## Step 6: Configure Environment Variables
+
+### 6.1 Update Backend CORS
+
+Now that you have the frontend URL, update CORS:
+
+1. Go to your backend service in Render
+2. Go to **"Environment"** tab
+3. Add new environment variable:
+   - **Key**: `FRONTEND_URL`
+   - **Value**: `https://flask-app-frontend.onrender.com`
+
+4. Update `backend/app/__init__.py`:
+
+```python
+import os
+
+# In create_app():
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+CORS(app, 
+     resources={r"/api/*": {
+         "origins": [
+             "http://localhost:5173",
+             "http://localhost:3000",
+             frontend_url
+         ]
+     }}, 
+     supports_credentials=True)
+```
+
+5. **Commit and push** changes:
+```bash
+git add .
+git commit -m "Add CORS configuration for production"
+git push
+```
+
+Render will auto-deploy the changes.
+
+---
+
+## Step 7: Run Database Migrations
+
+### 7.1 Access Backend Shell
+
+1. Go to your backend service in Render
+2. Click **"Shell"** tab (top right)
+3. Wait for shell to connect
+
+### 7.2 Run Migrations
+
+In the Render Shell:
+
+```bash
+# Check database connection
+python -c "from app import create_app; app = create_app(); print('Connected to:', app.config['SQLALCHEMY_DATABASE_URI'][:50])"
+
+# Run migrations
+flask db upgrade
+
+# Verify tables were created
+python -c "from app import create_app; from app.models import db, User; app = create_app(); app.app_context().push(); print('Users:', User.query.count())"
+```
+
+You should see output like:
+```
+Connected to: postgresql://user@host/db...
+INFO  [alembic.runtime.migration] Running upgrade -> d49adb647396, init
+Users: 1
+```
+
+### 7.3 Verify Admin User
+
+```bash
+python -c "from app import create_app; from app.models import User; app = create_app(); app.app_context().push(); admin = User.query.filter_by(role='admin').first(); print('Admin:', admin.email if admin else 'Not found')"
+```
+
+Should show:
+```
+Admin: admin@example.com
+```
+
+---
+
+## Step 8: Test Your Deployment
+
+### 8.1 Test Backend API
+
+Open browser and test these endpoints:
+
+1. **Health Check**:
+   ```
+   https://flask-app-backend.onrender.com/api/healthz
+   ```
+   Should return: `{"status": "ok"}`
+
+2. **Try to access protected endpoint** (should fail without auth):
+   ```
+   https://flask-app-backend.onrender.com/api/candidates
+   ```
+   Should return: 401 Unauthorized
+
+### 8.2 Test Frontend
+
+1. Open: `https://flask-app-frontend.onrender.com`
+
+2. **Login as Admin**:
+   - Email: `admin@example.com`
+   - Password: (the password you set in ADMIN_PASSWORD env var)
+
+3. **Create a User**:
+   - Go to Admin → Manage Users
+   - Create a new user with mobile number and password
+
+4. **Logout and Login as User**:
+   - Login with mobile number
+
+5. **Create a Candidate**:
+   - Click "Add Candidate"
+   - Fill in the form
+   - Submit
+
+6. **Add a Job**:
+   - Go to candidate details
+   - Add job ID and description
+   - Should generate and download resume
+
+### 8.3 Test Full Flow
+
+Complete workflow:
+1. ✅ Login (JWT cookie set)
+2. ✅ Create candidate (data saved to PostgreSQL)
+3. ✅ Add job (calls OpenAI API)
+4. ✅ Generate resume (downloads .docx file)
+5. ✅ View candidate details (data persists)
+6. ✅ Logout (JWT cleared)
 
 ---
 
 ## Troubleshooting
 
-### Common Issues and Solutions
+### Issue 1: psycopg2 ImportError (Python 3.13)
 
-#### 1. **Backend Fails to Start**
+**Symptom**: Deploy fails with error:
+```
+ImportError: undefined symbol: _PyInterpreterState_Get
+```
 
-**Error**: `ModuleNotFoundError` or `ImportError`
+**Cause**: Python 3.13 incompatibility with `psycopg2`
 
 **Solution**:
-- Ensure all dependencies are listed in `requirements.txt`
-- Check Python version matches your local development environment
-- Review build logs in Render dashboard
 
-**Commands to verify locally**:
+1. **Update `requirements.txt`**:
+   - Change `psycopg2==2.9.3` to `psycopg2-binary==2.9.9`
+
+2. **Create `backend/runtime.txt`**:
+   ```txt
+   python-3.11.8
+   ```
+
+3. **Commit and push**:
+   ```bash
+   git add backend/requirements.txt backend/runtime.txt
+   git commit -m "Fix psycopg2 compatibility - pin Python 3.11"
+   git push
+   ```
+
+4. Render will automatically redeploy with Python 3.11
+
+### Issue 2: Backend Won't Start
+
+**Symptom**: Backend shows "Deploy failed" or crashes
+
+**Solutions**:
+
+1. **Check Logs**:
+   - Go to backend service → "Logs" tab
+   - Look for error messages
+
+2. **Common Errors**:
+
+   **"ModuleNotFoundError"**:
+   - Missing package in `requirements.txt`
+   - Add it and push
+
+   **"Database connection failed"**:
+   - Check `DATABASE_URL` is set correctly
+   - Verify database is running
+   - Ensure backend and database are in same region
+
+   **"Port binding error"**:
+   - Render automatically sets `PORT` environment variable
+   - Update `wsgi.py` if needed:
+     ```python
+     if __name__ == "__main__":
+         port = int(os.environ.get("PORT", 5000))
+         app.run(host="0.0.0.0", port=port)
+     ```
+
+3. **Test Locally with PostgreSQL**:
+   ```bash
+   DATABASE_URL=<your-render-database-external-url> python wsgi.py
+   ```
+
+### Issue 3: Frontend 404 Errors
+
+**Symptom**: Frontend routes show 404 on refresh
+
+**Solution**: Add `_redirects` file for client-side routing
+
+Create `frontend/public/_redirects`:
+```
+/*    /index.html   200
+```
+
+This tells Render to serve `index.html` for all routes (for React Router).
+
+**Commit and push**:
 ```bash
-cd backend
-pip install -r requirements.txt
-python wsgi.py
+git add frontend/public/_redirects
+git commit -m "Add redirects for client-side routing"
+git push
 ```
+
+### Issue 4: CORS Errors
+
+**Symptom**: Frontend can't connect to backend, "CORS policy" error in browser console
+
+**Solutions**:
+
+1. **Verify CORS Configuration**:
+   - Check `FRONTEND_URL` environment variable is set on backend
+   - Verify frontend URL matches exactly (no trailing slash)
+
+2. **Check Cookie Settings**:
+   - In `config.py`, ensure:
+     ```python
+     JWT_COOKIE_SECURE = False  # Set to True if using HTTPS
+     JWT_COOKIE_SAMESITE = "None"  # For cross-domain
+     JWT_COOKIE_CSRF_PROTECT = False
+     ```
+
+3. **Update for Production**:
+   ```python
+   # In config.py
+   import os
+   
+   # Detect if running on Render
+   is_production = os.getenv("RENDER") is not None
+   
+   JWT_COOKIE_SECURE = is_production
+   JWT_COOKIE_SAMESITE = "None" if is_production else "Lax"
+   ```
+
+### Issue 5: "UNAUTHORIZED" After Login
+
+**Symptom**: Can login but subsequent requests return 401
+
+**Solutions**:
+
+1. **Check Cookies**:
+   - Open DevTools → Application → Cookies
+   - Verify `access_token_cookie` is present
+   - Check domain matches your frontend URL
+
+2. **Verify JWT Configuration**:
+   - Ensure `JWT_SECRET_KEY` is the same across deploys
+   - If you changed it, users must re-login
+
+3. **Test in Incognito Mode**:
+   - Old cookies might be causing issues
+
+### Issue 6: OpenAI API Errors
+
+**Symptom**: Resume generation fails with 401 or 429 errors
+
+**Solutions**:
+
+1. **Check API Key**:
+   - Go to backend → Environment → `OPENAI_API_KEY`
+   - Verify key is correct and active
+   - Test at: https://platform.openai.com/api-keys
+
+2. **Rate Limits**:
+   - OpenAI free tier has rate limits
+   - Upgrade plan or add retry logic
+
+3. **Test API Key**:
+   ```bash
+   # In Render Shell
+   python -c "import os; from openai import OpenAI; client = OpenAI(api_key=os.getenv('OPENAI_API_KEY')); print('API Key valid!' if client.models.list() else 'Invalid key')"
+   ```
+
+### Issue 7: Database Migration Errors
+
+**Symptom**: Tables not created, migration fails
+
+**Solutions**:
+
+1. **Check Database Connection**:
+   ```bash
+   # In Render Shell
+   python -c "from app import create_app; app = create_app(); print(app.config['SQLALCHEMY_DATABASE_URI'])"
+   ```
+
+2. **Reset Migrations** (DANGER: Deletes all data):
+   ```bash
+   # In Render Shell
+   python -c "from app import create_app; from app.models import db; app = create_app(); app.app_context().push(); db.drop_all(); db.create_all(); print('Database reset!')"
+   
+   # Re-run migrations
+   flask db upgrade
+   ```
+
+3. **Manual Table Creation**:
+   ```bash
+   python -c "from app import create_app; from app.models import db; app = create_app(); app.app_context().push(); db.create_all()"
+   ```
+
+### Issue 8: Free Tier Spindown
+
+**Symptom**: First request after inactivity is slow (30+ seconds)
+
+**Explanation**: Render free tier spins down after 15 minutes of inactivity
+
+**Solutions**:
+
+1. **Upgrade to Paid Plan**: $7/month for always-on
+2. **Use UptimeRobot**: Ping your app every 14 minutes (keeps it awake)
+3. **Inform Users**: Add loading message explaining first-load delay
 
 ---
 
-#### 2. **Database Connection Errors**
+## Updating Your Application
 
-**Error**: `FATAL: password authentication failed` or `connection refused`
+### Automatic Deployment (Recommended)
 
-**Solution**:
-- Verify `DATABASE_URL` is set correctly in environment variables
-- Ensure your PostgreSQL instance is running
-- Check if database migrations have been run
+Render auto-deploys when you push to GitHub:
 
-**Verify connection**:
 ```bash
-# In Render Shell
-python -c "from app import create_app; app = create_app(); print('DB Connected')"
+# Make changes to your code
+git add .
+git commit -m "Your commit message"
+git push
 ```
+
+Render will automatically:
+1. Detect the push
+2. Build the updated code
+3. Deploy new version
+4. Zero-downtime deployment
+
+### Manual Deployment
+
+From Render Dashboard:
+1. Go to your service
+2. Click **"Manual Deploy"** → **"Deploy latest commit"**
+
+### Rolling Back
+
+If something breaks:
+1. Go to service → **"Events"** tab
+2. Find previous successful deploy
+3. Click **"Rollback to this deploy"**
 
 ---
 
-#### 3. **CORS Errors in Frontend**
+## Best Practices for Production
 
-**Error**: `Access to fetch has been blocked by CORS policy`
+### Security
 
-**Solution**:
-- Add your frontend URL to CORS origins in `backend/app/__init__.py`
-- Redeploy backend after updating CORS configuration
-- Clear browser cache
+1. **Use Strong Secrets**:
+   ```bash
+   # Generate secure keys
+   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
 
-**Example fix**:
-```python
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "https://flask-app-frontend.onrender.com",
-            "http://localhost:5173"
-        ]
-    }
-}, supports_credentials=True)
-```
+2. **Enable HTTPS**:
+   - Render provides free SSL/TLS
+   - Set `JWT_COOKIE_SECURE = True`
+
+3. **Protect Admin Panel**:
+   - Use strong admin password
+   - Consider IP whitelist for admin routes
+
+4. **Environment Variables**:
+   - Never commit `.env` files
+   - Rotate secrets regularly
+
+### Performance
+
+1. **Database Connection Pooling**:
+   ```python
+   # In config.py
+   SQLALCHEMY_ENGINE_OPTIONS = {
+       "pool_pre_ping": True,
+       "pool_recycle": 300,
+   }
+   ```
+
+2. **Enable Caching**:
+   - Consider Redis for session storage
+   - Cache OpenAI responses
+
+3. **Optimize Database Queries**:
+   - Add indexes to frequently queried columns
+   - Use `lazy="dynamic"` for large relationships
+
+### Monitoring
+
+1. **Check Logs Regularly**:
+   - Render Dashboard → Logs tab
+   - Look for errors, warnings
+
+2. **Set Up Alerts**:
+   - Render can email you on deploy failures
+   - Configure in service settings
+
+3. **Monitor Database**:
+   - Check disk usage (Render Dashboard → Database → Metrics)
+   - Free tier: 1GB storage
+
+### Backups
+
+1. **Database Backups**:
+   - Render Starter plans include daily backups
+   - Free tier: No automatic backups (export manually)
+
+2. **Manual Backup**:
+   ```bash
+   # Export database
+   pg_dump -h <host> -U <user> -d <database> > backup.sql
+   ```
+
+3. **Code Backups**:
+   - GitHub is your backup
+   - Consider GitHub Actions for automated testing
 
 ---
 
-#### 4. **OpenAI API Errors**
+## Cost Breakdown
 
-**Error**: `Error code: 401 - Incorrect API key` or `Error code: 429 - Rate limit exceeded`
+### Free Tier (For Testing)
 
-**Solution**:
-- Verify `OPENAI_API_KEY` is correctly set in environment variables
-- Check OpenAI account for API usage limits
-- Ensure API key has sufficient credits
+- **PostgreSQL**: Free (1GB, suspends after 90 days of inactivity)
+- **Backend Web Service**: Free (spins down after 15min inactivity)
+- **Frontend Static Site**: Free (100GB bandwidth/month)
+- **Total**: $0/month
 
-**Test API key**:
-```bash
-# In Render Shell
-python -c "import os; print(os.getenv('OPENAI_API_KEY')[:20] + '...')"
-```
+**Limitations**:
+- Services spin down when inactive
+- PostgreSQL limited to 1GB
+- Slower performance
+
+### Production Tier
+
+- **PostgreSQL**: $7/month (10GB, always-on, daily backups)
+- **Backend Web Service**: $7/month (always-on, better performance)
+- **Frontend Static Site**: Free (or $1/month for more bandwidth)
+- **Total**: ~$14-15/month
+
+**Benefits**:
+- Always-on, no spindown
+- Better performance
+- Automatic backups
+- Custom domains
 
 ---
 
-#### 5. **Frontend Not Connecting to Backend**
+## Custom Domain (Optional)
 
-**Error**: `Failed to fetch` or `Network error`
+### Add Custom Domain
 
-**Solution**:
-- Check `VITE_API_URL` or hardcoded API URL in `frontend/src/api.js`
-- Ensure backend URL is correct (including `/api` suffix)
-- Verify backend is running and accessible
+1. **Buy Domain**: From Namecheap, GoDaddy, etc.
 
-**Test backend from browser console**:
+2. **Frontend**:
+   - Render → Frontend service → Settings → Custom Domain
+   - Add: `www.yourdomain.com`
+   - Update DNS:
+     ```
+     Type: CNAME
+     Name: www
+     Value: flask-app-frontend.onrender.com
+     ```
+
+3. **Backend**:
+   - Add: `api.yourdomain.com`
+   - Update DNS:
+     ```
+     Type: CNAME
+     Name: api
+     Value: flask-app-backend.onrender.com
+     ```
+
+4. **Update Environment Variables**:
+   - Backend `FRONTEND_URL`: `https://www.yourdomain.com`
+   - Frontend `VITE_API_URL`: `https://api.yourdomain.com/api`
+
+5. **Wait for SSL**:
+   - Render automatically provisions SSL certificates
+   - Takes 5-10 minutes
+
+---
+
+## Chrome Extension Deployment
+
+Your Chrome extension can't be deployed to Render (it's a browser extension), but you can publish it:
+
+### Option 1: Chrome Web Store
+
+1. **Package Extension**:
+   ```bash
+   cd extension
+   zip -r extension.zip . -x "*.git*"
+   ```
+
+2. **Create Developer Account**:
+   - Go to: [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole)
+   - One-time fee: $5
+
+3. **Upload Extension**:
+   - Upload `extension.zip`
+   - Fill in details, screenshots
+   - Submit for review (1-3 days)
+
+### Option 2: Manual Installation (Development)
+
+Share the `extension` folder:
+1. Users go to `chrome://extensions/`
+2. Enable "Developer mode"
+3. Click "Load unpacked"
+4. Select your `extension` folder
+
+### Update Extension for Production
+
+In `extension/contentScript.js`, update API URL:
+
 ```javascript
-fetch('https://flask-app-backend.onrender.com/api/healthz')
-  .then(r => r.json())
-  .then(console.log)
+const API_BASE = "https://flask-app-backend.onrender.com/api";
 ```
 
 ---
 
-#### 6. **Database Migrations Not Applied**
-
-**Error**: `relation "user" does not exist` or similar
-
-**Solution**:
-- Run migrations manually via Render Shell
-- Or add migrations to build command
-
-**Manual migration**:
-```bash
-# In Render Shell
-cd /opt/render/project/src
-flask db upgrade
-```
-
-**Automatic migration (Build Command)**:
-```bash
-pip install -r requirements.txt && flask db upgrade
-```
-
----
-
-#### 7. **File Generation Errors (Resume PDF)**
-
-**Error**: `LibreOffice not found` or `PDF conversion failed`
-
-**Solution**:
-- PDF generation requires LibreOffice, which may not be available on Render free tier
-- Your code already handles this by supporting Word format
-- Ensure users generate resumes in Word format (`.docx`)
-
-**Note**: PDF generation is currently commented out in `candidateresumebuilder.py` and returns a 501 error.
-
----
-
-#### 8. **Environment Variables Not Loading**
-
-**Error**: Variables return `None` or default values
-
-**Solution**:
-- Double-check variable names (case-sensitive)
-- Ensure `python-dotenv` is installed (already in requirements.txt)
-- Verify `load_dotenv()` is called in `config.py` (already configured)
-- Restart the service after adding new environment variables
-
-**Verify in Render Shell**:
-```bash
-python -c "import os; print(os.getenv('SECRET_KEY'))"
-```
-
----
-
-#### 9. **Free Tier Service Sleeping**
-
-**Issue**: Backend spins down after inactivity (15 minutes on free tier)
-
-**Solution**:
-- Upgrade to Starter plan ($7/month) for always-on service
-- Or use a monitoring service (UptimeRobot) to ping your backend every 10 minutes
-
-**Ping URL**: `https://flask-app-backend.onrender.com/api/healthz`
-
----
-
-#### 10. **Build Timeouts**
-
-**Error**: Build exceeds time limit
-
-**Solution**:
-- Remove unnecessary dependencies from `requirements.txt`
-- Use lighter packages where possible
-- Consider upgrading to a paid plan for faster builds
-
----
-
-### Additional Debugging Tips
-
-#### Check Logs
-- Always review **Logs** tab in Render dashboard
-- Look for Python tracebacks and error messages
-- Check both build logs and runtime logs
-
-#### Use Render Shell
-- Access your running instance via **Shell** tab
-- Test Python imports, database connections, file permissions
-- Run one-off commands for debugging
-
-#### Test Locally First
-- Always test deployment configuration locally:
-  ```bash
-  # Backend
-  cd backend
-  pip install -r requirements.txt
-  gunicorn wsgi:app
-  
-  # Frontend
-  cd frontend
-  npm install
-  npm run build
-  npx serve -s dist
-  ```
-
----
-
-## Deployment Checklist
-
-Use this checklist to ensure everything is configured correctly:
+## Summary Checklist
 
 ### Pre-Deployment
-- [ ] All code committed and pushed to Git repository
-- [ ] `requirements.txt` includes `gunicorn`
-- [ ] `python-dotenv` is in `requirements.txt`
-- [ ] Frontend API URL configured for production
-- [ ] CORS configuration includes production frontend URL
-- [ ] `.env` files are in `.gitignore` (never commit secrets)
+- [ ] Code works locally
+- [ ] `.gitignore` configured
+- [ ] Code pushed to GitHub
+- [ ] `requirements.txt` has all dependencies
+- [ ] OpenAI API key ready
 
-### Backend Deployment
-- [ ] PostgreSQL database created on Render
+### Render Setup
+- [ ] Render account created
+- [ ] PostgreSQL database created
 - [ ] Backend web service created
-- [ ] All environment variables configured
-- [ ] Build command: `pip install -r requirements.txt`
-- [ ] Start command: `gunicorn wsgi:app`
-- [ ] Root directory: `backend`
-- [ ] Service deployed successfully
-- [ ] Health check endpoint returns 200 OK
+- [ ] Frontend static site created
+- [ ] All environment variables set
 
-### Database Setup
-- [ ] Database linked to backend service
-- [ ] Migrations run via Shell or build command
-- [ ] Default admin user created
-- [ ] Can connect to database from backend
+### Configuration
+- [ ] CORS configured with frontend URL
+- [ ] Database migrations run
+- [ ] Admin user created
+- [ ] API endpoints tested
 
-### Frontend Deployment
-- [ ] Static site created on Render
-- [ ] Build command: `npm install && npm run build`
-- [ ] Publish directory: `dist`
-- [ ] Root directory: `frontend`
-- [ ] API URL points to deployed backend
-- [ ] Site deployed successfully
-- [ ] Can access frontend in browser
+### Testing
+- [ ] Can login as admin
+- [ ] Can create user
+- [ ] Can create candidate
+- [ ] Can generate resume
+- [ ] Can view/edit candidates
 
-### Post-Deployment
-- [ ] Admin login works
-- [ ] User login works
-- [ ] Can create and view candidates
-- [ ] Resume generation works
-- [ ] AI form field mapping works
-- [ ] Chrome extension updated with production URLs
-- [ ] All API endpoints tested
-- [ ] Error monitoring set up (optional)
+### Optional
+- [ ] Custom domain configured
+- [ ] Monitoring set up
+- [ ] Backups configured
+- [ ] Chrome extension published
 
 ---
 
-## Production Recommendations
+## Support & Resources
 
-### 1. **Use Paid Plans**
-- **Backend**: Starter plan ($7/month) for always-on service
-- **Database**: Starter plan for better performance and backups
-- **Frontend**: Free tier is sufficient for static sites
+### Render Documentation
+- [Render Docs](https://render.com/docs)
+- [Deploy Flask App](https://render.com/docs/deploy-flask)
+- [Deploy React App](https://render.com/docs/deploy-create-react-app)
 
-### 2. **Enable Automatic Deploys**
-- Configure automatic deploys from your `main` branch
-- Set up staging branch for testing before production
+### Troubleshooting
+- [Render Community](https://community.render.com/)
+- [Render Status](https://status.render.com/)
 
-### 3. **Set Up Custom Domain** (Optional)
-- Add custom domain in Render settings
-- Update CORS configuration with custom domain
-- Update frontend API URL
-
-### 4. **Enable HTTPS** (Automatic on Render)
-- Render provides free SSL certificates
-- Update JWT cookie settings for production:
-  ```python
-  JWT_COOKIE_SECURE = True  # Enable in production
-  ```
-
-### 5. **Monitor Application**
-- Use Render's built-in metrics
-- Set up external monitoring (e.g., Datadog, Sentry)
-- Monitor OpenAI API usage and costs
-
-### 6. **Database Backups**
-- Enable automatic backups on paid PostgreSQL plans
-- Regularly export data for disaster recovery
-
-### 7. **Environment-Specific Configurations**
-- Create separate Render services for staging and production
-- Use different databases for each environment
-- Test changes in staging before production deploy
+### Your Application
+- Backend Health: `https://YOUR-BACKEND.onrender.com/api/healthz`
+- Frontend: `https://YOUR-FRONTEND.onrender.com`
+- Database: Check Render Dashboard
 
 ---
 
-## Cost Estimates (Render Pricing as of 2024)
+## Next Steps
 
-| Service | Free Tier | Paid Tier | Recommended |
-|---------|-----------|-----------|-------------|
-| **Backend Web Service** | Free (spins down after 15 min) | Starter: $7/month | Starter |
-| **PostgreSQL Database** | Free (expires after 90 days) | Starter: $7/month | Starter |
-| **Frontend Static Site** | Free | N/A | Free |
-| **Total Monthly Cost** | $0 (with limitations) | $14/month | $14/month |
+After successful deployment:
 
-**Note**: Prices may vary. Check [Render Pricing](https://render.com/pricing) for current rates.
-
----
-
-## Support and Resources
-
-- **Render Documentation**: https://render.com/docs
-- **Flask Documentation**: https://flask.palletsprojects.com/
-- **React Documentation**: https://react.dev/
-- **Vite Documentation**: https://vitejs.dev/
-- **OpenAI API Documentation**: https://platform.openai.com/docs
+1. **Share with Users**: Give them the frontend URL
+2. **Create User Accounts**: Add users via admin panel
+3. **Monitor Logs**: Check for errors daily
+4. **Gather Feedback**: Iterate on features
+5. **Consider Upgrades**: If traffic grows, upgrade to paid plans
 
 ---
 
-## Security Best Practices
+**Congratulations! Your Flask + React application is now live on Render!** 🎉
 
-1. **Never commit sensitive data**:
-   - Keep `.env` files in `.gitignore`
-   - Use Render's environment variables for secrets
+For questions or issues, check the Troubleshooting section or reach out to Render support.
 
-2. **Use strong secrets**:
-   - Generate random strings for `SECRET_KEY` and `JWT_SECRET_KEY`
-   - Use minimum 32 characters
-
-3. **Rotate credentials regularly**:
-   - Change admin password after first login
-   - Rotate API keys periodically
-
-4. **Enable HTTPS only**:
-   - Set `JWT_COOKIE_SECURE = True` in production
-   - Force HTTPS redirects
-
-5. **Monitor API usage**:
-   - Track OpenAI API costs
-   - Set usage limits if possible
-
-6. **Database security**:
-   - Use Render's internal DATABASE_URL (not external)
-   - Restrict database access to backend service only
-
----
-
-## Conclusion
-
-Your Flask + React application should now be successfully deployed on Render! 
-
-If you encounter any issues not covered in this guide, check:
-1. Render Dashboard Logs
-2. Application error messages
-3. Browser console (for frontend issues)
-
-For further assistance, consult Render's support or your development team.
-
----
-
-**Document Version**: 1.0  
-**Last Updated**: October 22, 2025  
-**Deployment Target**: Render.com
+**Document Version**: 2.0  
+**Last Updated**: October 23, 2025  
+**Author**: Deployment Guide for Flask-React-App
 
