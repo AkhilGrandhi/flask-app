@@ -30,10 +30,11 @@ class Config:
 
     # Cookies (web only)
     # Use secure cookies in production (HTTPS), regular in development
-    JWT_COOKIE_SECURE = os.getenv("FLASK_ENV") != "development"
+    is_development = os.getenv("FLASK_ENV") == "development"
+    JWT_COOKIE_SECURE = not is_development  # True in production, False in dev
     # SameSite=None required for cross-origin cookies (frontend and backend on different domains)
-    JWT_COOKIE_SAMESITE = "None" if os.getenv("FLASK_ENV") != "development" else "Lax"
-    JWT_COOKIE_CSRF_PROTECT = False  # keep False in dev
+    JWT_COOKIE_SAMESITE = "Lax" if is_development else "None"  # Lax in dev, None in production
+    JWT_COOKIE_CSRF_PROTECT = False
 
     # (optional) make tokens last longer while testing
     # from datetime import timedelta
