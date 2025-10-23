@@ -16,11 +16,9 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object("config.Config")
 
-    # If DATABASE_URL not provided, default to instance/app.db
+    # Ensure database URI is configured
     if not app.config.get("SQLALCHEMY_DATABASE_URI"):
-        os.makedirs(app.instance_path, exist_ok=True)
-        db_path = os.path.join(app.instance_path, "app.db")
-        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+        raise RuntimeError("SQLALCHEMY_DATABASE_URI is not configured. Check your config.py and .env file.")
 
     # Init extensions
     db.init_app(app)

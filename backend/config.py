@@ -1,12 +1,24 @@
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Load environment variables from .env file
-load_dotenv()
+# Get the directory where this config.py file is located
+basedir = Path(__file__).resolve().parent
+dotenv_path = basedir / '.env'
+
+# Load with override=True to ensure it loads even if vars already exist
+load_dotenv(dotenv_path, override=True)
+
+# Debug: Verify DATABASE_URL is loaded
+if not os.getenv("DATABASE_URL"):
+    # Try loading from current working directory as fallback
+    load_dotenv('.env', override=True)
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///app.db")
+    # Require DATABASE_URL to be set - no SQLite fallback
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL") or "postgresql://postgres:admin@localhost:5432/flask_app_db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt-change-me")
