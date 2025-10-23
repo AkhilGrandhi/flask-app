@@ -1,4 +1,8 @@
-const API = "/api";
+//For Local Development
+// const API = "/api";
+
+//For Production
+const API = import.meta.env.VITE_API_URL || "/api";
 
 function getCookie(name) {
   return document.cookie.split("; ").find(c => c.startsWith(name + "="))?.split("=")[1];
