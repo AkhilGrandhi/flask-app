@@ -160,13 +160,20 @@ ${job.resume_content}`;
         borderBottom: "2px solid",
         borderColor: "primary.main"
       }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-            My Dashboard
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Welcome back, {candidate?.first_name}!
-          </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <img 
+            src="/only_logo.png" 
+            alt="Data Fyre Logo" 
+            style={{ height: "60px", width: "auto", objectFit: "contain" }}
+          />
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+              My Dashboard
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Welcome back, {candidate?.first_name}!
+            </Typography>
+          </Box>
         </Box>
         <Stack direction="row" spacing={2} alignItems="center">
           <Box sx={{ textAlign: "right", mr: 1 }}>

@@ -38,13 +38,20 @@ export default function Admin() {
         borderBottom: "2px solid",
         borderColor: "primary.main"
       }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-            Admin Panel
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage users and candidates across the entire system
-          </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <img 
+            src="/only_logo.png" 
+            alt="Data Fyre Logo" 
+            style={{ height: "60px", width: "auto", objectFit: "contain" }}
+          />
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Admin Panel
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Manage users and candidates across the entire system
+            </Typography>
+          </Box>
         </Box>
 
         <Stack direction="row" spacing={2} alignItems="center">

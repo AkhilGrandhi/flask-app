@@ -195,13 +195,20 @@ export default function UserDashboard() {
         borderBottom: "2px solid",
         borderColor: "primary.main"
       }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-            My Candidates
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage and track all your candidates
-          </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <img 
+            src="/only_logo.png" 
+            alt="Data Fyre Logo" 
+            style={{ height: "70px", width: "auto", objectFit: "contain" }}
+          />
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+              My Candidates
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Manage and track all your candidates
+            </Typography>
+          </Box>
         </Box>
 
         <Stack direction="row" spacing={2} alignItems="center">

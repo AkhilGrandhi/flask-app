@@ -222,13 +222,20 @@ ${job.resume_content}`;
         borderBottom: "2px solid",
         borderColor: "primary.main"
       }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-            Candidate Job Applications
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage Job Applications and Generate Resumes
-          </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <img 
+            src="/only_logo.png" 
+            alt="Data Fyre Logo" 
+            style={{ height: "60px", width: "auto", objectFit: "contain" }}
+          />
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Candidate Job Applications
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Manage Job Applications and Generate Resumes
+            </Typography>
+          </Box>
         </Box>
         <Button 
           component={RouterLink} 
