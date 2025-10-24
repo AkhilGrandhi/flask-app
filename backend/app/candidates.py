@@ -43,7 +43,7 @@ def list_my_candidates():
     uid = current_user_id()
     cs = Candidate.query.filter_by(created_by_user_id=uid)\
                         .order_by(Candidate.id.desc()).all()
-    return {"candidates": [c.to_dict() for c in cs]}
+    return {"candidates": [c.to_dict(include_jobs=True) for c in cs]}
 
 @bp.post("")
 @jwt_required()

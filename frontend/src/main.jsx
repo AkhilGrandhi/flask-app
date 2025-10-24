@@ -29,8 +29,8 @@ const router = createBrowserRouter([
   { path: "/dashboard", element: <ProtectedRoute role="user"><UserDashboard /></ProtectedRoute> },
   { path: "/candidate-dashboard", element: <ProtectedRoute role="candidate"><CandidateDashboard /></ProtectedRoute> },
 
-  // Candidate detail page
-  { path: "/candidates/:id", element: <ProtectedRoute role="user"><CandidateDetail /></ProtectedRoute> },
+  // Candidate detail page (accessible by both users and admins)
+  { path: "/candidates/:id", element: <ProtectedRoute role={["user", "admin"]}><CandidateDetail /></ProtectedRoute> },
 
   // Default -> role-based landing
   { path: "/", element: <ProtectedRoute><RoleRedirect /></ProtectedRoute> },

@@ -224,10 +224,10 @@ ${job.resume_content}`;
       }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-            Candidate Details
+            Candidate Job Applications
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Manage job applications and generate resumes
+            Manage Job Applications and Generate Resumes
           </Typography>
         </Box>
         <Button 

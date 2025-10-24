@@ -271,7 +271,7 @@ export default function UserDashboard() {
             </Paper>
           </Grid>
 
-          {/* Total Job IDs Card */}
+          {/* Total Applications Card */}
           <Grid item xs={12} sm={6}>
             <Paper 
               elevation={2} 
@@ -299,7 +299,7 @@ export default function UserDashboard() {
                   })()}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
-                  Total Job IDs
+                  Total Applications
                 </Typography>
               </Box>
               <Box 

@@ -6,6 +6,7 @@ import {
   TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { Link as RouterLink } from "react-router-dom";
 
 import { useAuth } from "../AuthContext";
 
@@ -618,7 +619,7 @@ function CandidatesTab() {
             </Paper>
           </Grid>
 
-          {/* Total Job IDs Card */}
+          {/* Total Applications Card */}
           <Grid item xs={12} sm={6}>
             <Paper 
               elevation={2} 
@@ -646,7 +647,7 @@ function CandidatesTab() {
                   })()}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
-                  Total Job IDs
+                  Total Applications
                 </Typography>
               </Box>
               <Box 
@@ -732,8 +733,26 @@ function CandidatesTab() {
                   <TableCell sx={{ fontWeight: 500 }}>
                     #{r.id}
                   </TableCell>
-                  <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>
-                    {r.first_name} {r.last_name}
+                  {/* Name as a link to details page */}
+                  <TableCell>
+                    <Button
+                      component={RouterLink}
+                      to={`/candidates/${r.id}`}
+                      sx={{ 
+                        textTransform: "none", 
+                        p: 0, 
+                        minWidth: 0,
+                        fontWeight: 600,
+                        fontSize: "0.95rem",
+                        color: "primary.main",
+                        "&:hover": {
+                          textDecoration: "underline",
+                          bgcolor: "transparent"
+                        }
+                      }}
+                    >
+                      {r.first_name} {r.last_name}
+                    </Button>
                   </TableCell>
                   <TableCell sx={{ color: "text.secondary" }}>
                     {r.email}
@@ -747,9 +766,10 @@ function CandidatesTab() {
               <TableCell align="right">
                     <Stack direction="row" spacing={1} justifyContent="flex-end">
                       <Button 
+                        component={RouterLink}
+                        to={`/candidates/${r.id}`}
                         size="small" 
                         variant="outlined" 
-                        onClick={()=>startView(r)}
                         sx={{ 
                           textTransform: "none",
                           fontWeight: 500
