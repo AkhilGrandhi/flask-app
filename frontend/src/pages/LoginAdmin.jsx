@@ -99,7 +99,7 @@ export default function LoginAdmin() {
           <Button onClick={() => navigate("/login")} size="small" variant="text">
             User Login
           </Button>
-          <Button onClick={() => navigate("/login-candidate")} size="small" variant="text">
+          <Button onClick={() => navigate("/candidate/login")} size="small" variant="text">
             Candidate Login
           </Button>
         </Box>

@@ -16,7 +16,7 @@ export default function Login() {
     await api("/auth/login", { method: "POST", body: { email, password } });
     const me = await api("/auth/me");
     if (me.user.role === "admin") nav("/admin", { replace: true });
-    else nav("/dashboard", { replace: true });
+    else nav("/recruiter", { replace: true });
   } catch (e) {
     setErr(e.message);
   }

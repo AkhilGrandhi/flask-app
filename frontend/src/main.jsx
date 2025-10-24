@@ -22,16 +22,19 @@ function RoleRedirect() {
 }
 
 const router = createBrowserRouter([
+  // Login pages
   { path: "/login", element: <LoginUser /> },
-  { path: "/login-admin", element: <LoginAdmin /> },
-  { path: "/login-candidate", element: <LoginCandidate /> },
+  { path: "/admin/login", element: <LoginAdmin /> },
+  { path: "/candidate/login", element: <LoginCandidate /> },
+  
+  // Dashboards
+  { path: "/recruiter", element: <ProtectedRoute role="user"><UserDashboard /></ProtectedRoute> },
   { path: "/admin", element: <ProtectedRoute role="admin"><Admin /></ProtectedRoute> },
-  { path: "/dashboard", element: <ProtectedRoute role="user"><UserDashboard /></ProtectedRoute> },
-  { path: "/candidate-dashboard", element: <ProtectedRoute role="candidate"><CandidateDashboard /></ProtectedRoute> },
-
-  // Candidate detail page (accessible by both users and admins)
+  { path: "/candidate", element: <ProtectedRoute role="candidate"><CandidateDashboard /></ProtectedRoute> },
+  
+  // Resources
   { path: "/candidates/:id", element: <ProtectedRoute role={["user", "admin"]}><CandidateDetail /></ProtectedRoute> },
-
+  
   // Default -> role-based landing
   { path: "/", element: <ProtectedRoute><RoleRedirect /></ProtectedRoute> },
 ]);

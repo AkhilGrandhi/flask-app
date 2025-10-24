@@ -40,7 +40,7 @@ export default function LoginCandidate() {
       await loginCandidate(phone, password);
       const me = await meApi();
       setUser(me.user);
-      navigate("/candidate-dashboard", { replace: true });
+      navigate("/candidate", { replace: true });
     } catch (e) {
       setErr(e.message);
     }
@@ -115,7 +115,7 @@ export default function LoginCandidate() {
           <Button onClick={() => navigate("/login")} size="small" variant="text">
             User Login
           </Button>
-          <Button onClick={() => navigate("/login-admin")} size="small" variant="text">
+          <Button onClick={() => navigate("/admin/login")} size="small" variant="text">
             Admin Login
           </Button>
         </Box>

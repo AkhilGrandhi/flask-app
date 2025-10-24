@@ -24,7 +24,7 @@ export default function LoginUser() {
       await loginUser(mobile, password);
       const me = await meApi();
       setUser(me.user);
-      navigate("/dashboard", { replace: true });
+      navigate("/recruiter", { replace: true });
     } catch (e) {
       setErr(e.message);
     }
@@ -96,10 +96,10 @@ export default function LoginUser() {
         <Divider sx={{ my: 3 }} />
 
         <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
-          <Button onClick={() => navigate("/login-admin")} size="small" variant="text">
+          <Button onClick={() => navigate("/admin/login")} size="small" variant="text">
             Admin Login
           </Button>
-          <Button onClick={() => navigate("/login-candidate")} size="small" variant="text">
+          <Button onClick={() => navigate("/candidate/login")} size="small" variant="text">
             Candidate Login
           </Button>
         </Box>
