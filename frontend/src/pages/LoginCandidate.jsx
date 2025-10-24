@@ -7,6 +7,7 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { loginCandidate, meApi } from "../api";
 import { useAuth } from "../AuthContext";
+import logo from "../assets/logo.png";
 
 export default function LoginCandidate() {
   const [phone, setPhone] = useState("");
@@ -48,6 +49,13 @@ export default function LoginCandidate() {
   return (
     <Container maxWidth="sm" sx={{ mt: 8, mb: 8 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+          <img 
+            src={logo} 
+            alt="Data Fyre Logo" 
+            style={{ maxWidth: "200px", height: "auto" }}
+          />
+        </Box>
         <Typography variant="h4" sx={{ mb: 1, textAlign: "center", fontWeight: 600 }}>
           Candidate Login
         </Typography>
