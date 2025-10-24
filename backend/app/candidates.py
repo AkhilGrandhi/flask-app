@@ -15,7 +15,15 @@ def current_candidate_id():
         return claims.get("candidate_id")
     return None
 
+def is_admin():
+    """Check if current user is admin"""
+    claims = get_jwt()
+    return claims.get("role") == "admin"
+
 def owns_or_404(cand: Candidate, uid: int):
+    # Admins can access any candidate
+    if is_admin():
+        return
     if not cand or cand.created_by_user_id != uid:
         abort(404)
 

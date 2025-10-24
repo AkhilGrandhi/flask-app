@@ -4,8 +4,9 @@ import { useParams, Link as RouterLink } from "react-router-dom";
 import {
   Container, Box, Paper, Typography, Stack, Divider,
   TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions
+  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Alert, Chip, Grid
 } from "@mui/material";
+import { ArrowBack, Person, Email, Phone, Work, Add, Download } from "@mui/icons-material";
 import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume } from "../api";
 import { fullName } from "../utils/display";
 
@@ -152,6 +153,35 @@ export default function CandidateDetail() {
     }
   };
 
+  const handleDownloadResume = (job) => {
+    if (!job.resume_content) {
+      setErr("No resume content available to download");
+      return;
+    }
+
+    try {
+      // Create a Blob with the resume content in a format that Word can open
+      const content = `${cand.first_name} ${cand.last_name} - Resume
+Job ID: ${job.job_id}
+Generated: ${new Date(job.created_at).toLocaleDateString()}
+
+${job.resume_content}`;
+
+      const blob = new Blob([content], { type: 'application/msword' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cand.first_name}_${cand.last_name}_Resume_${job.job_id}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (e) {
+      console.error("Error downloading resume:", e);
+      setErr("Failed to download resume: " + e.message);
+    }
+  };
+
   // Show error if loading failed
   if (err && !cand) {
     return (
@@ -181,151 +211,401 @@ export default function CandidateDetail() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 6 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h5">Candidate</Typography>
-        <Button component={RouterLink} to="/" variant="text">← Back</Button>
-      </Stack>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
+      {/* Header */}
+      <Box sx={{ 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center", 
+        mb: 3,
+        pb: 2,
+        borderBottom: "2px solid",
+        borderColor: "primary.main"
+      }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+            Candidate Details
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Manage job applications and generate resumes
+          </Typography>
+        </Box>
+        <Button 
+          component={RouterLink} 
+          to="/" 
+          variant="outlined"
+          startIcon={<ArrowBack />}
+          sx={{ fontWeight: 600 }}
+        >
+          Back to Dashboard
+        </Button>
+      </Box>
 
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          {fullName({ first_name: cand.first_name, last_name: cand.last_name })}
-        </Typography>
-        <Stack direction={{ xs:"column", sm:"row" }} spacing={3}>
-          <Typography><b>Email:</b> {cand.email || "-"}</Typography>
-          <Typography><b>Phone:</b> {cand.phone || "-"}</Typography>
-        </Stack>
+      {/* Candidate Info Card */}
+      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", mb: 2 }}>
+        <Box sx={{ p: 2 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Avatar sx={{ bgcolor: "primary.main", mr: 1.5, width: 40, height: 40 }}>
+                  <Person sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Full Name
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                    {fullName({ first_name: cand.first_name, last_name: cand.last_name })}
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Avatar sx={{ bgcolor: "success.main", mr: 1.5, width: 40, height: 40 }}>
+                  <Email sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Email Address
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.9rem", wordBreak: "break-word" }}>
+                    {cand.email || "-"}
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Avatar sx={{ bgcolor: "warning.main", mr: 1.5, width: 40, height: 40 }}>
+                  <Phone sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Phone Number
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                    {cand.phone || "-"}
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
       </Paper>
 
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Add Job Note & Generate Resume</Typography>
-        {err && <Typography color="error" sx={{ mb: 1 }}>{err}</Typography>}
-        <Stack direction={{ xs:"column", sm:"row" }} spacing={2}>
-          <TextField
-            label="Job ID"
-            value={jobId}
-            onChange={(e)=>setJobId(e.target.value)}
-            size="small"
-            sx={{ flex: 1 }}
-            disabled={generating}
-          />
-          <TextField
-            label="Job Description"
-            value={jobDesc}
-            onChange={(e)=>setJobDesc(e.target.value)}
-            size="small"
-            fullWidth
-            multiline
-            rows={2}
-            sx={{ flex: 3 }}
-            disabled={generating}
-          />
+      {/* Add Job Section */}
+      <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden", mb: 2, border: "2px solid", borderColor: "primary.main" }}>
+        <Box sx={{ 
+          px: 2.5,
+          py: 1.25, 
+          bgcolor: "primary.main",
+          color: "white",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.05rem" }}>
+            🚀 Generate Resume
+          </Typography>
           <Button 
             variant="contained" 
+            size="small"
             onClick={addJob} 
             disabled={generating || !jobId || !jobDesc}
-            startIcon={generating ? <CircularProgress size={20} color="inherit" /> : null}
+            startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <Add />}
+            sx={{ 
+              fontWeight: 600,
+              fontSize: "0.8rem",
+              textTransform: "none",
+              bgcolor: "white",
+              color: "primary.main",
+              px: 2,
+              py: 0.75,
+              borderRadius: 1.5,
+              boxShadow: 1,
+              "&:hover": {
+                bgcolor: "grey.100",
+                boxShadow: 2
+              },
+              "&:disabled": {
+                bgcolor: "grey.300",
+                color: "grey.600"
+              }
+            }}
           >
-            {generating ? "Generating..." : "Add & Generate"}
+            {generating ? "Generating..." : "Generate"}
           </Button>
-        </Stack>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          When you click "Add & Generate", the system will:
-          <br />1. Save the job to database
-          <br />2. Generate a tailored resume using AI and save the content to database
-          <br />3. Automatically download the Word document
-          <br />Note: If resume generation fails, the job record will be automatically removed.
-        </Typography>
+        </Box>
+        <Box sx={{ p: 2.5 }}>
+          {err && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {err}
+            </Alert>
+          )}
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ width: "30%" }}>
+              <TextField
+                label="Job ID"
+                value={jobId}
+                onChange={(e)=>setJobId(e.target.value)}
+                fullWidth
+                disabled={generating}
+                required
+                variant="outlined"
+                size="small"
+              />
+            </Box>
+            <Box sx={{ width: "70%" }}>
+              <TextField
+                label="Job Description"
+                value={jobDesc}
+                onChange={(e)=>setJobDesc(e.target.value)}
+                fullWidth
+                multiline
+                rows={2}
+                disabled={generating}
+                required
+                variant="outlined"
+                size="small"
+              />
+            </Box>
+          </Box>
+        </Box>
       </Paper>
 
-      <Paper sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Jobs for this Candidate</Typography>
-        <Divider sx={{ mb: 2 }} />
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Job ID</TableCell>
-              <TableCell>Job Description</TableCell>
-              <TableCell>Resume</TableCell>
-              <TableCell>Time</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {(cand.jobs || []).map(j => (
-              <TableRow key={j.id}>
-                <TableCell sx={{ whiteSpace:"nowrap" }}>{j.job_id}</TableCell>
-                <TableCell>
-                  {j.job_description.length > 100 
-                    ? j.job_description.substring(0, 100) + '...' 
-                    : j.job_description}
-                </TableCell>
-                <TableCell>
-                  {j.resume_content ? (
-                    j.resume_content.length > 100 
-                      ? j.resume_content.substring(0, 100) + '...' 
-                      : j.resume_content
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                      Not generated
-                    </Typography>
-                  )}
-                </TableCell>
-                <TableCell sx={{ whiteSpace:"nowrap" }}>
-                  {new Date(j.created_at).toLocaleString()}
-                </TableCell>
-                <TableCell align="right">
-                  <Stack direction="row" spacing={1} justifyContent="flex-end">
-                    <Button size="small" variant="outlined" onClick={()=>handleViewJob(j)}>View</Button>
-                    <Button size="small" variant="outlined" color="primary" onClick={()=>handleEditJob(j)}>Edit</Button>
-                    <Button size="small" color="error" onClick={()=>removeJob(j.id)}>Delete</Button>
-                  </Stack>
-                </TableCell>
+      {/* Jobs Table */}
+      <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden", border: "2px solid", borderColor: "success.main" }}>
+        <Box sx={{ 
+          px: 2.5,
+          py: 1.25, 
+          bgcolor: "success.main",
+          color: "white",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.05rem" }}>
+            📋 Job Applications
+          </Typography>
+          <Chip 
+            label={`${(cand.jobs || []).length} Application${(cand.jobs || []).length !== 1 ? 's' : ''}`}
+            sx={{ 
+              fontWeight: 600,
+              bgcolor: "white",
+              color: "success.main",
+              fontSize: "0.75rem",
+              height: 24
+            }}
+          />
+        </Box>
+        
+        {(cand.jobs && cand.jobs.length > 0) ? (
+          <Table size="small">
+            <TableHead>
+              <TableRow sx={{ bgcolor: "grey.100" }}>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job Description</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Resume Status</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Created</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, py: 1.25 }}>Actions</TableCell>
               </TableRow>
-            ))}
-            {(!cand.jobs || cand.jobs.length===0) && (
-              <TableRow><TableCell colSpan={5}>No rows yet.</TableCell></TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {cand.jobs.map(j => (
+                <TableRow 
+                  key={j.id}
+                  hover
+                  sx={{ 
+                    "&:hover": { bgcolor: "primary.lighter" },
+                    "& td": { py: 1.5 }
+                  }}
+                >
+                  <TableCell sx={{ whiteSpace:"nowrap", fontWeight: 600, color: "primary.main" }}>
+                    {j.job_id}
+                  </TableCell>
+                  <TableCell sx={{ maxWidth: 400 }}>
+                    <Typography variant="body2">
+                      {j.job_description.length > 80 
+                        ? j.job_description.substring(0, 80) + '...' 
+                        : j.job_description}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      {j.resume_content ? (
+                        <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
+                      ) : (
+                        <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600 }} />
+                      )}
+                      {j.resume_content && (
+                        <Button
+                          size="small"
+                          variant="text"
+                          startIcon={<Download />}
+                          onClick={() => handleDownloadResume(j)}
+                          sx={{ 
+                            textTransform: "none", 
+                            fontWeight: 500,
+                            minWidth: "auto",
+                            px: 1
+                          }}
+                        >
+                          Download
+                        </Button>
+                      )}
+                    </Stack>
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace:"nowrap", color: "text.secondary" }}>
+                    {new Date(j.created_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button 
+                        size="small" 
+                        variant="outlined" 
+                        onClick={()=>handleViewJob(j)}
+                        sx={{ textTransform: "none", fontWeight: 500 }}
+                      >
+                        View
+                      </Button>
+                      <Button 
+                        size="small" 
+                        variant="contained"
+                        onClick={()=>handleEditJob(j)}
+                        sx={{ textTransform: "none", fontWeight: 500 }}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        size="small" 
+                        variant="outlined"
+                        color="error" 
+                        onClick={()=>removeJob(j.id)}
+                        sx={{ textTransform: "none", fontWeight: 500 }}
+                      >
+                        Delete
+                      </Button>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <Box sx={{ textAlign: "center", py: 8 }}>
+            <Avatar sx={{ 
+              width: 80, 
+              height: 80, 
+              mx: "auto", 
+              mb: 2,
+              bgcolor: "primary.lighter"
+            }}>
+              <Work sx={{ fontSize: 40, color: "primary.main" }} />
+            </Avatar>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              No Job Applications Yet
+            </Typography>
+            <Typography color="text.secondary">
+              Add a job application above to generate a tailored resume
+            </Typography>
+          </Box>
+        )}
       </Paper>
 
       {/* View Job Dialog */}
       <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="lg" fullWidth>
-        <DialogTitle>Job Details</DialogTitle>
-        <DialogContent>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            Job Application Details
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+            View complete job information and generated resume
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
           {viewJob && (
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">Job ID</Typography>
-                <Typography variant="body1">{viewJob.job_id}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">Job Description</Typography>
-                <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-                  {viewJob.job_description}
+            <Box sx={{ display: "grid", gap: 3 }}>
+              {/* Job Information */}
+              <Paper elevation={2} sx={{ p: 3, borderRadius: 2, bgcolor: "white" }}>
+                <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "primary.main" }}>
+                  Job Information
                 </Typography>
-              </Box>
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">Created At</Typography>
-                <Typography variant="body1">
-                  {new Date(viewJob.created_at).toLocaleString()}
-                </Typography>
-              </Box>
-              <Divider sx={{ my: 2 }} />
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                  Generated Resume Content
-                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Job ID
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{viewJob.job_id}</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Status
+                      </Typography>
+                      <Box sx={{ mt: 0.5 }}>
+                        {viewJob.resume_content ? (
+                          <Chip label="Resume Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
+                        ) : (
+                          <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600 }} />
+                        )}
+                      </Box>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Created At
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                        {new Date(viewJob.created_at).toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5, mb: 1, display: "block" }}>
+                        Job Description
+                      </Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                        {viewJob.job_description}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Resume Content */}
+              <Paper elevation={2} sx={{ p: 3, borderRadius: 2, bgcolor: "white" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: "success.main" }}>
+                    Generated Resume Content
+                  </Typography>
+                  {viewJob.resume_content && (
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<Download />}
+                      onClick={() => handleDownloadResume(viewJob)}
+                      sx={{ fontWeight: 600 }}
+                    >
+                      Download Resume
+                    </Button>
+                  )}
+                </Box>
                 {viewJob.resume_content ? (
                   <Paper 
+                    variant="outlined"
                     sx={{ 
-                      p: 2, 
-                      backgroundColor: '#f5f5f5', 
+                      p: 2.5, 
+                      backgroundColor: 'grey.50', 
                       maxHeight: '500px', 
                       overflow: 'auto',
                       fontFamily: 'monospace',
-                      fontSize: '0.9rem'
+                      fontSize: '0.9rem',
+                      borderRadius: 1
                     }}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
@@ -333,46 +613,68 @@ export default function CandidateDetail() {
                     </Typography>
                   </Paper>
                 ) : (
-                  <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                    No resume content available. Resume is generated when you click "Add & Generate".
-                  </Typography>
+                  <Alert severity="info">
+                    <Typography variant="body2">
+                      No resume content available. Resume content is generated when you click "Generate Resume".
+                    </Typography>
+                  </Alert>
                 )}
-              </Box>
-            </Stack>
+              </Paper>
+            </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setViewOpen(false)}>Close</Button>
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
+          <Button onClick={() => setViewOpen(false)} variant="contained" sx={{ px: 4 }}>
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* Edit Job Dialog */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Edit Job</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="Job ID"
-              value={editJobId}
-              onChange={(e) => setEditJobId(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Job Description"
-              value={editJobDesc}
-              onChange={(e) => setEditJobDesc(e.target.value)}
-              fullWidth
-              multiline
-              rows={6}
-            />
-          </Stack>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            Edit Job Application
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+            Update job ID and description
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
+          <Paper elevation={2} sx={{ p: 3, borderRadius: 2, bgcolor: "white" }}>
+            <Grid container spacing={2.5}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Job ID"
+                  value={editJobId}
+                  onChange={(e) => setEditJobId(e.target.value)}
+                  fullWidth
+                  required
+                  variant="outlined"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Job Description"
+                  value={editJobDesc}
+                  onChange={(e) => setEditJobDesc(e.target.value)}
+                  fullWidth
+                  required
+                  multiline
+                  rows={6}
+                  variant="outlined"
+                />
+              </Grid>
+            </Grid>
+          </Paper>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
+          <Button onClick={() => setEditOpen(false)} variant="outlined">Cancel</Button>
           <Button 
             onClick={handleUpdateJob} 
             variant="contained" 
             disabled={!editJobId || !editJobDesc}
+            sx={{ px: 4 }}
           >
             Save Changes
           </Button>
