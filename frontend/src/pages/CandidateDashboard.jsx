@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import {
   PersonOutline, EmailOutlined, PhoneOutlined,
-  WorkOutlineOutlined, VisibilityOutlined
+  WorkOutlineOutlined, VisibilityOutlined, Download
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext";
 import { getMyCandidateProfile, updateMyCandidateProfile } from "../api";
@@ -102,6 +102,35 @@ export default function CandidateDashboard() {
   useEffect(() => {
     load();
   }, []);
+
+  const handleDownloadResume = (job) => {
+    if (!job.resume_content) {
+      setError("No resume content available to download");
+      return;
+    }
+
+    try {
+      // Create a Blob with the resume content in a format that Word can open
+      const content = `${candidate.first_name} ${candidate.last_name} - Resume
+Job ID: ${job.job_id}
+Generated: ${new Date(job.created_at).toLocaleDateString()}
+
+${job.resume_content}`;
+
+      const blob = new Blob([content], { type: 'application/msword' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${candidate.first_name}_${candidate.last_name}_Resume_${job.job_id}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (e) {
+      console.error("Error downloading resume:", e);
+      setError("Failed to download resume: " + e.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -322,11 +351,29 @@ export default function CandidateDashboard() {
                     )}
                   </TableCell>
                   <TableCell>
-                    {job.resume_content ? (
-                      <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
-                    ) : (
-                      <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600 }} />
-                    )}
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      {job.resume_content ? (
+                        <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
+                      ) : (
+                        <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600 }} />
+                      )}
+                      {job.resume_content && (
+                        <Button
+                          size="small"
+                          variant="text"
+                          startIcon={<Download />}
+                          onClick={() => handleDownloadResume(job)}
+                          sx={{ 
+                            textTransform: "none", 
+                            fontWeight: 500,
+                            minWidth: "auto",
+                            px: 1
+                          }}
+                        >
+                          Download
+                        </Button>
+                      )}
+                    </Stack>
                   </TableCell>
                   <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary" }}>
                     {new Date(job.created_at).toLocaleDateString()}
@@ -831,9 +878,22 @@ export default function CandidateDashboard() {
 
               {/* Resume Content */}
               <Box>
-                <Typography variant="h6" sx={{ mb: 2, color: "primary.main", fontWeight: 600 }}>
-                  Resume Content
-                </Typography>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                  <Typography variant="h6" sx={{ color: "primary.main", fontWeight: 600 }}>
+                    Resume Content
+                  </Typography>
+                  {selectedJob.resume_content && (
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<Download />}
+                      onClick={() => handleDownloadResume(selectedJob)}
+                      sx={{ fontWeight: 600 }}
+                    >
+                      Download Resume
+                    </Button>
+                  )}
+                </Box>
                 {selectedJob.resume_content ? (
                   <Paper 
                     variant="outlined" 
