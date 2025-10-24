@@ -98,9 +98,10 @@ async function loadUsersAndCandidates() {
   state.users = usersRes.users || [];
   state.candidates = candsRes.candidates || [];
 
-  // Users
+  // Users (filter out admins - only show regular users)
   $user.innerHTML = "";
-  state.users.forEach(u => {
+  const regularUsers = state.users.filter(u => u.role !== "admin");
+  regularUsers.forEach(u => {
     const opt = document.createElement("option");
     opt.value = u.id;
     opt.textContent = `${u.name || u.email || ("User#" + u.id)} (#${u.id})`;
