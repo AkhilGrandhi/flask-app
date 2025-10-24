@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Container, Box, Typography, TextField, Button, Paper } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import {
+  Container, Paper, TextField, Button, Typography, Box,
+  Alert, IconButton, InputAdornment, Divider
+} from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { loginUser, meApi } from "../api";
 import { useAuth } from "../AuthContext";
 
@@ -9,7 +13,7 @@ export default function LoginUser() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
-  const nav = useNavigate();
+  const navigate = useNavigate();
   const { setUser } = useAuth();
 
   const onSubmit = async (e) => {
@@ -17,48 +21,79 @@ export default function LoginUser() {
     setErr("");
     try {
       await loginUser(mobile, password);
-      const me = await meApi(); setUser(me.user);
-      nav("/dashboard", { replace: true });
-    } catch (e) { setErr(e.message); }
+      const me = await meApi();
+      setUser(me.user);
+      navigate("/dashboard", { replace: true });
+    } catch (e) {
+      setErr(e.message);
+    }
   };
 
   return (
-    <Container maxWidth="xs" sx={{ mt: 10 }}>
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h5" sx={{ mb: 2 }}>User Sign In</Typography>
-        {err && <Typography color="error" sx={{ mb:1 }}>{err}</Typography>}
-        <Box component="form" onSubmit={onSubmit} sx={{ display:"grid", gap:2 }}>
-          <TextField label="Mobile" value={mobile} onChange={e=>setMobile(e.target.value)} required />
-          <Box sx={{ position: 'relative' }}>
-            <TextField 
-              label="Password" 
-              type={showPassword ? "text" : "password"}
-              value={password} 
-              onChange={e=>setPassword(e.target.value)} 
-              required 
-              fullWidth
-            />
-            <Button
-              size="small"
-              onClick={() => setShowPassword(!showPassword)}
-              sx={{
-                position: 'absolute',
-                right: 8,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                minWidth: 'auto',
-                p: 1,
-                fontSize: '0.75rem'
-              }}
-            >
-              {showPassword ? "Hide" : "Show"}
-            </Button>
-          </Box>
-          <Button type="submit" variant="contained">Login</Button>
+    <Container maxWidth="sm" sx={{ mt: 8, mb: 8 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h4" sx={{ mb: 1, textAlign: "center", fontWeight: 600 }}>
+          User Login
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: "center" }}>
+          Sign in with your mobile number
+        </Typography>
+
+        {err && <Alert severity="error" sx={{ mb: 3 }}>{err}</Alert>}
+
+        <Box component="form" onSubmit={onSubmit} sx={{ display: "grid", gap: 2.5 }}>
+          <TextField
+            label="Mobile Number"
+            type="number"
+            value={mobile}
+            onChange={(e) => setMobile(e.target.value)}
+            required
+            fullWidth
+            variant="outlined"
+          />
+
+          <TextField
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            fullWidth
+            variant="outlined"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+          />
+
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            fullWidth
+            sx={{ mt: 1, py: 1.5 }}
+          >
+            Login
+          </Button>
         </Box>
-        <Box sx={{ mt:2, display: "flex", flexDirection: "column", gap: 1 }}>
-          <Typography variant="body2">Admin? <Link to="/login-admin">Login here</Link></Typography>
-          <Typography variant="body2">Candidate? <Link to="/login-candidate">Login here</Link></Typography>
+
+        <Divider sx={{ my: 3 }} />
+
+        <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+          <Button onClick={() => navigate("/login-admin")} size="small" variant="text">
+            Admin Login
+          </Button>
+          <Button onClick={() => navigate("/login-candidate")} size="small" variant="text">
+            Candidate Login
+          </Button>
         </Box>
       </Paper>
     </Container>
