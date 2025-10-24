@@ -41,7 +41,7 @@ async function getActiveTabOrigin() {
   }
 }
 async function candidateBases() {
-  const s = new Set(["http://localhost:5000","http://127.0.0.1:5000","http://0.0.0.0:5000"]);
+  const s = new Set(["https://flask-app-r5xw.onrender.com","http://localhost:5000","http://127.0.0.1:5000","http://0.0.0.0:5000"]);
   const origin = await getActiveTabOrigin();
   if (origin) {
     const u = new URL(origin);
@@ -62,7 +62,7 @@ async function autoDetectBase() {
 async function api(path, opts = {}) {
   let base = await getStoredBase();
   if (!base) base = await autoDetectBase();
-  if (!base) throw new Error("Could not detect API. Set backendBase or run Flask on :5000.");
+  if (!base) throw new Error("Could not detect API. Check connection to https://flask-app-r5xw.onrender.com");
   const url = `${base.replace(/\/+$/, "")}${path}`;
   const { method = "GET", body } = opts;
   console.log("[popup] fetch", method, url, body || "");
