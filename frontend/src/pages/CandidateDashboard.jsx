@@ -59,17 +59,39 @@ export default function CandidateDashboard() {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Header */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
+      <Box sx={{ 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center", 
+        mb: 3,
+        pb: 2,
+        borderBottom: "2px solid",
+        borderColor: "primary.main"
+      }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
             My Dashboard
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary">
             Welcome back, {candidate?.first_name}!
           </Typography>
         </Box>
         <Stack direction="row" spacing={2} alignItems="center">
-          <Avatar sx={{ width: 48, height: 48, bgcolor: "primary.main", fontSize: "1.2rem" }}>
+          <Box sx={{ textAlign: "right", mr: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+              Candidate Portal
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+              {candidate?.first_name} {candidate?.last_name}
+            </Typography>
+          </Box>
+          <Avatar sx={{ 
+            width: 48, 
+            height: 48, 
+            bgcolor: "primary.main", 
+            fontSize: "1.2rem",
+            fontWeight: 600
+          }}>
             {candidate?.first_name?.[0]}{candidate?.last_name?.[0]}
           </Avatar>
           <Button onClick={logout} variant="outlined" color="error">
@@ -78,74 +100,87 @@ export default function CandidateDashboard() {
         </Stack>
       </Box>
 
-      {/* Basic Information Card */}
-      <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+      {/* Profile Overview Card */}
+      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", mb: 3 }}>
+        <Box sx={{ 
+          px: 2.5,
+          py: 2, 
+          bgcolor: "grey.50",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
             Profile Overview
           </Typography>
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <Stack direction="row" spacing={1}>
             <Button
               variant="outlined"
+              size="small"
               startIcon={<VisibilityOutlined />}
               onClick={() => setDetailsOpen(true)}
+              sx={{ textTransform: "none" }}
             >
               View Full Details
             </Button>
             <Button
               variant="contained"
+              size="small"
               onClick={() => {
                 setEditForm(candidate);
                 setEditError("");
                 setEditOpen(true);
               }}
+              sx={{ textTransform: "none" }}
             >
               Edit Details
             </Button>
-          </Box>
+          </Stack>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+        <Box sx={{ p: 3, display: "flex", gap: 3, flexWrap: "wrap" }}>
           {/* Full Name */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1 1 300px" }}>
-            <Avatar sx={{ bgcolor: "primary.main", mr: 1.5, width: 32, height: 32 }}>
-              <PersonOutline sx={{ fontSize: 18 }} />
+          <Box sx={{ display: "flex", alignItems: "center", flex: "1 1 280px", minWidth: 0 }}>
+            <Avatar sx={{ bgcolor: "primary.main", mr: 1.5, width: 36, height: 36 }}>
+              <PersonOutline sx={{ fontSize: 20 }} />
             </Avatar>
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
                 Full Name
               </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
                 {candidate?.first_name} {candidate?.last_name}
               </Typography>
             </Box>
           </Box>
 
           {/* Email Address */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1 1 300px" }}>
-            <Avatar sx={{ bgcolor: "success.main", mr: 1.5, width: 32, height: 32 }}>
-              <EmailOutlined sx={{ fontSize: 18 }} />
+          <Box sx={{ display: "flex", alignItems: "center", flex: "1 1 280px", minWidth: 0 }}>
+            <Avatar sx={{ bgcolor: "success.main", mr: 1.5, width: 36, height: 36 }}>
+              <EmailOutlined sx={{ fontSize: 20 }} />
             </Avatar>
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
                 Email Address
               </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 500, wordBreak: "break-word" }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", wordBreak: "break-word" }}>
                 {candidate?.email || "Not provided"}
               </Typography>
             </Box>
           </Box>
 
           {/* Mobile Number */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1 1 300px" }}>
-            <Avatar sx={{ bgcolor: "warning.main", mr: 1.5, width: 32, height: 32 }}>
-              <PhoneOutlined sx={{ fontSize: 18 }} />
+          <Box sx={{ display: "flex", alignItems: "center", flex: "1 1 280px", minWidth: 0 }}>
+            <Avatar sx={{ bgcolor: "warning.main", mr: 1.5, width: 36, height: 36 }}>
+              <PhoneOutlined sx={{ fontSize: 20 }} />
             </Avatar>
-            <Box>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
                 Mobile Number
               </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
                 {candidate?.phone || "Not provided"}
               </Typography>
             </Box>
@@ -154,9 +189,18 @@ export default function CandidateDashboard() {
       </Paper>
 
       {/* Jobs Applied Section */}
-      <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Box sx={{ 
+          px: 2.5,
+          py: 2, 
+          bgcolor: "grey.50",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
             Jobs Applied
           </Typography>
           {candidate?.jobs && candidate.jobs.length > 0 && (
@@ -164,54 +208,64 @@ export default function CandidateDashboard() {
               label={`${candidate.jobs.length} Application${candidate.jobs.length !== 1 ? 's' : ''}`}
               color="primary"
               size="small"
+              sx={{ fontWeight: 600 }}
             />
           )}
         </Box>
 
         {candidate?.jobs && candidate.jobs.length > 0 ? (
-          <Table>
+          <Table size="small">
             <TableHead>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>Job ID</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Job Description</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Resume Content</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Resume Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Applied Date</TableCell>
-                <TableCell sx={{ fontWeight: 600 }} align="center">Actions</TableCell>
+              <TableRow sx={{ bgcolor: "grey.100" }}>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job Description</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Resume Content</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Applied Date</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 1.25 }} align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {candidate.jobs.map((job) => (
-                <TableRow key={job.id} hover>
-                  <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 500 }}>
+                <TableRow 
+                  key={job.id} 
+                  hover
+                  sx={{ 
+                    "&:hover": { bgcolor: "primary.lighter" },
+                    "& td": { py: 1.5 }
+                  }}
+                >
+                  <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 600, color: "primary.main" }}>
                     {job.job_id}
                   </TableCell>
-                  <TableCell>
-                    {job.job_description.length > 100
-                      ? job.job_description.substring(0, 100) + "..."
-                      : job.job_description}
+                  <TableCell sx={{ maxWidth: 300 }}>
+                    <Typography variant="body2">
+                      {job.job_description.length > 80
+                        ? job.job_description.substring(0, 80) + "..."
+                        : job.job_description}
+                    </Typography>
                   </TableCell>
-                  <TableCell>
+                  <TableCell sx={{ maxWidth: 200 }}>
                     {job.resume_content ? (
-                      <Typography variant="body2" sx={{ maxWidth: 200 }}>
-                        {job.resume_content.length > 80
-                          ? job.resume_content.substring(0, 80) + "..."
+                      <Typography variant="body2" color="text.secondary">
+                        {job.resume_content.length > 60
+                          ? job.resume_content.substring(0, 60) + "..."
                           : job.resume_content}
                       </Typography>
                     ) : (
                       <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                        Not generated yet
+                        Not generated
                       </Typography>
                     )}
                   </TableCell>
                   <TableCell>
                     {job.resume_content ? (
-                      <Chip label="Generated" color="success" size="small" />
+                      <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
                     ) : (
-                      <Chip label="Pending" size="small" variant="outlined" />
+                      <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600 }} />
                     )}
                   </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary" }}>
                     {new Date(job.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell align="center">
@@ -222,6 +276,7 @@ export default function CandidateDashboard() {
                         setSelectedJob(job);
                         setResumeOpen(true);
                       }}
+                      sx={{ textTransform: "none", fontWeight: 500 }}
                     >
                       View
                     </Button>
@@ -231,10 +286,18 @@ export default function CandidateDashboard() {
             </TableBody>
           </Table>
         ) : (
-          <Box sx={{ textAlign: "center", py: 6 }}>
-            <WorkOutlineOutlined sx={{ fontSize: 64, color: "text.secondary", mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No jobs applied yet
+          <Box sx={{ textAlign: "center", py: 8 }}>
+            <Avatar sx={{ 
+              width: 80, 
+              height: 80, 
+              mx: "auto", 
+              mb: 2,
+              bgcolor: "primary.lighter"
+            }}>
+              <WorkOutlineOutlined sx={{ fontSize: 40, color: "primary.main" }} />
+            </Avatar>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              No Jobs Applied Yet
             </Typography>
             <Typography color="text.secondary">
               You haven't applied to any jobs yet. Check back later!
@@ -460,195 +523,345 @@ export default function CandidateDashboard() {
       </Dialog>
 
       {/* Full Details Dialog */}
-      <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
+      <Dialog open={detailsOpen} onClose={() => setDetailsOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             Complete Profile Details
           </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+            {candidate?.first_name} {candidate?.last_name} - Full Information
+          </Typography>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent sx={{ p: 0, bgcolor: "grey.50" }}>
           {candidate && (
-            <Box sx={{ display: "grid", gap: 3 }}>
+            <Box>
               {/* Personal Information */}
-              <Box>
-                <Typography variant="h6" sx={{ mb: 2, color: "primary.main", fontWeight: 600 }}>
-                  Personal Information
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">First Name</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.first_name}</Typography>
+              <Paper elevation={0} sx={{ p: 3, mb: 2, bgcolor: "white" }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2, pb: 1.5, borderBottom: "2px solid", borderColor: "primary.main" }}>
+                  <PersonOutline sx={{ mr: 1, color: "primary.main" }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: "primary.main" }}>
+                    Personal Information
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        First Name
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.first_name}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Last Name</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.last_name}</Typography>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Last Name
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.last_name}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Email</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.email}</Typography>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Email
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5, wordBreak: "break-word" }}>{candidate.email}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Phone</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.phone}</Typography>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Phone
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.phone}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Birthdate</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                      {candidate.birthdate ? new Date(candidate.birthdate).toLocaleDateString() : "Not provided"}
-                    </Typography>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Birthdate
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
+                        {candidate.birthdate ? new Date(candidate.birthdate).toLocaleDateString() : "Not provided"}
+                      </Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Gender</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.gender || "Not provided"}</Typography>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Gender
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.gender || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
                 </Grid>
-              </Box>
-
-              <Divider />
+              </Paper>
 
               {/* Address Information */}
-              <Box>
-                <Typography variant="h6" sx={{ mb: 2, color: "primary.main", fontWeight: 600 }}>
-                  Address Information
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary">Address Line 1</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.address_line1 || "Not provided"}</Typography>
+              <Paper elevation={0} sx={{ p: 3, mb: 2, bgcolor: "white" }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2, pb: 1.5, borderBottom: "2px solid", borderColor: "success.main" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: "success.main" }}>
+                    📍 Address Information
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Address Line 1
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.address_line1 || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary">Address Line 2</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.address_line2 || "Not provided"}</Typography>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Address Line 2
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.address_line2 || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Typography variant="body2" color="text.secondary">City</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.city || "Not provided"}</Typography>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        City
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.city || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Typography variant="body2" color="text.secondary">State</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.state || "Not provided"}</Typography>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        State
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.state || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Typography variant="body2" color="text.secondary">Postal Code</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.postal_code || "Not provided"}</Typography>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Postal Code
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.postal_code || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary">Country</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.country || "Not provided"}</Typography>
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Country
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.country || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
                 </Grid>
-              </Box>
-
-              <Divider />
+              </Paper>
 
               {/* Work Information */}
-              <Box>
-                <Typography variant="h6" sx={{ mb: 2, color: "primary.main", fontWeight: 600 }}>
-                  Work Information
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Nationality</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.nationality || "Not provided"}</Typography>
+              <Paper elevation={0} sx={{ p: 3, mb: 2, bgcolor: "white" }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2, pb: 1.5, borderBottom: "2px solid", borderColor: "info.main" }}>
+                  <WorkOutlineOutlined sx={{ mr: 1, color: "info.main" }} />
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: "info.main" }}>
+                    Work Information
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Nationality
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.nationality || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Citizenship Status</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.citizenship_status || "Not provided"}</Typography>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Citizenship Status
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.citizenship_status || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Visa Status</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.visa_status || "Not provided"}</Typography>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Visa Status
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.visa_status || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Work Authorization</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500 }}>{candidate.work_authorization || "Not provided"}</Typography>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Work Authorization
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.work_authorization || "Not provided"}</Typography>
+                    </Box>
                   </Grid>
                 </Grid>
-              </Box>
-
-              <Divider />
+              </Paper>
 
               {/* Skills & Experience */}
-              <Box>
-                <Typography variant="h6" sx={{ mb: 2, color: "primary.main", fontWeight: 600 }}>
-                  Skills & Experience
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary">Technical Skills</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500, whiteSpace: "pre-wrap" }}>
-                      {candidate.technical_skills || "Not provided"}
-                    </Typography>
+              <Paper elevation={0} sx={{ p: 3, mb: 2, bgcolor: "white" }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2, pb: 1.5, borderBottom: "2px solid", borderColor: "warning.main" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: "warning.main" }}>
+                    🎯 Skills & Experience
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1, height: "100%" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Technical Skills
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, whiteSpace: "pre-wrap" }}>
+                        {candidate.technical_skills || "Not provided"}
+                      </Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary">Work Experience</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500, whiteSpace: "pre-wrap" }}>
-                      {candidate.work_experience || "Not provided"}
-                    </Typography>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1, height: "100%" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Work Experience
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, whiteSpace: "pre-wrap" }}>
+                        {candidate.work_experience || "Not provided"}
+                      </Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary">Education</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500, whiteSpace: "pre-wrap" }}>
-                      {candidate.education || "Not provided"}
-                    </Typography>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1, height: "100%" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Education
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, whiteSpace: "pre-wrap" }}>
+                        {candidate.education || "Not provided"}
+                      </Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" color="text.secondary">Certificates</Typography>
-                    <Typography variant="body1" sx={{ fontWeight: 500, whiteSpace: "pre-wrap" }}>
-                      {candidate.certificates || "Not provided"}
-                    </Typography>
+                  <Grid item xs={12} md={6}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1, height: "100%" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Certificates
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, whiteSpace: "pre-wrap" }}>
+                        {candidate.certificates || "Not provided"}
+                      </Typography>
+                    </Box>
                   </Grid>
                 </Grid>
-              </Box>
+              </Paper>
+
+              {/* Additional Details */}
+              <Paper elevation={0} sx={{ p: 3, mb: 2, bgcolor: "white" }}>
+                <Box sx={{ display: "flex", alignItems: "center", mb: 2, pb: 1.5, borderBottom: "2px solid", borderColor: "secondary.main" }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: "secondary.main" }}>
+                    ℹ️ Additional Details
+                  </Typography>
+                </Box>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Expected Wage
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.expected_wage || "Not provided"}</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Recent Degree
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.recent_degree || "Not provided"}</Typography>
+                    </Box>
+                  </Grid>
+                  {[
+                    { label: "Willing to Relocate", value: candidate.willing_relocate },
+                    { label: "Willing to Travel", value: candidate.willing_travel },
+                    { label: "Veteran Status", value: candidate.veteran_status },
+                    { label: "Military Experience", value: candidate.military_experience },
+                    { label: "Race/Ethnicity", value: candidate.race_ethnicity },
+                    { label: "Disability Status", value: candidate.disability_status },
+                    { label: "At Least 18 Years Old", value: candidate.at_least_18 },
+                    { label: "Authorized to Work in US", value: candidate.authorized_work_us },
+                    { label: "Authorized Without Sponsorship", value: candidate.authorized_without_sponsorship },
+                    { label: "Needs Visa Sponsorship", value: candidate.needs_visa_sponsorship },
+                    { label: "Contact Current Employer", value: candidate.contact_current_employer },
+                    { label: "Availability to Start", value: candidate.availability },
+                    { label: "Family Member in Organization", value: candidate.family_in_org, fullWidth: true },
+                    { label: "Referral Source", value: candidate.referral_source, fullWidth: true }
+                  ].map((field, index) => (
+                    <Grid item xs={12} sm={field.fullWidth ? 12 : 6} md={field.fullWidth ? 12 : 4} key={index}>
+                      <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                          {field.label}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>{field.value || "Not provided"}</Typography>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Paper>
 
               {/* Online Presence */}
               {(candidate.personal_website || candidate.linkedin || candidate.github) && (
-                <>
-                  <Divider />
-                  <Box>
-                    <Typography variant="h6" sx={{ mb: 2, color: "primary.main", fontWeight: 600 }}>
-                      Online Presence
+                <Paper elevation={0} sx={{ p: 3, mb: 2, bgcolor: "white" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 2, pb: 1.5, borderBottom: "2px solid", borderColor: "info.main" }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: "info.main" }}>
+                      🌐 Online Presence
                     </Typography>
-                    <Grid container spacing={2}>
-                      {candidate.personal_website && (
-                        <Grid item xs={12}>
-                          <Typography variant="body2" color="text.secondary">Personal Website</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                            <a href={candidate.personal_website} target="_blank" rel="noopener noreferrer">
+                  </Box>
+                  <Grid container spacing={3}>
+                    {candidate.personal_website && (
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            Personal Website
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                            <a href={candidate.personal_website} target="_blank" rel="noopener noreferrer" style={{ color: "#1976d2", textDecoration: "none" }}>
                               {candidate.personal_website}
                             </a>
                           </Typography>
-                        </Grid>
-                      )}
-                      {candidate.linkedin && (
-                        <Grid item xs={12}>
-                          <Typography variant="body2" color="text.secondary">LinkedIn</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                            <a href={candidate.linkedin} target="_blank" rel="noopener noreferrer">
+                        </Box>
+                      </Grid>
+                    )}
+                    {candidate.linkedin && (
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            LinkedIn
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                            <a href={candidate.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: "#1976d2", textDecoration: "none" }}>
                               {candidate.linkedin}
                             </a>
                           </Typography>
-                        </Grid>
-                      )}
-                      {candidate.github && (
-                        <Grid item xs={12}>
-                          <Typography variant="body2" color="text.secondary">GitHub</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                            <a href={candidate.github} target="_blank" rel="noopener noreferrer">
+                        </Box>
+                      </Grid>
+                    )}
+                    {candidate.github && (
+                      <Grid item xs={12} md={4}>
+                        <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            GitHub
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.5 }}>
+                            <a href={candidate.github} target="_blank" rel="noopener noreferrer" style={{ color: "#1976d2", textDecoration: "none" }}>
                               {candidate.github}
                             </a>
                           </Typography>
-                        </Grid>
-                      )}
-                    </Grid>
-                  </Box>
-                </>
+                        </Box>
+                      </Grid>
+                    )}
+                  </Grid>
+                </Paper>
               )}
             </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailsOpen(false)} variant="contained">
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
+          <Button onClick={() => setDetailsOpen(false)} variant="contained" sx={{ px: 4 }}>
             Close
           </Button>
         </DialogActions>
