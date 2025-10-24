@@ -90,7 +90,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Gender" value={v.gender} onChange={set("gender")}
+            <RequiredSelect label="Gender" value={v.gender ?? "Male"} onChange={set("gender")}
               options={GENDER_OPTIONS} error={errors.gender}/>
           </Grid>
           {v.gender === OTHER && (
@@ -126,7 +126,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Visa Status" value={v.visa_status} onChange={set("visa_status")}
+            <RequiredSelect label="Visa Status" value={v.visa_status ?? "None"} onChange={set("visa_status")}
               options={VISA_OPTIONS} error={errors.visa_status}/>
           </Grid>
           {v.visa_status === OTHER && (
@@ -138,7 +138,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Work Authorization" value={v.work_authorization} onChange={set("work_authorization")}
+            <RequiredSelect label="Work Authorization" value={v.work_authorization ?? "Authorized"} onChange={set("work_authorization")}
               options={WORK_AUTH_OPTIONS} error={errors.work_authorization}/>
           </Grid>
           {v.work_authorization === OTHER && (

@@ -24,7 +24,26 @@ export default function UserDashboard() {
   };
   useEffect(() => { load(); }, []);
 
-  const startAdd = () => { setEditing(null); setForm({}); setOpen(true); };
+  const startAdd = () => { 
+    setEditing(null); 
+    // Initialize form with default values to match CandidateForm defaults
+    setForm({
+      gender: "Male",
+      nationality: "India",
+      citizenship_status: "Non-Resident",
+      visa_status: "None",
+      work_authorization: "Authorized",
+      willing_relocate: "Yes",
+      willing_travel: "Yes",
+      disability_status: "No",
+      veteran_status: "Not a Veteran",
+      military_experience: "No",
+      race_ethnicity: "Asian",
+      country: "India",
+      at_least_18: "Yes"
+    }); 
+    setOpen(true); 
+  };
   const startEdit = (r) => { setEditing(r); setForm(r); setOpen(true); };
 
   const submit = async () => {

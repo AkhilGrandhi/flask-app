@@ -3,8 +3,9 @@ import {
   Tabs, Tab, Container, Box, Typography, Button, Paper,
   Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Select, MenuItem
+  TextField, Select, MenuItem, IconButton, InputAdornment
 } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 import { useAuth } from "../AuthContext";
 
@@ -57,16 +58,34 @@ function UsersTab() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name:"", email:"", mobile:"", password:"", role:"user" });
   const [err, setErr] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const load = async () => { const d = await listUsers(); setRows(d.users); };
   useEffect(()=>{ load(); }, []);
 
-  const startCreate = ()=>{ setEditing(null); setForm({ name:"", email:"", mobile:"", password:"", role:"user" }); setOpen(true); };
-  const startEdit = (u)=>{ setEditing(u); setForm({ name:u.name, email:u.email, mobile:u.mobile, password:"", role:u.role }); setOpen(true); };
+  const startCreate = ()=>{ setEditing(null); setForm({ name:"", email:"", mobile:"", password:"", role:"user" }); setShowPassword(false); setOpen(true); };
+  const startEdit = (u)=>{ setEditing(u); setForm({ name:u.name, email:u.email, mobile:u.mobile, password:"", role:u.role }); setShowPassword(false); setOpen(true); };
 
   const submit = async () => {
     try {
       setErr("");
+      
+      // Client-side validation
+      if (form.mobile && !/^\d+$/.test(form.mobile)) {
+        setErr("Mobile number must contain only numbers");
+        return;
+      }
+      
+      if (!editing && (!form.password || form.password.length < 6)) {
+        setErr("Password must be at least 6 characters");
+        return;
+      }
+      
+      if (editing && form.password && form.password.length < 6) {
+        setErr("Password must be at least 6 characters");
+        return;
+      }
+      
       if (editing) await updateUser(editing.id, form);
       else await createUser(form);
       setOpen(false); await load();
@@ -113,10 +132,48 @@ function UsersTab() {
         <DialogTitle>{editing ? "Edit User" : "Create User"}</DialogTitle>
         <DialogContent sx={{ display:"grid", gap:2, pt:2 }}>
           {err && <Typography color="error">{err}</Typography>}
-          <TextField label="Name" value={form.name} onChange={e=>setForm(s=>({...s, name:e.target.value}))} />
-          <TextField label="Email" value={form.email} onChange={e=>setForm(s=>({...s, email:e.target.value}))} />
-          <TextField label="Mobile" value={form.mobile} onChange={e=>setForm(s=>({...s, mobile:e.target.value}))} />
-          <TextField label="Password" type="password" value={form.password} onChange={e=>setForm(s=>({...s, password:e.target.value}))} placeholder={editing ? "(leave blank to keep)" : ""} />
+          <TextField 
+            label="Name" 
+            value={form.name} 
+            onChange={e=>setForm(s=>({...s, name:e.target.value}))} 
+            required 
+          />
+          <TextField 
+            label="Email" 
+            type="email"
+            value={form.email} 
+            onChange={e=>setForm(s=>({...s, email:e.target.value}))} 
+            required 
+          />
+          <TextField 
+            label="Mobile" 
+            type="number"
+            value={form.mobile} 
+            onChange={e=>setForm(s=>({...s, mobile:e.target.value}))} 
+            helperText="Numbers only"
+            required 
+          />
+          <TextField 
+            label="Password" 
+            type={showPassword ? "text" : "password"}
+            value={form.password} 
+            onChange={e=>setForm(s=>({...s, password:e.target.value}))} 
+            placeholder={editing ? "(leave blank to keep)" : ""} 
+            helperText="Minimum 6 characters"
+            required={!editing}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowPassword(!showPassword)}
+                    edge="end"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+          />
           <Select value={form.role} onChange={e=>setForm(s=>({...s, role:e.target.value}))}>
             <MenuItem value="user">user</MenuItem>
             <MenuItem value="admin">admin</MenuItem>
@@ -134,6 +191,8 @@ function UsersTab() {
 function CandidatesTab() {
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewing, setViewing] = useState(null);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [err, setErr] = useState("");
@@ -143,6 +202,11 @@ function CandidatesTab() {
     setRows(d.candidates);
   };
   useEffect(()=>{ load(); }, []);
+
+  const startView = (r) => {
+    setViewing(r);
+    setViewOpen(true);
+  };
 
   const startEdit = (r) => {
     setEditing(r);
@@ -188,7 +252,8 @@ function CandidatesTab() {
               <TableCell>{r.phone}</TableCell>
               <TableCell>{r.created_by?.email}</TableCell>
               <TableCell align="right">
-                <Button size="small" onClick={()=>startEdit(r)}>Edit</Button>
+                <Button size="small" variant="outlined" onClick={()=>startView(r)} sx={{ mr: 1 }}>View</Button>
+                <Button size="small" onClick={()=>startEdit(r)} sx={{ mr: 1 }}>Edit</Button>
                 <Button size="small" color="error" onClick={()=>remove(r.id)}>Delete</Button>
               </TableCell>
             </TableRow>
@@ -197,6 +262,79 @@ function CandidatesTab() {
         </TableBody>
       </Table>
 
+      {/* View Dialog */}
+      <Dialog open={viewOpen} onClose={()=>setViewOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle>Candidate Details</DialogTitle>
+        <DialogContent dividers>
+          {viewing && (
+            <Box sx={{ display: 'grid', gap: 3 }}>
+              {/* Basic Information */}
+              <Box>
+                <Typography variant="h6" sx={{ mb: 1 }}>Basic Information</Typography>
+                <Typography><strong>ID:</strong> {viewing.id}</Typography>
+                <Typography><strong>Name:</strong> {viewing.first_name} {viewing.last_name}</Typography>
+                <Typography><strong>Email:</strong> {viewing.email || "Not specified"}</Typography>
+                <Typography><strong>Phone:</strong> {viewing.phone || "Not specified"}</Typography>
+                <Typography><strong>Gender:</strong> {viewing.gender || "Not specified"}</Typography>
+                <Typography><strong>Nationality:</strong> {viewing.nationality || "Not specified"}</Typography>
+                <Typography><strong>Creator:</strong> {viewing.created_by?.email || "Not specified"}</Typography>
+              </Box>
+
+              {/* Jobs Table */}
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Jobs for this Candidate {viewing.jobs && viewing.jobs.length > 0 ? `(${viewing.jobs.length})` : ''}
+                </Typography>
+                {viewing.jobs && viewing.jobs.length > 0 ? (
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><strong>Job ID</strong></TableCell>
+                        <TableCell><strong>Job Description</strong></TableCell>
+                        <TableCell><strong>Resume</strong></TableCell>
+                        <TableCell><strong>Created</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {viewing.jobs.map((job) => (
+                        <TableRow key={job.id}>
+                          <TableCell sx={{ whiteSpace: 'nowrap' }}>{job.job_id}</TableCell>
+                          <TableCell>
+                            {job.job_description.length > 100 
+                              ? job.job_description.substring(0, 100) + '...' 
+                              : job.job_description}
+                          </TableCell>
+                          <TableCell>
+                            {job.resume_content ? (
+                              job.resume_content.length > 50 
+                                ? job.resume_content.substring(0, 50) + '...' 
+                                : job.resume_content
+                            ) : (
+                              <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                                Not generated
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                            {new Date(job.created_at).toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <Typography color="text.secondary">No job applications yet</Typography>
+                )}
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={()=>setViewOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Edit Dialog */}
       <Dialog open={open} onClose={()=>setOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>Edit Candidate</DialogTitle>
         <DialogContent dividers>

@@ -12,6 +12,14 @@ def owns_or_404(cand: Candidate, uid: int):
     if not cand or cand.created_by_user_id != uid:
         abort(404)
 
+# Helper function to convert Yes/No strings to boolean
+def to_bool(val):
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.lower() in ("yes", "true", "1")
+    return bool(val)
+
 # --------- MY CANDIDATES (list/create/update/delete) ---------
 
 @bp.get("")
@@ -42,11 +50,11 @@ def create_candidate():
         citizenship_status=data.get("citizenship_status"),
         visa_status=data.get("visa_status"),
         work_authorization=data.get("work_authorization"),
-        willing_relocate=bool(data.get("willing_relocate")),
-        willing_travel=bool(data.get("willing_travel")),
-        disability_status=bool(data.get("disability_status")),
+        willing_relocate=to_bool(data.get("willing_relocate")),
+        willing_travel=to_bool(data.get("willing_travel")),
+        disability_status=to_bool(data.get("disability_status")),
         veteran_status=data.get("veteran_status"),
-        military_experience=bool(data.get("military_experience")),
+        military_experience=to_bool(data.get("military_experience")),
         race_ethnicity=data.get("race_ethnicity"),
         address_line1=data.get("address_line1"),
         address_line2=data.get("address_line2"),
@@ -108,7 +116,7 @@ def update_candidate(cand_id):
 
     for field in ["willing_relocate", "willing_travel", "disability_status", "military_experience"]:
         if field in data:
-            setattr(c, field, bool(data[field]))
+            setattr(c, field, to_bool(data[field]))
 
     if "birthdate" in data:
         from datetime import date
