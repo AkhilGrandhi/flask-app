@@ -56,8 +56,9 @@ export default function LoginAdmin() {
           </Box>
           <Button type="submit" variant="contained">Login</Button>
         </Box>
-        <Box sx={{ mt:2 }}>
+        <Box sx={{ mt:2, display: "flex", flexDirection: "column", gap: 1 }}>
           <Typography variant="body2">Are you a user? <Link to="/login">Login here</Link></Typography>
+          <Typography variant="body2">Candidate? <Link to="/login-candidate">Login here</Link></Typography>
         </Box>
       </Paper>
     </Container>

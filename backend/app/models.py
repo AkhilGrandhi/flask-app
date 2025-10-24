@@ -35,6 +35,7 @@ class Candidate(db.Model):
     last_name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(255))
     phone = db.Column(db.String(50))
+    password = db.Column(db.String(255))  # Candidate password (minimum 6 characters)
     birthdate = db.Column(db.Date)
     gender = db.Column(db.String(50))
     nationality = db.Column(db.String(120))

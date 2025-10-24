@@ -1,9 +1,10 @@
 // src/components/CandidateForm.jsx
-import { useMemo, useId } from "react";
+import { useMemo, useId, useState } from "react";
 import {
   Box, Grid, Paper, Typography, TextField, Select, MenuItem,
-  FormControl, InputLabel, FormHelperText
+  FormControl, InputLabel, FormHelperText, IconButton, InputAdornment
 } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import {
   OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
   WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
@@ -53,6 +54,7 @@ function RequiredSelect({ label, value, onChange, options, error, helperText, na
 
 export default function CandidateForm({ value, onChange, errors = {} }) {
   const v = useMemo(() => value || {}, [value]);
+  const [showPassword, setShowPassword] = useState(false);
 
   const set = (k) => (eOrVal) => {
     const newVal = eOrVal?.target ? eOrVal.target.value : eOrVal;
@@ -89,6 +91,33 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
               fullWidth 
               error={!!errors.phone} 
               helperText={errors.phone || "Numbers only"}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField 
+              size="small" 
+              label="Password" 
+              type={showPassword ? "text" : "password"}
+              value={v.password||""} 
+              onChange={set("password")}
+              required 
+              fullWidth 
+              error={!!errors.password} 
+              helperText={errors.password || "Minimum 6 characters"}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
             />
           </Grid>
 

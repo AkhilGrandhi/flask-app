@@ -23,6 +23,7 @@ export async function api(path, { method="GET", body } = {}) {
 // Auth
 export const loginAdmin = (email, password) => api("/auth/login-admin", { method:"POST", body:{email, password} });
 export const loginUser  = (mobile, password) => api("/auth/login-user",  { method:"POST", body:{mobile, password} });
+export const loginCandidate = (phone, password) => api("/auth/login-candidate", { method:"POST", body:{phone, password} });
 export const meApi      = () => api("/auth/me");
 export const logoutApi  = () => api("/auth/logout", { method:"POST" });
 
@@ -42,6 +43,9 @@ export const listMyCandidates = () => api("/candidates");
 export const createCandidate = (payload) => api("/candidates", { method:"POST", body: payload });
 export const updateCandidate = (id, payload) => api(`/candidates/${id}`, { method:"PUT", body: payload });
 export const deleteCandidate = (id) => api(`/candidates/${id}`, { method:"DELETE" });
+
+// Candidate self-service
+export const getMyCandidateProfile = () => api("/candidates/me");
 
 // Candidate details + jobs
 export const getCandidate     = (id)                => api(`/candidates/${id}`);

@@ -1,12 +1,19 @@
 # server/candidates.py
 from flask import Blueprint, request, abort
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from .models import db, Candidate, CandidateJob
 
 bp = Blueprint("candidates", __name__)
 
 def current_user_id():
     return int(get_jwt_identity())
+
+def current_candidate_id():
+    """Extract candidate ID from JWT for candidate logins"""
+    claims = get_jwt()
+    if claims.get("role") == "candidate":
+        return claims.get("candidate_id")
+    return None
 
 def owns_or_404(cand: Candidate, uid: int):
     if not cand or cand.created_by_user_id != uid:
@@ -37,13 +44,18 @@ def create_candidate():
     data = request.get_json() or {}
     
     # Validate required fields
-    required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
+    required = ["first_name", "last_name", "email", "phone", "password", "birthdate", "gender", 
                 "nationality", "citizenship_status", "visa_status", "work_authorization",
                 "address_line1", "address_line2", "city", "state", "postal_code", "country",
                 "technical_skills", "work_experience"]
     missing_fields = [f for f in required if not data.get(f)]
     if missing_fields:
         return {"message": f"Required fields missing: {', '.join(missing_fields)}"}, 400
+    
+    # Validate password length
+    password = data.get("password", "")
+    if len(password) < 6:
+        return {"message": "Password must be at least 6 characters"}, 400
     
     # Validate email format and uniqueness
     email = (data.get("email") or "").strip().lower()
@@ -75,6 +87,7 @@ def create_candidate():
         last_name=data.get("last_name"),
         email=data.get("email"),
         phone=data.get("phone"),
+        password=data.get("password"),
         gender=data.get("gender"),
         nationality=data.get("nationality"),
         citizenship_status=data.get("citizenship_status"),
@@ -156,9 +169,15 @@ def update_candidate(cand_id):
         ).first()
         if existing_phone:
             return {"message": "A candidate with this phone number already exists"}, 409
+    
+    # Validate password if being updated
+    if "password" in data and data.get("password"):
+        password = data.get("password")
+        if len(password) < 6:
+            return {"message": "Password must be at least 6 characters"}, 400
 
     for field in [
-        "first_name", "last_name", "email", "phone", "gender", "nationality",
+        "first_name", "last_name", "email", "phone", "password", "gender", "nationality",
         "citizenship_status", "visa_status", "work_authorization",
         "veteran_status", "race_ethnicity", "address_line1", "address_line2",
         "city", "state", "postal_code", "country", "personal_website",
@@ -278,3 +297,16 @@ def delete_job(cand_id, row_id):
     db.session.delete(row)
     db.session.commit()
     return {"message": "deleted"}
+
+# --------- CANDIDATE SELF-SERVICE (for candidate login) ---------
+
+@bp.get("/me")
+@jwt_required()
+def get_my_profile():
+    """Get logged-in candidate's own profile and jobs"""
+    cand_id = current_candidate_id()
+    if not cand_id:
+        abort(403, description="Candidates only")
+    
+    c = Candidate.query.get_or_404(cand_id)
+    return c.to_dict(include_creator=False, include_jobs=True)

@@ -4,7 +4,7 @@ from flask_jwt_extended import (
     create_access_token, set_access_cookies, unset_jwt_cookies,
     jwt_required, get_jwt, get_jwt_identity
 )
-from .models import db, User
+from .models import db, User, Candidate
 
 bp = Blueprint("auth", __name__)
 
@@ -40,6 +40,31 @@ def login_user():
     set_access_cookies(resp, token)
     return resp, 200
 
+# Candidate login (phone + password)
+@bp.post("/login-candidate")
+def login_candidate():
+    data = request.get_json() or {}
+    phone = (data.get("phone") or "").strip()
+    password = data.get("password")
+    
+    candidate = Candidate.query.filter_by(phone=phone).first()
+    if not candidate or candidate.password != password:
+        return {"message": "Invalid phone number or password"}, 401
+
+    token = create_access_token(
+        identity=f"candidate_{candidate.id}",
+        additional_claims={
+            "role": "candidate",
+            "candidate_id": candidate.id,
+            "name": f"{candidate.first_name} {candidate.last_name}",
+            "email": candidate.email,
+            "phone": candidate.phone
+        }
+    )
+    resp = jsonify({"message": "Logged in", "role": "candidate"})
+    set_access_cookies(resp, token)
+    return resp, 200
+
 @bp.post("/logout")
 def logout():
     resp = jsonify({"message": "Logged out"})
@@ -51,13 +76,30 @@ def logout():
 def me():
     claims = get_jwt()
     uid = get_jwt_identity()
-    return {"user": {
-        "id": int(uid),
-        "name": claims.get("name"),      # optional if you add it
-        "email": claims.get("email"),
-        "mobile": claims.get("mobile"),
-        "role": claims.get("role"),
-    }}, 200
+    role = claims.get("role")
+    
+    # Handle different identity formats
+    if role == "candidate":
+        # For candidates, identity is "candidate_{id}"
+        user_data = {
+            "id": claims.get("candidate_id"),
+            "name": claims.get("name"),
+            "email": claims.get("email"),
+            "phone": claims.get("phone"),
+            "mobile": claims.get("phone"),  # Alias for compatibility
+            "role": role,
+        }
+    else:
+        # For users and admins, identity is the user ID
+        user_data = {
+            "id": int(uid),
+            "name": claims.get("name"),
+            "email": claims.get("email"),
+            "mobile": claims.get("mobile"),
+            "role": role,
+        }
+    
+    return {"user": user_data}, 200
 
 #chrom extension code
 @bp.post("/token-admin")

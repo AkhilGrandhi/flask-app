@@ -131,7 +131,7 @@ export default function UserDashboard() {
       }
       
       // Client-side validation
-      const required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
+      const required = ["first_name", "last_name", "email", "phone", "password", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
                         "address_line1", "address_line2", "city", "state", "postal_code", "country",
                         "technical_skills", "work_experience"];
@@ -151,6 +151,12 @@ export default function UserDashboard() {
       // Validate phone - only digits
       if (form.phone && !/^\d+$/.test(String(form.phone))) {
         setErr("Phone number must contain only digits");
+        return;
+      }
+      
+      // Validate password length
+      if (form.password && form.password.length < 6) {
+        setErr("Password must be at least 6 characters");
         return;
       }
       

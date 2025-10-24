@@ -142,8 +142,14 @@ def admin_update_candidate(cand_id):
         if existing_phone:
             return {"message": "A candidate with this phone number already exists"}, 409
     
+    # Validate password if being updated
+    if "password" in data and data.get("password"):
+        password = data.get("password")
+        if len(password) < 6:
+            return {"message": "Password must be at least 6 characters"}, 400
+    
     for field in [
-        "first_name","last_name","email","phone","gender","nationality","citizenship_status",
+        "first_name","last_name","email","phone","password","gender","nationality","citizenship_status",
         "visa_status","work_authorization","veteran_status","race_ethnicity","address_line1",
         "address_line2","city","state","postal_code","country","personal_website","linkedin",
         "github","technical_skills","work_experience",
