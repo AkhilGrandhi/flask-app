@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Container, Box, Typography, Button, Paper,
   Table, TableHead, TableRow, TableCell, TableBody,
-  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Stack, Grid
+  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Stack, Grid, Alert
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../AuthContext";
@@ -489,20 +489,32 @@ export default function UserDashboard() {
         )}
       </Paper>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>{editing ? "Edit Candidate" : "Add Candidate"}</DialogTitle>
-        <DialogContent dividers>
-          {err && <Typography color="error" sx={{ mb: 1, fontWeight: "bold" }}>{err}</Typography>}
+      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            {editing ? "Edit Candidate" : "Add Candidate"}
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+            {editing ? "Update candidate information" : "Fill in all required fields to add a new candidate"}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
+          {err && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {err}
+            </Alert>
+          )}
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
+          <Button onClick={() => setOpen(false)} variant="outlined">Cancel</Button>
           <Button 
             variant="contained" 
             onClick={submit}
             disabled={Object.keys(fieldErrors).length > 0}
+            sx={{ px: 4 }}
           >
-            {editing ? "Save" : "Create"}
+            {editing ? "Save Changes" : "Create Candidate"}
           </Button>
         </DialogActions>
       </Dialog>

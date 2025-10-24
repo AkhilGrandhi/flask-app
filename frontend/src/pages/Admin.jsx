@@ -3,7 +3,7 @@ import {
   Tabs, Tab, Container, Box, Typography, Button, Paper,
   Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Select, MenuItem, IconButton, InputAdornment, Grid
+  TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 
@@ -891,25 +891,35 @@ function CandidatesTab() {
         </DialogActions>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={open} onClose={()=>setOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Edit Candidate</DialogTitle>
-        <DialogContent dividers>
-          {err && <Typography color="error" sx={{ mb:1, fontWeight: "bold" }}>{err}</Typography>}
-          {/* Reuse the same form as the user side */}
-          <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} />
-          <Typography variant="caption" sx={{opacity:.7}}>
-            Creator: {editing?.created_by?.email || "—"}
+      {/* Edit/Create Dialog */}
+      <Dialog open={open} onClose={()=>setOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            {editing ? "Edit Candidate" : "Add Candidate"}
           </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+            {editing 
+              ? `Update candidate information • Created by: ${editing?.created_by?.email || "Unknown"}`
+              : "Fill in all required fields to add a new candidate"}
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
+          {err && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {err}
+            </Alert>
+          )}
+          <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={()=>setOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
+          <Button onClick={()=>setOpen(false)} variant="outlined">Cancel</Button>
           <Button 
             variant="contained" 
             onClick={submit}
             disabled={Object.keys(fieldErrors).length > 0}
+            sx={{ px: 4 }}
           >
-            Save
+            {editing ? "Save Changes" : "Create Candidate"}
           </Button>
         </DialogActions>
       </Dialog>

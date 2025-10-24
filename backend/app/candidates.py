@@ -310,3 +310,53 @@ def get_my_profile():
     
     c = Candidate.query.get_or_404(cand_id)
     return c.to_dict(include_creator=False, include_jobs=True)
+
+@bp.put("/me")
+@jwt_required()
+def update_my_profile():
+    """Update logged-in candidate's own profile"""
+    cand_id = current_candidate_id()
+    if not cand_id:
+        abort(403, description="Candidates only")
+    
+    candidate = Candidate.query.get_or_404(cand_id)
+    data = request.get_json() or {}
+    
+    # Candidates cannot update their email, phone, or password through this endpoint
+    # Those should have separate secure endpoints
+    restricted_fields = ["email", "phone", "password", "created_by_user_id"]
+    for field in restricted_fields:
+        if field in data:
+            del data[field]
+    
+    # Update allowed fields
+    for field in [
+        "first_name", "last_name", "gender", "nationality",
+        "citizenship_status", "visa_status", "work_authorization",
+        "veteran_status", "race_ethnicity", "address_line1", "address_line2",
+        "city", "state", "postal_code", "country", "personal_website",
+        "linkedin", "github", "technical_skills", "work_experience",
+        "expected_wage", "contact_current_employer", "recent_degree",
+        "authorized_work_us", "authorized_without_sponsorship",
+        "referral_source", "at_least_18", "needs_visa_sponsorship",
+        "family_in_org", "availability", "education", "certificates",
+    ]:
+        if field in data:
+            setattr(candidate, field, data[field])
+    
+    # Boolean fields
+    for field in ["willing_relocate", "willing_travel", "disability_status", "military_experience"]:
+        if field in data:
+            setattr(candidate, field, to_bool(data[field]))
+    
+    # Handle birthdate
+    if "birthdate" in data:
+        from datetime import date
+        if data["birthdate"]:
+            y, m, d = map(int, data["birthdate"].split("-"))
+            candidate.birthdate = date(y, m, d)
+        else:
+            candidate.birthdate = None
+    
+    db.session.commit()
+    return {"message": "Profile updated successfully", "candidate": candidate.to_dict(include_creator=False, include_jobs=True)}

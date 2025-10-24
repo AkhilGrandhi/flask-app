@@ -46,6 +46,7 @@ export const deleteCandidate = (id) => api(`/candidates/${id}`, { method:"DELETE
 
 // Candidate self-service
 export const getMyCandidateProfile = () => api("/candidates/me");
+export const updateMyCandidateProfile = (payload) => api("/candidates/me", { method: "PUT", body: payload });
 
 // Candidate details + jobs
 export const getCandidate     = (id)                => api(`/candidates/${id}`);

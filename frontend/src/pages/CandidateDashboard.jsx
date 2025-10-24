@@ -1,15 +1,78 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import {
   Container, Box, Typography, Paper, Table, TableHead,
   TableRow, TableCell, TableBody, Button, Avatar, Stack, Grid,
-  Dialog, DialogTitle, DialogContent, DialogActions, Chip, Divider, TextField, Alert
+  Dialog, DialogTitle, DialogContent, DialogActions, Chip, Divider, TextField, Alert,
+  FormControl, InputLabel, Select, MenuItem
 } from "@mui/material";
 import {
   PersonOutline, EmailOutlined, PhoneOutlined,
   WorkOutlineOutlined, VisibilityOutlined
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext";
-import { getMyCandidateProfile } from "../api";
+import { getMyCandidateProfile, updateMyCandidateProfile } from "../api";
+import {
+  OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
+  WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
+  COUNTRY_OPTIONS
+} from "../constants/options";
+
+// EditSelectField component for the edit form
+function EditSelectField({ label, value, onChange, options }) {
+  const labelId = useId();
+  return (
+    <FormControl 
+      fullWidth 
+      variant="outlined"
+      sx={{ minWidth: 280 }}
+    >
+      <InputLabel 
+        id={labelId} 
+        shrink
+        sx={{ whiteSpace: "normal", lineHeight: 1.2, maxWidth: "100%" }}
+      >
+        {label}
+      </InputLabel>
+      <Select
+        labelId={labelId}
+        label={label}
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        fullWidth
+        sx={{ 
+          width: "100%",
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "rgba(0, 0, 0, 0.23)",
+          }
+        }}
+        MenuProps={{
+          PaperProps: { 
+            sx: { 
+              minWidth: 300, 
+              maxHeight: 320,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.1)"
+            } 
+          },
+        }}
+      >
+        {options.map((opt) => (
+          <MenuItem 
+            key={String(opt)} 
+            value={opt}
+            sx={{
+              "&:hover": {
+                backgroundColor: "primary.light",
+                color: "primary.contrastText"
+              }
+            }}
+          >
+            {opt === "__OTHER__" ? "Other" : String(opt)}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+}
 
 export default function CandidateDashboard() {
   const { user, logout } = useAuth();
@@ -307,120 +370,404 @@ export default function CandidateDashboard() {
       </Paper>
 
       {/* Edit Details Dialog */}
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             Edit Profile Details
           </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+            Update your personal information
+          </Typography>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
           {editError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 3 }}>
               {editError}
             </Alert>
           )}
-          <Box sx={{ display: "grid", gap: 2 }}>
-            <TextField
-              label="First Name"
-              value={editForm.first_name || ""}
-              onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Last Name"
-              value={editForm.last_name || ""}
-              onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Email"
-              type="email"
-              value={editForm.email || ""}
-              onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-              fullWidth
-              required
-            />
-            <TextField
-              label="Phone"
-              type="number"
-              value={editForm.phone || ""}
-              onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-              fullWidth
-              required
-              helperText="Cannot be changed"
-              disabled
-            />
-            <TextField
-              label="Address Line 1"
-              value={editForm.address_line1 || ""}
-              onChange={(e) => setEditForm({ ...editForm, address_line1: e.target.value })}
-              fullWidth
-            />
-            <TextField
-              label="Address Line 2"
-              value={editForm.address_line2 || ""}
-              onChange={(e) => setEditForm({ ...editForm, address_line2: e.target.value })}
-              fullWidth
-            />
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-              <TextField
-                label="City"
-                value={editForm.city || ""}
-                onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                fullWidth
-              />
-              <TextField
-                label="State"
-                value={editForm.state || ""}
-                onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
-                fullWidth
-              />
-            </Box>
-            <TextField
-              label="Postal Code"
-              value={editForm.postal_code || ""}
-              onChange={(e) => setEditForm({ ...editForm, postal_code: e.target.value })}
-              fullWidth
-            />
-            <TextField
-              label="Technical Skills"
-              value={editForm.technical_skills || ""}
-              onChange={(e) => setEditForm({ ...editForm, technical_skills: e.target.value })}
-              fullWidth
-              multiline
-              rows={3}
-            />
-            <TextField
-              label="Work Experience"
-              value={editForm.work_experience || ""}
-              onChange={(e) => setEditForm({ ...editForm, work_experience: e.target.value })}
-              fullWidth
-              multiline
-              rows={3}
-            />
+          <Box sx={{ display: "grid", gap: 3 }}>
+            {/* Personal Information */}
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "primary.main" }}>
+                Personal Information
+              </Typography>
+              <Grid container spacing={2.5}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="First Name"
+                    value={editForm.first_name || ""}
+                    onChange={(e) => setEditForm({ ...editForm, first_name: e.target.value })}
+                    fullWidth
+                    required
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Last Name"
+                    value={editForm.last_name || ""}
+                    onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                    fullWidth
+                    required
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Birthdate"
+                    type="date"
+                    InputLabelProps={{ shrink: true }}
+                    value={editForm.birthdate || ""}
+                    onChange={(e) => setEditForm({ ...editForm, birthdate: e.target.value })}
+                    fullWidth
+                    required
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Gender"
+                    value={editForm.gender}
+                    onChange={(val) => setEditForm({ ...editForm, gender: val })}
+                    options={GENDER_OPTIONS}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Nationality"
+                    value={editForm.nationality}
+                    onChange={(val) => setEditForm({ ...editForm, nationality: val })}
+                    options={COUNTRY_OPTIONS}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Citizenship Status"
+                    value={editForm.citizenship_status}
+                    onChange={(val) => setEditForm({ ...editForm, citizenship_status: val })}
+                    options={CITIZENSHIP_OPTIONS}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Visa Status"
+                    value={editForm.visa_status}
+                    onChange={(val) => setEditForm({ ...editForm, visa_status: val })}
+                    options={VISA_OPTIONS}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Work Authorization"
+                    value={editForm.work_authorization}
+                    onChange={(val) => setEditForm({ ...editForm, work_authorization: val })}
+                    options={WORK_AUTH_OPTIONS}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Willing to Relocate"
+                    value={editForm.willing_relocate}
+                    onChange={(val) => setEditForm({ ...editForm, willing_relocate: val })}
+                    options={["Yes", "No"]}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Willing to Travel"
+                    value={editForm.willing_travel}
+                    onChange={(val) => setEditForm({ ...editForm, willing_travel: val })}
+                    options={["Yes", "No"]}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Disability Status"
+                    value={editForm.disability_status}
+                    onChange={(val) => setEditForm({ ...editForm, disability_status: val })}
+                    options={["Yes", "No"]}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Veteran Status"
+                    value={editForm.veteran_status}
+                    onChange={(val) => setEditForm({ ...editForm, veteran_status: val })}
+                    options={VETERAN_OPTIONS}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Military Experience"
+                    value={editForm.military_experience}
+                    onChange={(val) => setEditForm({ ...editForm, military_experience: val })}
+                    options={["Yes", "No"]}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Race / Ethnicity"
+                    value={editForm.race_ethnicity}
+                    onChange={(val) => setEditForm({ ...editForm, race_ethnicity: val })}
+                    options={RACE_ETHNICITY_OPTIONS}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="At least 18 years of age?"
+                    value={editForm.at_least_18}
+                    onChange={(val) => setEditForm({ ...editForm, at_least_18: val })}
+                    options={["Yes", "No"]}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Family member employed here?"
+                    value={editForm.family_in_org}
+                    onChange={(val) => setEditForm({ ...editForm, family_in_org: val })}
+                    options={["Yes", "No"]}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Expected Salary / Hourly Wage"
+                    value={editForm.expected_wage || ""}
+                    onChange={(e) => setEditForm({ ...editForm, expected_wage: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="May we contact your current employer?"
+                    value={editForm.contact_current_employer || ""}
+                    onChange={(e) => setEditForm({ ...editForm, contact_current_employer: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Most Recent Degree / Qualification"
+                    value={editForm.recent_degree || ""}
+                    onChange={(e) => setEditForm({ ...editForm, recent_degree: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Legally authorized to work in the U.S.?"
+                    value={editForm.authorized_work_us || ""}
+                    onChange={(e) => setEditForm({ ...editForm, authorized_work_us: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Authorized to work without sponsorship?"
+                    value={editForm.authorized_without_sponsorship || ""}
+                    onChange={(e) => setEditForm({ ...editForm, authorized_without_sponsorship: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="How did you learn about this opportunity?"
+                    value={editForm.referral_source || ""}
+                    onChange={(e) => setEditForm({ ...editForm, referral_source: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Require visa sponsorship now or in future?"
+                    value={editForm.needs_visa_sponsorship || ""}
+                    onChange={(e) => setEditForm({ ...editForm, needs_visa_sponsorship: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Availability to start"
+                    value={editForm.availability || ""}
+                    onChange={(e) => setEditForm({ ...editForm, availability: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* Address Information */}
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "primary.main" }}>
+                Address Information
+              </Typography>
+              <Grid container spacing={2.5}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Address Line 1"
+                    value={editForm.address_line1 || ""}
+                    onChange={(e) => setEditForm({ ...editForm, address_line1: e.target.value })}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Address Line 2"
+                    value={editForm.address_line2 || ""}
+                    onChange={(e) => setEditForm({ ...editForm, address_line2: e.target.value })}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="City"
+                    value={editForm.city || ""}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="State / Province"
+                    value={editForm.state || ""}
+                    onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    label="Postal Code"
+                    type="number"
+                    value={editForm.postal_code || ""}
+                    onChange={(e) => setEditForm({ ...editForm, postal_code: e.target.value })}
+                    fullWidth
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <EditSelectField
+                    label="Country"
+                    value={editForm.country}
+                    onChange={(val) => setEditForm({ ...editForm, country: val })}
+                    options={COUNTRY_OPTIONS}
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* Online Presence */}
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "primary.main" }}>
+                Online Presence
+              </Typography>
+              <Grid container spacing={2.5}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    type="url"
+                    label="Personal Website (Optional)"
+                    value={editForm.personal_website || ""}
+                    onChange={(e) => setEditForm({ ...editForm, personal_website: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    type="url"
+                    label="LinkedIn (Optional)"
+                    value={editForm.linkedin || ""}
+                    onChange={(e) => setEditForm({ ...editForm, linkedin: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    type="url"
+                    label="GitHub (Optional)"
+                    value={editForm.github || ""}
+                    onChange={(e) => setEditForm({ ...editForm, github: e.target.value })}
+                    fullWidth
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
+
+            {/* Additional Details */}
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "primary.main" }}>
+                Additional Details
+              </Typography>
+              <Grid container spacing={2.5}>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Technical Skills"
+                    value={editForm.technical_skills || ""}
+                    onChange={(e) => setEditForm({ ...editForm, technical_skills: e.target.value })}
+                    fullWidth
+                    required
+                    multiline
+                    minRows={3}
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Work Experience"
+                    value={editForm.work_experience || ""}
+                    onChange={(e) => setEditForm({ ...editForm, work_experience: e.target.value })}
+                    fullWidth
+                    required
+                    multiline
+                    minRows={3}
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Education"
+                    value={editForm.education || ""}
+                    onChange={(e) => setEditForm({ ...editForm, education: e.target.value })}
+                    fullWidth
+                    required
+                    multiline
+                    minRows={3}
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Certificates"
+                    value={editForm.certificates || ""}
+                    onChange={(e) => setEditForm({ ...editForm, certificates: e.target.value })}
+                    fullWidth
+                    required
+                    multiline
+                    minRows={3}
+                    variant="outlined"
+                  />
+                </Grid>
+              </Grid>
+            </Paper>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+        <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
+          <Button onClick={() => setEditOpen(false)} variant="outlined">Cancel</Button>
           <Button
             variant="contained"
             onClick={async () => {
               try {
                 setEditError("");
-                // Note: You'll need to create an API endpoint for candidates to update their own profile
-                // For now, showing a message
-                setEditError("Profile update feature coming soon! Contact your recruiter for updates.");
-                // When API is ready, use something like:
-                // await updateMyCandidateProfile(editForm);
-                // setCandidate(editForm);
-                // setEditOpen(false);
-                // await load();
+                const response = await updateMyCandidateProfile(editForm);
+                setCandidate(response.candidate);
+                setEditOpen(false);
+                await load();
               } catch (e) {
-                setEditError(e.message);
+                setEditError(e.message || "Failed to update profile");
               }
             }}
+            sx={{ px: 4 }}
           >
             Save Changes
           </Button>
