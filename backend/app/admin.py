@@ -113,6 +113,35 @@ def admin_update_candidate(cand_id):
     require_admin()
     c = Candidate.query.get_or_404(cand_id)
     data = request.get_json() or {}
+    
+    # Validate email if being updated
+    if "email" in data:
+        email = (data.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            return {"message": "Valid email is required"}, 400
+        
+        # Check for duplicate email across all candidates (admin can edit any candidate)
+        existing_email = Candidate.query.filter(
+            Candidate.email == email,
+            Candidate.id != cand_id
+        ).first()
+        if existing_email:
+            return {"message": "A candidate with this email already exists"}, 409
+    
+    # Validate phone if being updated
+    if "phone" in data:
+        phone = (data.get("phone") or "").strip()
+        if not phone.isdigit():
+            return {"message": "Phone number must contain only digits"}, 400
+        
+        # Check for duplicate phone across all candidates (admin can edit any candidate)
+        existing_phone = Candidate.query.filter(
+            Candidate.phone == phone,
+            Candidate.id != cand_id
+        ).first()
+        if existing_phone:
+            return {"message": "A candidate with this phone number already exists"}, 409
+    
     for field in [
         "first_name","last_name","email","phone","gender","nationality","citizenship_status",
         "visa_status","work_authorization","veteran_status","race_ethnicity","address_line1",

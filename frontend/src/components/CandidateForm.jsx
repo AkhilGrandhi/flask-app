@@ -79,8 +79,17 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
               required fullWidth error={!!errors.email} helperText={errors.email}/>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField size="small" label="Phone" value={v.phone||""} onChange={set("phone")}
-              required fullWidth error={!!errors.phone} helperText={errors.phone}/>
+            <TextField 
+              size="small" 
+              label="Phone" 
+              type="number"
+              value={v.phone||""} 
+              onChange={set("phone")}
+              required 
+              fullWidth 
+              error={!!errors.phone} 
+              helperText={errors.phone || "Numbers only"}
+            />
           </Grid>
 
           <Grid item xs={12} sm={6}>
@@ -195,6 +204,15 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
             options={["Yes","No"]} 
             error={errors.at_least_18}/>
           </Grid>
+
+          <Grid item xs={12} sm={6}>
+          <RequiredSelect label="Family member employed here?"
+            value={v.family_in_org ?? "No"}
+            onChange={set("family_in_org")}
+            options={["Yes","No"]}
+            error={errors.family_in_org}/>
+          </Grid>
+          
         </Grid>
 
         
@@ -230,17 +248,12 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
             value={v.referral_source||""} onChange={set("referral_source")} fullWidth />
         </Grid>
 
-        
-
         <Grid item xs={12} sm={6}>
           <TextField size="small" label="Require visa sponsorship now or in future?"
             value={v.needs_visa_sponsorship||""} onChange={set("needs_visa_sponsorship")} fullWidth />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
-          <TextField size="small" label="Family member employed with our organization?"
-            value={v.family_in_org||""} onChange={set("family_in_org")} fullWidth />
-        </Grid>
+        
 
         <Grid item xs={12} sm={6}>
           <TextField size="small" label="Availability to start"
@@ -270,8 +283,17 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
               required fullWidth error={!!errors.state} helperText={errors.state}/>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField size="small" label="Postal Code" value={v.postal_code||""} onChange={set("postal_code")}
-              required fullWidth error={!!errors.postal_code} helperText={errors.postal_code}/>
+            <TextField 
+              size="small" 
+              label="Postal Code" 
+              type="number"
+              value={v.postal_code||""} 
+              onChange={set("postal_code")}
+              required 
+              fullWidth 
+              error={!!errors.postal_code} 
+              helperText={errors.postal_code || "Numbers only"}
+            />
           </Grid>
           <Grid item xs={12} sm={6}>
             <RequiredSelect label="Country" value={v.country ?? "India"} onChange={set("country")}
@@ -292,15 +314,15 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
         <Typography variant="h6" sx={{ mb: 1 }}>Online Presence</Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={4}>
-            <TextField size="small" type="url" label="Personal Website" value={v.personal_website||""} onChange={set("personal_website")}
+            <TextField size="small" type="url" label="Personal Website (Optional)" value={v.personal_website||""} onChange={set("personal_website")}
               fullWidth error={!!errors.personal_website} helperText={errors.personal_website}/>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField size="small" type="url" label="LinkedIn" value={v.linkedin||""} onChange={set("linkedin")}
+            <TextField size="small" type="url" label="LinkedIn (Optional)" value={v.linkedin||""} onChange={set("linkedin")}
               fullWidth error={!!errors.linkedin} helperText={errors.linkedin}/>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField size="small" type="url" label="GitHub" value={v.github||""} onChange={set("github")}
+            <TextField size="small" type="url" label="GitHub (Optional)" value={v.github||""} onChange={set("github")}
               fullWidth error={!!errors.github} helperText={errors.github}/>
           </Grid>
         </Grid>

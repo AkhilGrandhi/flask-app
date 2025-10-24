@@ -35,9 +35,39 @@ def list_my_candidates():
 def create_candidate():
     uid = current_user_id()
     data = request.get_json() or {}
-    required = ["first_name", "last_name"]
-    if any(not data.get(f) for f in required):
-        return {"message": "First & Last name required"}, 400
+    
+    # Validate required fields
+    required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
+                "nationality", "citizenship_status", "visa_status", "work_authorization",
+                "address_line1", "address_line2", "city", "state", "postal_code", "country",
+                "technical_skills", "work_experience"]
+    missing_fields = [f for f in required if not data.get(f)]
+    if missing_fields:
+        return {"message": f"Required fields missing: {', '.join(missing_fields)}"}, 400
+    
+    # Validate email format and uniqueness
+    email = (data.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return {"message": "Valid email is required"}, 400
+    
+    existing_email = Candidate.query.filter(
+        Candidate.email == email,
+        Candidate.created_by_user_id == uid
+    ).first()
+    if existing_email:
+        return {"message": "A candidate with this email already exists"}, 409
+    
+    # Validate phone number - only digits allowed
+    phone = (data.get("phone") or "").strip()
+    if not phone.isdigit():
+        return {"message": "Phone number must contain only digits"}, 400
+    
+    existing_phone = Candidate.query.filter(
+        Candidate.phone == phone,
+        Candidate.created_by_user_id == uid
+    ).first()
+    if existing_phone:
+        return {"message": "A candidate with this phone number already exists"}, 409
 
     c = Candidate(
         created_by_user_id=uid,
@@ -98,6 +128,34 @@ def update_candidate(cand_id):
     c = Candidate.query.get_or_404(cand_id)
     owns_or_404(c, uid)
     data = request.get_json() or {}
+    
+    # Validate email if being updated
+    if "email" in data:
+        email = (data.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            return {"message": "Valid email is required"}, 400
+        
+        existing_email = Candidate.query.filter(
+            Candidate.email == email,
+            Candidate.created_by_user_id == uid,
+            Candidate.id != cand_id
+        ).first()
+        if existing_email:
+            return {"message": "A candidate with this email already exists"}, 409
+    
+    # Validate phone if being updated
+    if "phone" in data:
+        phone = (data.get("phone") or "").strip()
+        if not phone.isdigit():
+            return {"message": "Phone number must contain only digits"}, 400
+        
+        existing_phone = Candidate.query.filter(
+            Candidate.phone == phone,
+            Candidate.created_by_user_id == uid,
+            Candidate.id != cand_id
+        ).first()
+        if existing_phone:
+            return {"message": "A candidate with this phone number already exists"}, 409
 
     for field in [
         "first_name", "last_name", "email", "phone", "gender", "nationality",
