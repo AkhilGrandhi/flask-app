@@ -3,7 +3,7 @@ import {
   Tabs, Tab, Container, Box, Typography, Button, Paper,
   Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Select, MenuItem, IconButton, InputAdornment
+  TextField, Select, MenuItem, IconButton, InputAdornment, Grid
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 
@@ -11,7 +11,7 @@ import { useAuth } from "../AuthContext";
 
 import {
   listUsers, createUser, updateUser, deleteUser,
-  listAllCandidates, adminUpdateCandidate, adminDeleteCandidate
+  listAllCandidates, createCandidate, adminUpdateCandidate, adminDeleteCandidate
 } from "../api";
 
 import CandidateForm from "../components/CandidateForm";
@@ -26,25 +26,77 @@ export default function Admin() {
   const [tab, setTab] = useState(0);
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4 }}>
-      <Box sx={{ display:"flex", justifyContent:"space-between", alignItems:"center", mb:2 }}>
-        <Typography variant="h5">Admin Panel</Typography>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Header Section */}
+      <Box sx={{ 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center", 
+        mb: 3,
+        pb: 2,
+        borderBottom: "2px solid",
+        borderColor: "primary.main"
+      }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+            Admin Panel
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Manage users and candidates across the entire system
+          </Typography>
+        </Box>
 
         <Stack direction="row" spacing={2} alignItems="center">
-          <Typography variant="body1" sx={{ whiteSpace:"nowrap" }}>
-            Welcome <b>{fullName(user)}</b>
+          <Box sx={{ textAlign: "right", mr: 1 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+              Admin Dashboard
+            </Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+              {fullName(user)}
           </Typography>
-          <Avatar sx={{ width: 36, height: 36 }}>{initials(user)}</Avatar>
-          <Button onClick={logout} variant="outlined">Logout</Button>
+          </Box>
+          <Avatar sx={{ 
+            width: 48, 
+            height: 48, 
+            bgcolor: "error.main",
+            fontSize: "1.2rem",
+            fontWeight: 600
+          }}>
+            {initials(user)}
+          </Avatar>
+          <Button onClick={logout} variant="outlined" color="error">
+            Logout
+          </Button>
         </Stack>
       </Box>
 
-      <Paper>
-        <Tabs value={tab} onChange={(_,v)=>setTab(v)} centered>
-          <Tab label="Users" />
-          <Tab label="Candidates" />
+      <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Tabs 
+          value={tab} 
+          onChange={(_,v)=>setTab(v)} 
+          centered
+          sx={{
+            bgcolor: "grey.50",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            "& .MuiTab-root": {
+              fontWeight: 600,
+              fontSize: "1rem",
+              py: 2,
+              minHeight: 60,
+              "&.Mui-selected": {
+                color: "primary.main"
+              }
+            },
+            "& .MuiTabs-indicator": {
+              height: 3
+            }
+          }}
+        >
+          <Tab label="👥 Users" />
+          <Tab label="📋 Candidates" />
         </Tabs>
-        <Box sx={{ p:2 }}>
+        <Box sx={{ p: 3, pt: 1.5 }}>
           {tab === 0 ? <UsersTab /> : <CandidatesTab />}
         </Box>
       </Paper>
@@ -99,34 +151,198 @@ function UsersTab() {
 
   return (
     <>
-      <Box sx={{ display:"flex", justifyContent:"space-between", mb:2 }}>
-        <Typography variant="h6">All Users</Typography>
-        <Button variant="contained" onClick={startCreate}>Create User</Button>
+      {/* Stats Card */}
+      <Box sx={{ mb: 4.5 }}>
+        <Paper 
+          elevation={2} 
+          sx={{ 
+            p: 2, 
+            background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+            color: "white",
+            borderRadius: 2,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}
+        >
+          <Box>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.25 }}>
+              {rows.length}
+            </Typography>
+            <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
+              Total Users in System
+            </Typography>
+          </Box>
+          <Box 
+            sx={{ 
+              width: 50, 
+              height: 50, 
+              borderRadius: "50%", 
+              bgcolor: "rgba(255,255,255,0.25)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "1.6rem"
+            }}
+          >
+            👤
+          </Box>
+        </Paper>
       </Box>
+
+      {/* Users Table */}
+      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Box sx={{ 
+          px: 2.5,
+          py: 1.5, 
+          bgcolor: "grey.50",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
+            All Users
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={startCreate}
+            size="small"
+            sx={{ 
+              fontWeight: 600,
+              px: 2.5,
+              py: 0.75,
+              boxShadow: 2,
+              "&:hover": {
+                transform: "translateY(-1px)",
+                boxShadow: 4
+              },
+              transition: "all 0.3s"
+            }}
+          >
+            Create User
+          </Button>
+        </Box>
+
+        {rows.length > 0 ? (
       <Table size="small">
         <TableHead>
-          <TableRow>
-            <TableCell>ID</TableCell><TableCell>Name</TableCell><TableCell>Email</TableCell>
-            <TableCell>Mobile</TableCell><TableCell>Role</TableCell><TableCell align="right">Actions</TableCell>
+              <TableRow sx={{ bgcolor: "grey.100" }}>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Mobile</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Role</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {rows.map(r => (
-            <TableRow key={r.id}>
-              <TableCell>{r.id}</TableCell>
-              <TableCell>{r.name}</TableCell>
-              <TableCell>{r.email}</TableCell>
-              <TableCell>{r.mobile}</TableCell>
-              <TableCell>{r.role}</TableCell>
+                <TableRow 
+                  key={r.id}
+                  hover
+                  sx={{ 
+                    "&:hover": { 
+                      bgcolor: "primary.lighter",
+                      cursor: "pointer"
+                    },
+                    transition: "all 0.2s",
+                    "& td": { py: 1 }
+                  }}
+                >
+                  <TableCell sx={{ fontWeight: 500 }}>
+                    #{r.id}
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>
+                    {r.name}
+                  </TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {r.email}
+                  </TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {r.mobile || "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    <Box 
+                      component="span" 
+                      sx={{ 
+                        px: 1.5, 
+                        py: 0.5, 
+                        borderRadius: 1, 
+                        bgcolor: r.role === "admin" ? "error.light" : "success.light",
+                        color: "white",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        textTransform: "uppercase"
+                      }}
+                    >
+                      {r.role}
+                    </Box>
+                  </TableCell>
               <TableCell align="right">
-                <Button size="small" onClick={()=>startEdit(r)}>Edit</Button>
-                <Button size="small" color="error" onClick={()=>remove(r.id)}>Delete</Button>
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button 
+                        size="small" 
+                        variant="contained"
+                        onClick={()=>startEdit(r)}
+                        sx={{ 
+                          textTransform: "none",
+                          fontWeight: 500
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        size="small" 
+                        variant="outlined"
+                        color="error" 
+                        onClick={()=>remove(r.id)}
+                        sx={{ 
+                          textTransform: "none",
+                          fontWeight: 500
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </Stack>
               </TableCell>
             </TableRow>
           ))}
-          {rows.length === 0 && <TableRow><TableCell colSpan={6}>No users</TableCell></TableRow>}
         </TableBody>
       </Table>
+        ) : (
+          <Box sx={{ 
+            textAlign: "center", 
+            py: 8,
+            px: 2
+          }}>
+            <Avatar sx={{ 
+              width: 80, 
+              height: 80, 
+              mx: "auto", 
+              mb: 2,
+              bgcolor: "primary.lighter"
+            }}>
+              <Typography variant="h3">👤</Typography>
+            </Avatar>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              No Users Yet
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              Create your first user to get started
+            </Typography>
+            <Button 
+              variant="contained" 
+              size="large"
+              onClick={startCreate}
+              sx={{ fontWeight: 600 }}
+            >
+              Create Your First User
+            </Button>
+          </Box>
+        )}
+      </Paper>
 
       <Dialog open={open} onClose={()=>setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>{editing ? "Edit User" : "Create User"}</DialogTitle>
@@ -266,6 +482,14 @@ function CandidatesTab() {
     setViewOpen(true);
   };
 
+  const startAdd = () => {
+    setEditing(null);
+    setForm({});
+    setFieldErrors({});
+    setErr("");
+    setOpen(true);
+  };
+
   const startEdit = (r) => {
     setEditing(r);
     // Ensure birthdate is YYYY-MM-DD for the date input (if present)
@@ -297,7 +521,7 @@ function CandidatesTab() {
       const required = ["first_name", "last_name", "email", "phone", "password", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
                         "address_line1", "address_line2", "city", "state", "postal_code", "country",
-                        "technical_skills", "work_experience"];
+                        "technical_skills", "work_experience", "education", "certificates"];
       
       const missing = required.filter(f => !form[f] || String(form[f]).trim() === "");
       if (missing.length > 0) {
@@ -323,7 +547,11 @@ function CandidatesTab() {
         return;
       }
       
-      await adminUpdateCandidate(editing.id, form);
+      if (editing) {
+        await adminUpdateCandidate(editing.id, form);
+      } else {
+        await createCandidate(form);
+      }
       setOpen(false);
       setFieldErrors({});
       await load();
@@ -347,32 +575,249 @@ function CandidatesTab() {
 
   return (
     <>
-      <Typography variant="h6" sx={{ mb:2 }}>All Candidates</Typography>
+      {/* Stats Cards */}
+      <Box sx={{ mb: 5.5 }}>
+        <Grid container spacing={2}>
+          {/* Total Candidates Card */}
+          <Grid item xs={12} sm={6}>
+            <Paper 
+              elevation={2} 
+              sx={{ 
+                p: 2, 
+                background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                color: "white",
+                borderRadius: 2,
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.25 }}>
+                  {rows.length}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
+                  Total Candidates
+                </Typography>
+              </Box>
+              <Box 
+                sx={{ 
+                  width: 50, 
+                  height: 50, 
+                  borderRadius: "50%", 
+                  bgcolor: "rgba(255,255,255,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.6rem"
+                }}
+              >
+                👥
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Total Job IDs Card */}
+          <Grid item xs={12} sm={6}>
+            <Paper 
+              elevation={2} 
+              sx={{ 
+                p: 2, 
+                background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+                color: "white",
+                borderRadius: 2,
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.25 }}>
+                  {(() => {
+                    const jobIds = new Set();
+                    rows.forEach(candidate => {
+                      candidate.jobs?.forEach(job => {
+                        if (job.job_id) jobIds.add(job.job_id);
+                      });
+                    });
+                    return jobIds.size;
+                  })()}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
+                  Total Job IDs
+                </Typography>
+              </Box>
+              <Box 
+                sx={{ 
+                  width: 50, 
+                  height: 50, 
+                  borderRadius: "50%", 
+                  bgcolor: "rgba(255,255,255,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.6rem"
+                }}
+              >
+                💼
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* Candidates Table */}
+      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Box sx={{ 
+          px: 2.5,
+          py: 1.5, 
+          bgcolor: "grey.50",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
+            All Candidates
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={startAdd}
+            size="small"
+            sx={{ 
+              fontWeight: 600,
+              px: 2.5,
+              py: 0.75,
+              boxShadow: 2,
+              "&:hover": {
+                transform: "translateY(-1px)",
+                boxShadow: 4
+              },
+              transition: "all 0.3s"
+            }}
+          >
+            Add Candidate
+          </Button>
+        </Box>
+
+        {rows.length > 0 ? (
       <Table size="small">
         <TableHead>
-          <TableRow>
-            <TableCell>ID</TableCell><TableCell>Name</TableCell><TableCell>Email</TableCell>
-            <TableCell>Phone</TableCell><TableCell>Creator</TableCell><TableCell align="right">Actions</TableCell>
+              <TableRow sx={{ bgcolor: "grey.100" }}>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Phone</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Creator</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {rows.map(r => (
-            <TableRow key={r.id}>
-              <TableCell>{r.id}</TableCell>
-              <TableCell>{r.first_name} {r.last_name}</TableCell>
-              <TableCell>{r.email}</TableCell>
-              <TableCell>{r.phone}</TableCell>
-              <TableCell>{r.created_by?.email}</TableCell>
+                <TableRow 
+                  key={r.id}
+                  hover
+                  sx={{ 
+                    "&:hover": { 
+                      bgcolor: "primary.lighter",
+                      cursor: "pointer"
+                    },
+                    transition: "all 0.2s",
+                    "& td": { py: 1 }
+                  }}
+                >
+                  <TableCell sx={{ fontWeight: 500 }}>
+                    #{r.id}
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>
+                    {r.first_name} {r.last_name}
+                  </TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {r.email}
+                  </TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {r.phone}
+                  </TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {r.created_by?.email || "Unknown"}
+                  </TableCell>
               <TableCell align="right">
-                <Button size="small" variant="outlined" onClick={()=>startView(r)} sx={{ mr: 1 }}>View</Button>
-                <Button size="small" onClick={()=>startEdit(r)} sx={{ mr: 1 }}>Edit</Button>
-                <Button size="small" color="error" onClick={()=>remove(r.id)}>Delete</Button>
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button 
+                        size="small" 
+                        variant="outlined" 
+                        onClick={()=>startView(r)}
+                        sx={{ 
+                          textTransform: "none",
+                          fontWeight: 500
+                        }}
+                      >
+                        View
+                      </Button>
+                      <Button 
+                        size="small" 
+                        variant="contained"
+                        onClick={()=>startEdit(r)}
+                        sx={{ 
+                          textTransform: "none",
+                          fontWeight: 500
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        size="small" 
+                        variant="outlined"
+                        color="error" 
+                        onClick={()=>remove(r.id)}
+                        sx={{ 
+                          textTransform: "none",
+                          fontWeight: 500
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </Stack>
               </TableCell>
             </TableRow>
           ))}
-          {rows.length === 0 && <TableRow><TableCell colSpan={6}>No candidates</TableCell></TableRow>}
         </TableBody>
       </Table>
+        ) : (
+          <Box sx={{ 
+            textAlign: "center", 
+            py: 8,
+            px: 2
+          }}>
+            <Avatar sx={{ 
+              width: 80, 
+              height: 80, 
+              mx: "auto", 
+              mb: 2,
+              bgcolor: "primary.lighter"
+            }}>
+              <Typography variant="h3">👥</Typography>
+            </Avatar>
+            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+              No Candidates Yet
+            </Typography>
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              Start by adding your first candidate to the system
+            </Typography>
+            <Button 
+              variant="contained" 
+              size="large"
+              onClick={startAdd}
+              sx={{ fontWeight: 600 }}
+            >
+              Add Your First Candidate
+            </Button>
+          </Box>
+        )}
+      </Paper>
 
       {/* View Dialog */}
       <Dialog open={viewOpen} onClose={()=>setViewOpen(false)} maxWidth="lg" fullWidth>

@@ -19,13 +19,13 @@ function RequiredSelect({ label, value, onChange, options, error, helperText, na
       fullWidth
       required
       error={!!error}
-      size="small"
-      sx={{ width: "100%", minWidth: 280 }}   // keep a sensible min width
+      sx={{ width: "100%", minWidth: 280 }}
+      variant="outlined"
     >
       <InputLabel
         id={labelId}
-        shrink                                   // keep label above the field
-        sx={{ whiteSpace: "normal", lineHeight: 1.2, maxWidth: "100%" }} // wrap long labels
+        shrink
+        sx={{ whiteSpace: "normal", lineHeight: 1.2, maxWidth: "100%" }}
       >
         {label}
       </InputLabel>
@@ -36,13 +36,33 @@ function RequiredSelect({ label, value, onChange, options, error, helperText, na
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         fullWidth
-        sx={{ width: "100%" }}
+        sx={{ 
+          width: "100%",
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "rgba(0, 0, 0, 0.23)",
+          }
+        }}
         MenuProps={{
-          PaperProps: { sx: { minWidth: 300, maxHeight: 320 } }, // nicer dropdown
+          PaperProps: { 
+            sx: { 
+              minWidth: 300, 
+              maxHeight: 320,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.1)"
+            } 
+          },
         }}
       >
         {options.map((opt) => (
-          <MenuItem key={String(opt)} value={opt}>
+          <MenuItem 
+            key={String(opt)} 
+            value={opt}
+            sx={{
+              "&:hover": {
+                backgroundColor: "primary.light",
+                color: "primary.contrastText"
+              }
+            }}
+          >
             {opt === "__OTHER__" ? "Other" : String(opt)}
           </MenuItem>
         ))}
@@ -62,27 +82,78 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
   };
 
   return (
-    <Box sx={{ display: "grid", gap: 2, "& .MuiFormControl-root": { width: "100%" } }}>
+    <Box sx={{ display: "grid", gap: 3, "& .MuiFormControl-root": { width: "100%" } }}>
       {/* PERSONAL */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Personal Information</Typography>
-        <Grid container spacing={2}>
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 2,
+          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 2.5, 
+            fontWeight: 600,
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            "&:before": {
+              content: '""',
+              display: "inline-block",
+              width: 4,
+              height: 24,
+              backgroundColor: "primary.main",
+              marginRight: 1.5,
+              borderRadius: 1
+            }
+          }}
+        >
+          Personal Information
+        </Typography>
+        <Grid container spacing={2.5}>
           <Grid item xs={12} sm={6}>
-            <TextField size="small" label="First Name" value={v.first_name||""} onChange={set("first_name")}
-              required fullWidth error={!!errors.first_name} helperText={errors.first_name}/>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField size="small" label="Last Name" value={v.last_name||""} onChange={set("last_name")}
-              required fullWidth error={!!errors.last_name} helperText={errors.last_name}/>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField size="small" type="email" label="Email" value={v.email||""} onChange={set("email")}
-              required fullWidth error={!!errors.email} helperText={errors.email}/>
+            <TextField 
+              label="First Name" 
+              value={v.first_name||""} 
+              onChange={set("first_name")}
+              required 
+              fullWidth 
+              error={!!errors.first_name} 
+              helperText={errors.first_name}
+              variant="outlined"
+            />
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField 
-              size="small" 
+              label="Last Name" 
+              value={v.last_name||""} 
+              onChange={set("last_name")}
+              required 
+              fullWidth 
+              error={!!errors.last_name} 
+              helperText={errors.last_name}
+              variant="outlined"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField 
+              type="email" 
+              label="Email" 
+              value={v.email||""} 
+              onChange={set("email")}
+              required 
+              fullWidth 
+              error={!!errors.email} 
+              helperText={errors.email}
+              variant="outlined"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField 
               label="Phone" 
               type="number"
               value={v.phone||""} 
@@ -91,12 +162,12 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
               fullWidth 
               error={!!errors.phone} 
               helperText={errors.phone || "Numbers only"}
+              variant="outlined"
             />
           </Grid>
 
           <Grid item xs={12} sm={6}>
             <TextField 
-              size="small" 
               label="Password" 
               type={showPassword ? "text" : "password"}
               value={v.password||""} 
@@ -105,6 +176,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
               fullWidth 
               error={!!errors.password} 
               helperText={errors.password || "Minimum 6 characters"}
+              variant="outlined"
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -122,9 +194,18 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <TextField size="small" label="Birthdate" type="date" InputLabelProps={{shrink:true}}
-              value={v.birthdate||""} onChange={set("birthdate")}
-              required fullWidth error={!!errors.birthdate} helperText={errors.birthdate}/>
+            <TextField 
+              label="Birthdate" 
+              type="date" 
+              InputLabelProps={{shrink:true}}
+              value={v.birthdate||""} 
+              onChange={set("birthdate")}
+              required 
+              fullWidth 
+              error={!!errors.birthdate} 
+              helperText={errors.birthdate}
+              variant="outlined"
+            />
           </Grid>
 
           <Grid item xs={12} sm={6}>
@@ -246,7 +327,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
 
         
         {/* Extra personal questions (2 per row) */}
-      <Grid container spacing={2} sx={{ mt: 0 }}>
+      <Grid container spacing={2.5} sx={{ mt: 1 }}>
         <Grid item xs={12} sm={6}>
           <TextField size="small" label="Expected Salary / Hourly Wage"
             value={v.expected_wage||""} onChange={set("expected_wage")} fullWidth />
@@ -292,9 +373,36 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
       </Paper>
 
       {/* ADDRESS */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Address Information</Typography>
-        <Grid container spacing={2}>
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 2,
+          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 2.5, 
+            fontWeight: 600,
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            "&:before": {
+              content: '""',
+              display: "inline-block",
+              width: 4,
+              height: 24,
+              backgroundColor: "primary.main",
+              marginRight: 1.5,
+              borderRadius: 1
+            }
+          }}
+        >
+          Address Information
+        </Typography>
+        <Grid container spacing={2.5}>
           <Grid item xs={12}>
             <TextField size="small" label="Address Line 1" value={v.address_line1||""} onChange={set("address_line1")}
               required fullWidth error={!!errors.address_line1} helperText={errors.address_line1}/>
@@ -339,9 +447,36 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
       </Paper>
 
       {/* ONLINE */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Online Presence</Typography>
-        <Grid container spacing={2}>
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 2,
+          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 2.5, 
+            fontWeight: 600,
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            "&:before": {
+              content: '""',
+              display: "inline-block",
+              width: 4,
+              height: 24,
+              backgroundColor: "primary.main",
+              marginRight: 1.5,
+              borderRadius: 1
+            }
+          }}
+        >
+          Online Presence
+        </Typography>
+        <Grid container spacing={2.5}>
           <Grid item xs={12} sm={4}>
             <TextField size="small" type="url" label="Personal Website (Optional)" value={v.personal_website||""} onChange={set("personal_website")}
               fullWidth error={!!errors.personal_website} helperText={errors.personal_website}/>
@@ -358,29 +493,92 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
       </Paper>
 
       {/* ADDITIONAL */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Additional Details</Typography>
-        <Grid container spacing={2}>
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 2,
+          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 2.5, 
+            fontWeight: 600,
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            "&:before": {
+              content: '""',
+              display: "inline-block",
+              width: 4,
+              height: 24,
+              backgroundColor: "primary.main",
+              marginRight: 1.5,
+              borderRadius: 1
+            }
+          }}
+        >
+          Additional Details
+        </Typography>
+        <Grid container spacing={2.5}>
           <Grid item xs={12}>
-            <TextField size="small" label="Technical Skills" value={v.technical_skills||""} onChange={set("technical_skills")}
-              required fullWidth multiline minRows={3}
-              error={!!errors.technical_skills} helperText={errors.technical_skills}/>
+            <TextField 
+              label="Technical Skills" 
+              value={v.technical_skills||""} 
+              onChange={set("technical_skills")}
+              required 
+              fullWidth 
+              multiline 
+              minRows={3}
+              error={!!errors.technical_skills} 
+              helperText={errors.technical_skills}
+              variant="outlined"
+            />
           </Grid>
           <Grid item xs={12}>
-            <TextField size="small" label="Work Experience" value={v.work_experience||""} onChange={set("work_experience")}
-              required fullWidth multiline minRows={3}
-              error={!!errors.work_experience} helperText={errors.work_experience}/>
+            <TextField 
+              label="Work Experience" 
+              value={v.work_experience||""} 
+              onChange={set("work_experience")}
+              required 
+              fullWidth 
+              multiline 
+              minRows={3}
+              error={!!errors.work_experience} 
+              helperText={errors.work_experience}
+              variant="outlined"
+            />
           </Grid>
           <Grid item xs={12}>
-          <TextField size="small" label="Education"
-            value={v.education||""} onChange={set("education")}
-            fullWidth multiline minRows={3}/>
-        </Grid>
-        <Grid item xs={12}>
-          <TextField size="small" label="Certificates"
-            value={v.certificates||""} onChange={set("certificates")}
-            fullWidth multiline minRows={3}/>
-        </Grid>
+            <TextField 
+              label="Education"
+              value={v.education||""} 
+              onChange={set("education")}
+              required
+              fullWidth 
+              multiline 
+              minRows={3}
+              error={!!errors.education} 
+              helperText={errors.education}
+              variant="outlined"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField 
+              label="Certificates"
+              value={v.certificates||""} 
+              onChange={set("certificates")}
+              required
+              fullWidth 
+              multiline 
+              minRows={3}
+              error={!!errors.certificates} 
+              helperText={errors.certificates}
+              variant="outlined"
+            />
+          </Grid>
         </Grid>
       </Paper>
     </Box>

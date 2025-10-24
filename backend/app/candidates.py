@@ -47,7 +47,7 @@ def create_candidate():
     required = ["first_name", "last_name", "email", "phone", "password", "birthdate", "gender", 
                 "nationality", "citizenship_status", "visa_status", "work_authorization",
                 "address_line1", "address_line2", "city", "state", "postal_code", "country",
-                "technical_skills", "work_experience"]
+                "technical_skills", "work_experience", "education", "certificates"]
     missing_fields = [f for f in required if not data.get(f)]
     if missing_fields:
         return {"message": f"Required fields missing: {', '.join(missing_fields)}"}, 400
