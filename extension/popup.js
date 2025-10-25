@@ -5,7 +5,21 @@ const $status = document.getElementById("status");
 
 const state = { users: [], candidates: [] };
 
-function setStatus(msg) { if ($status) $status.textContent = msg; console.log("[popup] status:", msg); }
+function setStatus(msg, type = "normal") { 
+  if ($status) {
+    $status.textContent = msg;
+    $status.className = "status-text";
+    if (type === "loading") {
+      $status.className = "status-text loading";
+      $status.innerHTML = '<span class="loading-spinner"></span>' + msg;
+    } else if (type === "success") {
+      $status.className = "status-text success";
+    } else if (type === "error") {
+      $status.className = "status-text error";
+    }
+  }
+  console.log("[popup] status:", msg); 
+}
 
 async function getStoredBase() {
   const { backendBase } = await chrome.storage.sync.get(["backendBase"]);
@@ -52,7 +66,7 @@ async function candidateBases() {
   return Array.from(s);
 }
 async function autoDetectBase() {
-  setStatus("Detecting API…");
+  setStatus("🔍 Detecting API...", "loading");
   for (const base of await candidateBases()) {
     if (await checkBase(base)) { await saveBase(base); return base; }
   }
@@ -92,7 +106,7 @@ async function api(path, opts = {}) {
 // }
 
 async function loadUsersAndCandidates() {
-  setStatus("Loading users & candidates…");
+  setStatus("📥 Loading users & candidates...", "loading");
   const usersRes = await api("/api/public/users");
   const candsRes = await api("/api/public/candidates");
   state.users = usersRes.users || [];
@@ -127,7 +141,7 @@ async function loadUsersAndCandidates() {
 
   $user.onchange = renderCandidates;
   if ($user.value) renderCandidates();
-  setStatus("Ready");
+  setStatus("✅ Ready to autofill!", "success");
 }
 
 async function getActiveTabId() {
@@ -157,23 +171,23 @@ async function collectFormFromPage(tabId) {
 // --- replace the Autofill click handler with this version ---
 $btn.addEventListener("click", async () => {
   try {
-    setStatus("Collecting candidate & form…");
+    setStatus("📋 Collecting candidate & form...", "loading");
     const cid = Number($cand.value);
-    if (!cid) { setStatus("Pick a candidate"); return; }
+    if (!cid) { setStatus("⚠️ Please select a candidate", "error"); return; }
 
     // 1) full candidate (optional for debugging; server also accepts candidate_id)
     const { candidate } = await api(`/api/public/candidates/${cid}`);
 
     // 2) current page form schema (OBJECT with keys = field names/ids)
     const tabId = await getActiveTabId();
-    if (!tabId) { setStatus("No active tab"); return; }
+    if (!tabId) { setStatus("⚠️ No active tab found", "error"); return; }
     const formSchema = await collectFormFromPage(tabId); // your content.js returns an object
 
     // Normalize: your collector returns the object directly; if it returns {fields: [...]}, keep that too
     const formObj = Array.isArray(formSchema?.fields) ? formSchema.fields : formSchema;
 
     // 3) Ask backend → GPT to map
-    setStatus("Mapping with GPT…");
+    setStatus("🤖 Mapping with AI...", "loading");
     const mapped = await api("/api/ai/map-fields", {
       method: "POST",
       body: { candidate_id: cid, form: formObj }
@@ -190,17 +204,16 @@ $btn.addEventListener("click", async () => {
       data: mapped.mapping || {}
     });
 
-    setStatus(`Mapped ${Object.keys(mapped.mapping || {}).length} field(s); filled ${fillRes?.filled ?? 0}.`);
-
     const count = Object.keys(mapped.mapping || {}).length;
-    setStatus(`Mapped ${count} field(s).`);
+    const filled = fillRes?.filled ?? 0;
+    setStatus(`✅ Success! Mapped ${count} field(s), filled ${filled}.`, "success");
   } catch (e) {
     console.error("[popup] error:", e);
-    setStatus(e.message);
+    setStatus(`❌ Error: ${e.message}`, "error");
   }
 });
 
 (async function init() {
   try { await loadUsersAndCandidates(); }
-  catch (e) { console.error("[popup] init error:", e); setStatus(e.message); }
+  catch (e) { console.error("[popup] init error:", e); setStatus(`❌ ${e.message}`, "error"); }
 })();
