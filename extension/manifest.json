@@ -9,6 +9,14 @@
     "48": "only_logo.png",
     "128": "only_logo.png"
   },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "only_logo.png",
+      "48": "only_logo.png",
+      "128": "only_logo.png"
+    }
+  },
   "host_permissions": [
     "https://flask-app-r5xw.onrender.com/*",
     "http://localhost:5000/*",
@@ -17,7 +25,6 @@
     "https://*/*",
     "file://*/*"
   ],
-  "action": { "default_popup": "popup.html" },
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*", "file://*/*"],
