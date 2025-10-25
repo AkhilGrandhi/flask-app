@@ -614,7 +614,7 @@ ${job.resume_content}`;
       </Paper>
 
       {/* Edit Details Dialog */}
-      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             Edit Profile Details
@@ -623,18 +623,21 @@ ${job.resume_content}`;
             Update your personal information
           </Typography>
         </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
+        <DialogContent sx={{ p: 3.5, bgcolor: "#fafafa" }}>
           {editError && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {editError}
             </Alert>
           )}
-          <Box sx={{ display: "grid", gap: 3 }}>
+          <Box sx={{ display: "grid", gap: 3.5 }}>
             {/* Personal Information */}
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "primary.main" }}>
-                Personal Information
-              </Typography>
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2, background: "linear-gradient(to bottom, #ffffff 0%, #f0f7ff 100%)" }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2.5, pb: 1.5, borderBottom: "2px solid", borderColor: "primary.main" }}>
+                <PersonOutline sx={{ mr: 1, color: "primary.main" }} />
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "primary.main" }}>
+                  Personal Information
+                </Typography>
+              </Box>
               <Grid container spacing={2.5}>
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -840,10 +843,12 @@ ${job.resume_content}`;
             </Paper>
 
             {/* Address Information */}
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "primary.main" }}>
-                Address Information
-              </Typography>
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2, background: "linear-gradient(to bottom, #ffffff 0%, #f0fdf4 100%)" }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2.5, pb: 1.5, borderBottom: "2px solid", borderColor: "success.main" }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "success.main" }}>
+                  📍 Address Information
+                </Typography>
+              </Box>
               <Grid container spacing={2.5}>
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -903,10 +908,12 @@ ${job.resume_content}`;
             </Paper>
 
             {/* Online Presence */}
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "primary.main" }}>
-                Online Presence
-              </Typography>
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2, background: "linear-gradient(to bottom, #ffffff 0%, #eff6ff 100%)" }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2.5, pb: 1.5, borderBottom: "2px solid", borderColor: "info.main" }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "info.main" }}>
+                  🌐 Online Presence
+                </Typography>
+              </Box>
               <Grid container spacing={2.5}>
                 <Grid item xs={12} md={6}>
                   <TextField
@@ -938,11 +945,13 @@ ${job.resume_content}`;
               </Grid>
             </Paper>
 
-            {/* Additional Details */}
-            <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2.5, fontWeight: 600, color: "primary.main" }}>
-                Additional Details
-              </Typography>
+            {/* Skills & Experience */}
+            <Paper elevation={2} sx={{ p: 3, borderRadius: 2, background: "linear-gradient(to bottom, #ffffff 0%, #fef9f5 100%)" }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2.5, pb: 1.5, borderBottom: "2px solid #ed6c02" }}>
+                <Typography variant="h6" sx={{ fontWeight: 600, color: "warning.main" }}>
+                  🎯 Skills & Experience
+                </Typography>
+              </Box>
               <Grid container spacing={2.5}>
                 <Grid item xs={12}>
                   <TextField
@@ -952,8 +961,9 @@ ${job.resume_content}`;
                     fullWidth
                     required
                     multiline
-                    minRows={3}
+                    rows={4}
                     variant="outlined"
+                    placeholder="e.g., JavaScript, Python, React, Node.js..."
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -964,8 +974,9 @@ ${job.resume_content}`;
                     fullWidth
                     required
                     multiline
-                    minRows={3}
+                    rows={4}
                     variant="outlined"
+                    placeholder="Describe your work experience..."
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -976,8 +987,9 @@ ${job.resume_content}`;
                     fullWidth
                     required
                     multiline
-                    minRows={3}
+                    rows={4}
                     variant="outlined"
+                    placeholder="Your educational background..."
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -988,8 +1000,9 @@ ${job.resume_content}`;
                     fullWidth
                     required
                     multiline
-                    minRows={3}
+                    rows={4}
                     variant="outlined"
+                    placeholder="List your certifications..."
                   />
                 </Grid>
               </Grid>
@@ -1003,11 +1016,23 @@ ${job.resume_content}`;
             onClick={async () => {
               try {
                 setEditError("");
-                const response = await updateMyCandidateProfile(editForm);
+                
+                // Clean the data before sending - remove fields that shouldn't be updated
+                const cleanedData = { ...editForm };
+                delete cleanedData.id;
+                delete cleanedData.jobs;
+                delete cleanedData.created_by_user_id;
+                delete cleanedData.created_at;
+                
+                console.log("Sending data:", cleanedData);
+                const response = await updateMyCandidateProfile(cleanedData);
+                console.log("Response:", response);
+                
                 setCandidate(response.candidate);
                 setEditOpen(false);
                 await load();
               } catch (e) {
+                console.error("Update error:", e);
                 setEditError(e.message || "Failed to update profile");
               }
             }}
@@ -1320,42 +1345,42 @@ ${job.resume_content}`;
                   </Typography>
                 </Box>
                 <Grid container spacing={3}>
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1, height: "100%" }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Grid item xs={12}>
+                    <Box sx={{ p: 2.5, bgcolor: "grey.50", borderRadius: 1.5, border: "1px solid", borderColor: "grey.300" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>
                         Technical Skills
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, whiteSpace: "pre-wrap" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1.5, whiteSpace: "pre-wrap", lineHeight: 1.7, color: "text.primary" }}>
                         {candidate.technical_skills || "Not provided"}
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1, height: "100%" }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Grid item xs={12}>
+                    <Box sx={{ p: 2.5, bgcolor: "grey.50", borderRadius: 1.5, border: "1px solid", borderColor: "grey.300" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>
                         Work Experience
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, whiteSpace: "pre-wrap" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1.5, whiteSpace: "pre-wrap", lineHeight: 1.7, color: "text.primary" }}>
                         {candidate.work_experience || "Not provided"}
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1, height: "100%" }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Grid item xs={12}>
+                    <Box sx={{ p: 2.5, bgcolor: "grey.50", borderRadius: 1.5, border: "1px solid", borderColor: "grey.300" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>
                         Education
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, whiteSpace: "pre-wrap" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1.5, whiteSpace: "pre-wrap", lineHeight: 1.7, color: "text.primary" }}>
                         {candidate.education || "Not provided"}
                       </Typography>
                     </Box>
                   </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1, height: "100%" }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Grid item xs={12}>
+                    <Box sx={{ p: 2.5, bgcolor: "grey.50", borderRadius: 1.5, border: "1px solid", borderColor: "grey.300" }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: 0.8, fontWeight: 600 }}>
                         Certificates
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1, whiteSpace: "pre-wrap" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500, mt: 1.5, whiteSpace: "pre-wrap", lineHeight: 1.7, color: "text.primary" }}>
                         {candidate.certificates || "Not provided"}
                       </Typography>
                     </Box>
@@ -1370,7 +1395,7 @@ ${job.resume_content}`;
                     ℹ️ Additional Details
                   </Typography>
                 </Box>
-                <Grid container spacing={2}>
+                <Grid container spacing={3}>
                   <Grid item xs={12} sm={6} md={4}>
                     <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
                       <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
