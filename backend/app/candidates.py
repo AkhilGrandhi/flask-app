@@ -52,7 +52,7 @@ def create_candidate():
     data = request.get_json() or {}
     
     # Validate required fields
-    required = ["first_name", "last_name", "email", "phone", "password", "birthdate", "gender", 
+    required = ["first_name", "last_name", "email", "phone", "subscription_type", "password", "birthdate", "gender", 
                 "nationality", "citizenship_status", "visa_status", "work_authorization",
                 "address_line1", "address_line2", "city", "state", "postal_code", "country",
                 "technical_skills", "work_experience", "education", "certificates"]
@@ -95,6 +95,7 @@ def create_candidate():
         last_name=data.get("last_name"),
         email=data.get("email"),
         phone=data.get("phone"),
+        subscription_type=data.get("subscription_type"),
         password=data.get("password"),
         gender=data.get("gender"),
         nationality=data.get("nationality"),
@@ -185,7 +186,7 @@ def update_candidate(cand_id):
             return {"message": "Password must be at least 6 characters"}, 400
 
     for field in [
-        "first_name", "last_name", "email", "phone", "password", "gender", "nationality",
+        "first_name", "last_name", "email", "phone", "subscription_type", "password", "gender", "nationality",
         "citizenship_status", "visa_status", "work_authorization",
         "veteran_status", "race_ethnicity", "address_line1", "address_line2",
         "city", "state", "postal_code", "country", "personal_website",

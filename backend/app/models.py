@@ -35,6 +35,7 @@ class Candidate(db.Model):
     last_name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(255))
     phone = db.Column(db.String(50))
+    subscription_type = db.Column(db.String(50))  # Gold or Silver
     password = db.Column(db.String(255))  # Candidate password (minimum 6 characters)
     birthdate = db.Column(db.Date)
     gender = db.Column(db.String(50))
@@ -102,6 +103,7 @@ class Candidate(db.Model):
             "id": self.id,
             "first_name": self.first_name, "last_name": self.last_name,
             "email": self.email, "phone": self.phone,
+            "subscription_type": self.subscription_type,
             "birthdate": self.birthdate.isoformat() if self.birthdate else None,
             "gender": self.gender, "nationality": self.nationality,
             "citizenship_status": self.citizenship_status,

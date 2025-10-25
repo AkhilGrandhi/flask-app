@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import {
   PersonOutline, EmailOutlined, PhoneOutlined,
-  WorkOutlineOutlined, VisibilityOutlined, Download
+  WorkOutlineOutlined, VisibilityOutlined, Download, WorkspacePremium
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext";
 import { getMyCandidateProfile, updateMyCandidateProfile } from "../api";
@@ -239,48 +239,85 @@ ${job.resume_content}`;
           </Stack>
         </Box>
 
-        <Box sx={{ p: 3, display: "flex", gap: 3, flexWrap: "wrap" }}>
+        <Box sx={{ p: 3, display: "flex", justifyContent: "space-between", gap: 3 }}>
           {/* Full Name */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1 1 280px", minWidth: 0 }}>
-            <Avatar sx={{ bgcolor: "primary.main", mr: 1.5, width: 36, height: 36 }}>
+          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
+            <Avatar sx={{ bgcolor: "primary.main", mr: 1.5, width: 36, height: 36, flexShrink: 0 }}>
               <PersonOutline sx={{ fontSize: 20 }} />
             </Avatar>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
                 Full Name
               </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {candidate?.first_name} {candidate?.last_name}
               </Typography>
             </Box>
           </Box>
 
           {/* Email Address */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1 1 280px", minWidth: 0 }}>
-            <Avatar sx={{ bgcolor: "success.main", mr: 1.5, width: 36, height: 36 }}>
+          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
+            <Avatar sx={{ bgcolor: "success.main", mr: 1.5, width: 36, height: 36, flexShrink: 0 }}>
               <EmailOutlined sx={{ fontSize: 20 }} />
             </Avatar>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
                 Email Address
               </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", wordBreak: "break-word" }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {candidate?.email || "Not provided"}
               </Typography>
             </Box>
           </Box>
 
           {/* Mobile Number */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1 1 280px", minWidth: 0 }}>
-            <Avatar sx={{ bgcolor: "warning.main", mr: 1.5, width: 36, height: 36 }}>
+          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
+            <Avatar sx={{ bgcolor: "warning.main", mr: 1.5, width: 36, height: 36, flexShrink: 0 }}>
               <PhoneOutlined sx={{ fontSize: 20 }} />
             </Avatar>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
                 Mobile Number
               </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {candidate?.phone || "Not provided"}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Subscription Type */}
+          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
+            <Avatar sx={{ 
+              bgcolor: candidate?.subscription_type === "Gold" ? "#FFD700" : candidate?.subscription_type === "Silver" ? "#C0C0C0" : "info.main",
+              mr: 1.5, 
+              width: 36, 
+              height: 36,
+              flexShrink: 0,
+              boxShadow: candidate?.subscription_type === "Gold" ? "0 0 12px rgba(255, 215, 0, 0.5)" : candidate?.subscription_type === "Silver" ? "0 0 12px rgba(192, 192, 192, 0.5)" : "none"
+            }}>
+              <WorkspacePremium sx={{ fontSize: 20, color: candidate?.subscription_type ? "white" : undefined }} />
+            </Avatar>
+            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                Subscription Type
+              </Typography>
+              <Typography 
+                variant="body1" 
+                sx={{ 
+                  fontWeight: 600, 
+                  fontSize: "0.95rem",
+                  color: candidate?.subscription_type === "Gold" ? "#FFD700" : candidate?.subscription_type === "Silver" ? "#757575" : "text.primary",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {candidate?.subscription_type === "Gold" && "🥇 "}
+                {candidate?.subscription_type === "Silver" && "🥈 "}
+                {candidate?.subscription_type || "Not provided"}
               </Typography>
             </Box>
           </Box>
@@ -988,6 +1025,14 @@ ${job.resume_content}`;
                         Phone
                       </Typography>
                       <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.phone}</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Box sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Subscription Type
+                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>{candidate.subscription_type || "Not provided"}</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={12} sm={6} md={4}>

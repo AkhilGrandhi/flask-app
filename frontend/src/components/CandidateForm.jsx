@@ -8,7 +8,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import {
   OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
   WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
-  COUNTRY_OPTIONS
+  COUNTRY_OPTIONS, SUBSCRIPTION_TYPE_OPTIONS
 } from "../constants/options";
 
 // Reusable, wide, label-friendly select
@@ -163,6 +163,18 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
               error={!!errors.phone} 
               helperText={errors.phone || "Numbers only"}
               variant="outlined"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <RequiredSelect
+              label="Subscription Type"
+              value={v.subscription_type}
+              onChange={set("subscription_type")}
+              options={SUBSCRIPTION_TYPE_OPTIONS}
+              error={errors.subscription_type}
+              helperText={errors.subscription_type}
+              name="subscription_type"
             />
           </Grid>
 

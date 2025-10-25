@@ -34,4 +34,8 @@ export const COUNTRY_OPTIONS = [
   "Australia", "Germany", "France", "Singapore", "United Arab Emirates", OTHER
 ];
 
+export const SUBSCRIPTION_TYPE_OPTIONS = [
+  "Gold", "Silver"
+];
+
 // If you want a STATE list, add here, else keep TextField for free input.
