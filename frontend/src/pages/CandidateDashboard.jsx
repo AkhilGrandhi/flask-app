@@ -3,14 +3,14 @@ import {
   Container, Box, Typography, Paper, Table, TableHead,
   TableRow, TableCell, TableBody, Button, Avatar, Stack, Grid,
   Dialog, DialogTitle, DialogContent, DialogActions, Chip, Divider, TextField, Alert,
-  FormControl, InputLabel, Select, MenuItem
+  FormControl, InputLabel, Select, MenuItem, CircularProgress
 } from "@mui/material";
 import {
   PersonOutline, EmailOutlined, PhoneOutlined,
-  WorkOutlineOutlined, VisibilityOutlined, Download, WorkspacePremium
+  WorkOutlineOutlined, VisibilityOutlined, Download, WorkspacePremium, Add
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext";
-import { getMyCandidateProfile, updateMyCandidateProfile } from "../api";
+import { getMyCandidateProfile, updateMyCandidateProfile, addCandidateJob, generateResume, deleteCandidateJob } from "../api";
 import {
   OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
   WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
@@ -85,6 +85,12 @@ export default function CandidateDashboard() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editError, setEditError] = useState("");
+  
+  // Generate Resume state (for Silver subscribers)
+  const [jobId, setJobId] = useState("");
+  const [jobDesc, setJobDesc] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState("");
 
   const load = async () => {
     try {
@@ -129,6 +135,76 @@ ${job.resume_content}`;
     } catch (e) {
       console.error("Error downloading resume:", e);
       setError("Failed to download resume: " + e.message);
+    }
+  };
+
+  // Format candidate info for resume generation (Silver subscribers)
+  const formatCandidateInfo = (candidate) => {
+    let info = `Name: ${candidate.first_name} ${candidate.last_name}\n`;
+    info += `Email: ${candidate.email}\n`;
+    info += `Phone: ${candidate.phone}\n\n`;
+    
+    if (candidate.technical_skills) {
+      info += `Technical Skills:\n${candidate.technical_skills}\n\n`;
+    }
+    
+    if (candidate.work_experience) {
+      info += `Work Experience:\n${candidate.work_experience}\n\n`;
+    }
+    
+    if (candidate.education) {
+      info += `Education:\n${candidate.education}\n\n`;
+    }
+    
+    if (candidate.certificates) {
+      info += `Certifications:\n${candidate.certificates}\n\n`;
+    }
+    
+    return info;
+  };
+
+  // Generate resume (Silver subscribers only)
+  const handleGenerateResume = async () => {
+    let jobRowId = null;
+    try {
+      setGenerateError("");
+      setGenerating(true);
+      
+      // Step 1: Create job record FIRST to get job_row_id
+      const response = await addCandidateJob(candidate.id, { job_id: jobId, job_description: jobDesc });
+      jobRowId = response.id; // Store the job ID for cleanup if needed
+      
+      // Step 2: Generate resume with job_row_id so content gets saved to database
+      const candidateInfo = formatCandidateInfo(candidate);
+      const blob = await generateResume(jobDesc, candidateInfo, "word", candidate.id, jobRowId);
+      
+      // Step 3: Trigger download
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${candidate.first_name}_${candidate.last_name}_Resume.docx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setJobId(""); 
+      setJobDesc("");
+      await load();
+    } catch (e) { 
+      setGenerateError(e.message);
+      
+      // If resume generation failed after creating job, delete the job record
+      if (jobRowId) {
+        try {
+          await deleteCandidateJob(candidate.id, jobRowId);
+          console.log("Cleaned up job record after resume generation failure");
+        } catch (cleanupError) {
+          console.error("Failed to cleanup job record:", cleanupError);
+        }
+      }
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -323,6 +399,83 @@ ${job.resume_content}`;
           </Box>
         </Box>
       </Paper>
+
+      {/* Generate Resume Section - Only for Silver Subscribers */}
+      {candidate?.subscription_type === "Silver" && (
+        <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden", mb: 3, border: "2px solid #C0C0C0" }}>
+          <Box sx={{ 
+            px: 2.5,
+            py: 2, 
+            bgcolor: "#f5f5f5",
+            borderBottom: "2px solid #C0C0C0",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.05rem", color: "#757575" }}>
+              🚀 Generate Resume
+            </Typography>
+            <Button 
+              variant="contained" 
+              size="small"
+              onClick={handleGenerateResume} 
+              disabled={generating || !jobId || !jobDesc}
+              startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <Add />}
+              sx={{ 
+                fontWeight: 600,
+                fontSize: "0.8rem",
+                textTransform: "none",
+                bgcolor: "#757575",
+                "&:hover": { bgcolor: "#616161" },
+                "&.Mui-disabled": {
+                  bgcolor: "#e0e0e0",
+                  color: "#9e9e9e"
+                }
+              }}
+            >
+              {generating ? "Generating..." : "+ Generate"}
+            </Button>
+          </Box>
+          
+          <Box sx={{ p: 3 }}>
+            {generateError && (
+              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setGenerateError("")}>
+                {generateError}
+              </Alert>
+            )}
+            
+            <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
+              <Box sx={{ width: "30%" }}>
+                <TextField
+                  label="Job ID"
+                  value={jobId}
+                  onChange={(e) => setJobId(e.target.value)}
+                  fullWidth
+                  disabled={generating}
+                  required
+                  variant="outlined"
+                  size="small"
+                />
+              </Box>
+              <Box sx={{ width: "70%" }}>
+                <TextField
+                  label="Job Description"
+                  value={jobDesc}
+                  onChange={(e) => setJobDesc(e.target.value)}
+                  fullWidth
+                  multiline
+                  rows={2}
+                  disabled={generating}
+                  required
+                  variant="outlined"
+                  size="small"
+                  sx={{ minWidth: 500 }}
+                />
+              </Box>
+            </Box>
+          </Box>
+        </Paper>
+      )}
 
       {/* Jobs Applied Section */}
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
