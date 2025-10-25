@@ -131,10 +131,15 @@ export default function UserDashboard() {
       }
       
       // Client-side validation
-      const required = ["first_name", "last_name", "email", "phone", "password", "birthdate", "gender", 
+      let required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
                         "address_line1", "address_line2", "city", "state", "postal_code", "country",
                         "technical_skills", "work_experience", "education", "certificates"];
+      
+      // Password is only required when creating, not when editing
+      if (!editing) {
+        required.push("password");
+      }
       
       const missing = required.filter(f => !form[f] || String(form[f]).trim() === "");
       if (missing.length > 0) {
@@ -154,14 +159,20 @@ export default function UserDashboard() {
         return;
       }
       
-      // Validate password length
+      // Validate password length if provided
       if (form.password && form.password.length < 6) {
         setErr("Password must be at least 6 characters");
         return;
       }
       
-      if (editing) await updateCandidate(editing.id, form);
-      else await createCandidate(form);
+      // Clean data for edit mode - don't send empty password
+      const dataToSend = { ...form };
+      if (editing && (!form.password || form.password.trim() === "")) {
+        delete dataToSend.password;
+      }
+      
+      if (editing) await updateCandidate(editing.id, dataToSend);
+      else await createCandidate(dataToSend);
       setOpen(false);
       setFieldErrors({});
       await load();
@@ -511,7 +522,7 @@ export default function UserDashboard() {
               {err}
             </Alert>
           )}
-          <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} />
+          <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
           <Button onClick={() => setOpen(false)} variant="outlined">Cancel</Button>

@@ -186,7 +186,7 @@ def update_candidate(cand_id):
             return {"message": "Password must be at least 6 characters"}, 400
 
     for field in [
-        "first_name", "last_name", "email", "phone", "subscription_type", "password", "gender", "nationality",
+        "first_name", "last_name", "email", "phone", "subscription_type", "gender", "nationality",
         "citizenship_status", "visa_status", "work_authorization",
         "veteran_status", "race_ethnicity", "address_line1", "address_line2",
         "city", "state", "postal_code", "country", "personal_website",
@@ -199,6 +199,10 @@ def update_candidate(cand_id):
     ]:
         if field in data:
             setattr(c, field, data[field])
+    
+    # Handle password separately - only update if provided and not empty
+    if "password" in data and data.get("password") and data.get("password").strip():
+        c.password = data.get("password")
 
     for field in ["willing_relocate", "willing_travel", "disability_status", "military_experience"]:
         if field in data:

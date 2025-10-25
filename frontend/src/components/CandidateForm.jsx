@@ -72,7 +72,7 @@ function RequiredSelect({ label, value, onChange, options, error, helperText, na
   );
 }
 
-export default function CandidateForm({ value, onChange, errors = {} }) {
+export default function CandidateForm({ value, onChange, errors = {}, isEditing = false }) {
   const v = useMemo(() => value || {}, [value]);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -180,14 +180,14 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
 
           <Grid item xs={12} sm={6}>
             <TextField 
-              label="Password" 
+              label={isEditing ? "Password (Leave blank to keep existing)" : "Password"} 
               type={showPassword ? "text" : "password"}
               value={v.password||""} 
               onChange={set("password")}
-              required 
+              required={!isEditing}
               fullWidth 
               error={!!errors.password} 
-              helperText={errors.password || "Minimum 6 characters"}
+              helperText={errors.password || (isEditing ? "Leave blank to keep existing password" : "Minimum 6 characters")}
               variant="outlined"
               InputProps={{
                 endAdornment: (
