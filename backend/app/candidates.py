@@ -51,6 +51,16 @@ def create_candidate():
     uid = current_user_id()
     data = request.get_json() or {}
     
+    # Allow admin to assign a different user as creator
+    creator_user_id = uid  # Default to current user
+    if is_admin() and data.get("created_by_user_id"):
+        creator_user_id = data.get("created_by_user_id")
+        # Validate that the assigned user exists
+        from .models import User
+        assigned_user = User.query.get(creator_user_id)
+        if not assigned_user:
+            return {"message": "Assigned user not found"}, 404
+    
     # Validate required fields
     required = ["first_name", "last_name", "email", "phone", "subscription_type", "password", "birthdate", "gender", 
                 "nationality", "citizenship_status", "visa_status", "work_authorization",
@@ -70,10 +80,14 @@ def create_candidate():
     if not email or "@" not in email:
         return {"message": "Valid email is required"}, 400
     
-    existing_email = Candidate.query.filter(
-        Candidate.email == email,
-        Candidate.created_by_user_id == uid
-    ).first()
+    # For admin, check globally; for regular users, check within their candidates only
+    if is_admin():
+        existing_email = Candidate.query.filter(Candidate.email == email).first()
+    else:
+        existing_email = Candidate.query.filter(
+            Candidate.email == email,
+            Candidate.created_by_user_id == uid
+        ).first()
     if existing_email:
         return {"message": "A candidate with this email already exists"}, 409
     
@@ -82,10 +96,14 @@ def create_candidate():
     if not phone.isdigit():
         return {"message": "Phone number must contain only digits"}, 400
     
-    existing_phone = Candidate.query.filter(
-        Candidate.phone == phone,
-        Candidate.created_by_user_id == uid
-    ).first()
+    # For admin, check globally; for regular users, check within their candidates only
+    if is_admin():
+        existing_phone = Candidate.query.filter(Candidate.phone == phone).first()
+    else:
+        existing_phone = Candidate.query.filter(
+            Candidate.phone == phone,
+            Candidate.created_by_user_id == uid
+        ).first()
     if existing_phone:
         return {"message": "A candidate with this phone number already exists"}, 409
     
@@ -102,7 +120,7 @@ def create_candidate():
         return {"message": "A candidate with this SSN already exists"}, 409
 
     c = Candidate(
-        created_by_user_id=uid,
+        created_by_user_id=creator_user_id,
         first_name=data.get("first_name"),
         last_name=data.get("last_name"),
         email=data.get("email"),

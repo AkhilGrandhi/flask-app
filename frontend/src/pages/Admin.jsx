@@ -3,7 +3,7 @@ import {
   Tabs, Tab, Container, Box, Typography, Button, Paper,
   Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert
+  TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert, Autocomplete
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
@@ -414,6 +414,8 @@ function UsersTab() {
 
 function CandidatesTab() {
   const [rows, setRows] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [assignedUserId, setAssignedUserId] = useState("");
   const [open, setOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [viewing, setViewing] = useState(null);
@@ -426,7 +428,16 @@ function CandidatesTab() {
     const d = await listAllCandidates();
     setRows(d.candidates);
   };
-  useEffect(()=>{ load(); }, []);
+  
+  const loadUsers = async () => {
+    const d = await listUsers();
+    setUsers(d.users);
+  };
+  
+  useEffect(()=>{ 
+    load();
+    loadUsers();
+  }, []);
 
   // Check for duplicate email or phone in existing candidates
   const checkDuplicates = (field, value) => {
@@ -539,6 +550,7 @@ function CandidatesTab() {
       family_in_org: "No",
       subscription_type: "Gold"
     });
+    setAssignedUserId("");
     setFieldErrors({});
     setErr("");
     setOpen(true);
@@ -558,6 +570,12 @@ function CandidatesTab() {
     try {
       setErr("");
       setFieldErrors({});
+      
+      // Validate assigned user is selected when creating
+      if (!editing && !assignedUserId) {
+        setErr("Please select a user to assign this candidate to.");
+        return;
+      }
       
       // Check for duplicate email/phone/ssn first
       const emailError = checkDuplicates("email", form.email);
@@ -631,6 +649,8 @@ function CandidatesTab() {
       if (editing) {
         await adminUpdateCandidate(editing.id, dataToSend);
       } else {
+        // Add the assigned user ID to the payload
+        dataToSend.created_by_user_id = assignedUserId;
         await createCandidate(dataToSend);
       }
       setOpen(false);
@@ -1009,6 +1029,38 @@ function CandidatesTab() {
               {err}
             </Alert>
           )}
+          
+          {/* Assign User Dropdown - Only show when creating new candidate */}
+          {!editing && (
+            <Paper elevation={1} sx={{ p: 2.5, mb: 3, bgcolor: "white" }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5, color: "primary.main" }}>
+                Assign User (Creator) *
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Select the user who will be assigned as the creator of this candidate
+              </Typography>
+              <Autocomplete
+                fullWidth
+                options={users.filter(u => u.role === "user")}
+                getOptionLabel={(option) => `${option.name} (${option.email})`}
+                value={users.find(u => u.id === assignedUserId) || null}
+                onChange={(event, newValue) => {
+                  setAssignedUserId(newValue ? newValue.id : "");
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Search and select a user..."
+                    required
+                    sx={{ bgcolor: "white" }}
+                  />
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText="No users found"
+              />
+            </Paper>
+          )}
+          
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
@@ -1016,7 +1068,7 @@ function CandidatesTab() {
           <Button 
             variant="contained" 
             onClick={submit}
-            disabled={Object.keys(fieldErrors).length > 0}
+            disabled={Object.keys(fieldErrors).length > 0 || (!editing && !assignedUserId)}
             sx={{ px: 4 }}
           >
             {editing ? "Save Changes" : "Create Candidate"}
