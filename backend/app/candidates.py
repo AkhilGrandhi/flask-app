@@ -142,6 +142,7 @@ def create_candidate():
         at_least_18=data.get("at_least_18"),
         needs_visa_sponsorship=data.get("needs_visa_sponsorship"),
         family_in_org=data.get("family_in_org"),
+        ssn=data.get("ssn"),
         availability=data.get("availability"),
         education=data.get("education"),
         certificates=data.get("certificates"),
@@ -224,7 +225,7 @@ def update_candidate(cand_id):
         "expected_wage", "contact_current_employer", "recent_degree",
         "authorized_work_us", "authorized_without_sponsorship",
         "referral_source", "at_least_18", "needs_visa_sponsorship",
-        "family_in_org", "availability", "education", "certificates",
+        "family_in_org", "ssn", "availability", "education", "certificates",
     ]:
         if field in data:
             setattr(c, field, data[field])
@@ -381,7 +382,7 @@ def update_my_profile():
         "expected_wage", "contact_current_employer", "recent_degree",
         "authorized_work_us", "authorized_without_sponsorship",
         "referral_source", "at_least_18", "needs_visa_sponsorship",
-        "family_in_org", "availability", "education", "certificates",
+        "family_in_org", "ssn", "availability", "education", "certificates",
     ]:
         if field in data:
             setattr(candidate, field, data[field])

@@ -297,6 +297,21 @@ ${job.resume_content}`;
                 </Box>
               </Box>
             </Grid>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <Avatar sx={{ bgcolor: "info.main", mr: 1.5, width: 40, height: 40 }}>
+                  <Work sx={{ fontSize: 20 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    SSN Number
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                    {cand.ssn || "-"}
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
           </Grid>
         </Box>
       </Paper>

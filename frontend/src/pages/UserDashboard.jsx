@@ -136,8 +136,10 @@ export default function UserDashboard() {
     setOpen(true); 
   };
   const startEdit = (r) => { 
-    setEditing(r); 
-    setForm(r); 
+    setEditing(r);
+    // Ensure birthdate is YYYY-MM-DD for the date input (if present)
+    const bd = r.birthdate ? r.birthdate.slice(0,10) : "";
+    setForm({ ...r, birthdate: bd });
     setFieldErrors({});
     setErr("");
     setOpen(true); 
