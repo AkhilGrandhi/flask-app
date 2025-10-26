@@ -150,9 +150,9 @@ def admin_update_candidate(cand_id):
     
     for field in [
         "first_name","last_name","email","phone","password","gender","nationality","citizenship_status",
-        "visa_status","work_authorization","veteran_status","race_ethnicity","address_line1",
+        "visa_status","f1_type","work_authorization","veteran_status","race_ethnicity","address_line1",
         "address_line2","city","state","postal_code","country","personal_website","linkedin",
-        "github","technical_skills","work_experience",
+        "github","technical_skills","work_experience","subscription_type",
 
         # NEW
         "expected_wage","contact_current_employer","recent_degree","authorized_work_us",

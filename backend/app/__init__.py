@@ -56,26 +56,44 @@ def create_app():
     def health():
         return {"status": "ok"}
 
-    # One-time dev bootstrap: create tables (if no migrations ran) and seed admin
+    # One-time dev bootstrap: seed admin user
     with app.app_context():
-        # You can remove this create_all once you fully use Alembic migrations
-        db.create_all()
+        # Use migrations instead of create_all() to avoid conflicts
+        # Only run create_all() in development if no migrations exist
+        try:
+            email    = os.getenv("ADMIN_EMAIL", "admin@example.com").lower().strip()
+            password = os.getenv("ADMIN_PASSWORD", "Passw0rd!")
+            mobile   = os.getenv("ADMIN_MOBILE", "9999999999")
+            name     = os.getenv("ADMIN_NAME", "Administrator")
 
-        email    = os.getenv("ADMIN_EMAIL", "admin@example.com").lower().strip()
-        password = os.getenv("ADMIN_PASSWORD", "Passw0rd!")
-        mobile   = os.getenv("ADMIN_MOBILE", "9999999999")
-        name     = os.getenv("ADMIN_NAME", "Administrator")
-
-        if not User.query.filter_by(email=email).first():
-            admin = User(
-                name=name,
-                email=email,
-                mobile=mobile,
-                password_hash=generate_password_hash(password),
-                role="admin",
-            )
-            db.session.add(admin)
-            db.session.commit()
-            app.logger.info(f"Default admin created: {email}")
+            if not User.query.filter_by(email=email).first():
+                admin = User(
+                    name=name,
+                    email=email,
+                    mobile=mobile,
+                    password_hash=generate_password_hash(password),
+                    role="admin",
+                )
+                db.session.add(admin)
+                db.session.commit()
+                app.logger.info(f"Default admin created: {email}")
+        except Exception as e:
+            app.logger.error(f"Error creating admin user: {e}")
+            # If tables don't exist yet, create them (development only)
+            if "does not exist" in str(e).lower() or "no such table" in str(e).lower():
+                app.logger.info("Tables not found, creating them...")
+                db.create_all()
+                # Retry admin creation
+                if not User.query.filter_by(email=email).first():
+                    admin = User(
+                        name=name,
+                        email=email,
+                        mobile=mobile,
+                        password_hash=generate_password_hash(password),
+                        role="admin",
+                    )
+                    db.session.add(admin)
+                    db.session.commit()
+                    app.logger.info(f"Default admin created: {email}")
 
     return app
