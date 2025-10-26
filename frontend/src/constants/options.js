@@ -10,7 +10,7 @@ export const CITIZENSHIP_OPTIONS = [
 ];
 
 export const VISA_OPTIONS = [
-  "None", "H1B", "H4", "L1", "F1", "OPT", "PR-in-process", OTHER
+  "None", "F1", "Citizen", "Green card (GC)", "GC-EAD", "H1B", "H4", "L1", "J1", OTHER
 ];
 
 export const WORK_AUTH_OPTIONS = [

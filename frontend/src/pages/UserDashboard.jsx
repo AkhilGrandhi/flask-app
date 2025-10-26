@@ -79,6 +79,11 @@ export default function UserDashboard() {
       }
     }
     
+    // Clear visa_status error when user changes it from "None"
+    if (newForm.visa_status !== form.visa_status && newForm.visa_status !== "None") {
+      delete newFieldErrors.visa_status;
+    }
+    
     setFieldErrors(newFieldErrors);
   };
 
@@ -117,6 +122,7 @@ export default function UserDashboard() {
   const submit = async () => {
     try {
       setErr("");
+      setFieldErrors({});
       
       // Check for duplicate email/phone first
       const emailError = checkDuplicates("email", form.email);
@@ -163,6 +169,13 @@ export default function UserDashboard() {
       // Validate password length if provided
       if (form.password && form.password.length < 6) {
         setErr("Password must be at least 6 characters");
+        return;
+      }
+      
+      // Validate visa status - must not be "None"
+      if (form.visa_status === "None") {
+        setFieldErrors({ visa_status: "Please select a valid visa status. 'None' is not allowed." });
+        setErr("Please select a valid visa status.");
         return;
       }
       
