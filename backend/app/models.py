@@ -32,6 +32,7 @@ class Candidate(db.Model):
 
     # Personal Information
     first_name = db.Column(db.String(120), nullable=False)
+    middle_name = db.Column(db.String(120))  # Optional middle name
     last_name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(255))
     phone = db.Column(db.String(50))
@@ -102,7 +103,7 @@ class Candidate(db.Model):
         
         d = {
             "id": self.id,
-            "first_name": self.first_name, "last_name": self.last_name,
+            "first_name": self.first_name, "middle_name": self.middle_name, "last_name": self.last_name,
             "email": self.email, "phone": self.phone,
             "subscription_type": self.subscription_type,
             "birthdate": self.birthdate.isoformat() if self.birthdate else None,

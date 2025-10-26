@@ -114,7 +114,7 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
           Personal Information
         </Typography>
         <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={4}>
             <TextField 
               label="First Name" 
               value={v.first_name||""} 
@@ -126,7 +126,18 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
               variant="outlined"
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={4}>
+            <TextField 
+              label="Middle Name" 
+              value={v.middle_name||""} 
+              onChange={set("middle_name")}
+              fullWidth 
+              error={!!errors.middle_name} 
+              helperText={errors.middle_name || "Optional"}
+              variant="outlined"
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
             <TextField 
               label="Last Name" 
               value={v.last_name||""} 

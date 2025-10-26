@@ -508,6 +508,167 @@ flask db upgrade
 
 ---
 
+## Making Schema Changes (Adding Columns/Fields)
+
+### ❓ Do I Need to Recreate the Database?
+
+**NO!** You do NOT need to delete and recreate your PostgreSQL database when adding new columns or making schema changes. Use Flask-Migrate instead.
+
+### ✅ The Right Way: Database Migrations
+
+Your project uses **Flask-Migrate** (Alembic) which handles schema changes without data loss.
+
+#### Step-by-Step: Adding a New Column
+
+**1. Update your model locally:**
+```python
+# backend/app/models.py
+class Candidate(db.Model):
+    # ... existing fields ...
+    new_field = db.Column(db.String(255), nullable=True)  # Your new column
+```
+
+**2. Create migration locally:**
+```bash
+cd backend
+flask db migrate -m "Add new_field to candidate table"
+```
+
+**3. Review the generated migration file:**
+```bash
+# Check backend/migrations/versions/<timestamp>_add_new_field.py
+# Verify it does what you expect
+```
+
+**4. Test migration locally:**
+```bash
+flask db upgrade  # Apply migration
+flask run         # Test your app
+```
+
+**5. Commit and push:**
+```bash
+git add backend/app/models.py backend/migrations/
+git commit -m "Add new_field to candidate model"
+git push origin main  # or your branch
+```
+
+**6. Render automatically applies migration:**
+- Render detects the push
+- Runs `build.sh` which includes `flask db upgrade`
+- Migration is applied to production database
+- **Your existing data is preserved!** ✨
+
+#### Common Schema Changes
+
+**Adding a Column (Safe):**
+```python
+# Existing rows get NULL or default value
+new_column = db.Column(db.String(100), default="default_value")
+```
+
+**Making Column Optional:**
+```python
+# Change nullable=False to nullable=True
+email = db.Column(db.String(255), nullable=True)  # was nullable=False
+```
+
+**Adding Column with NOT NULL (Requires Default):**
+```python
+# Must provide default or migration will fail
+status = db.Column(db.String(50), nullable=False, default="active")
+```
+
+**Changing Column Type (Test First!):**
+```python
+# May require data conversion
+phone = db.Column(db.String(50))  # was String(20)
+```
+
+**Removing a Column (Data Loss!):**
+```python
+# ⚠️ Deletes data permanently - make sure you have backups
+# Just remove the field from your model and create migration
+```
+
+**Renaming a Column (Manual Edit Required):**
+```python
+# Auto-migration sees this as drop + add (causes data loss!)
+# Manually edit migration file to use op.alter_column() instead
+```
+
+### 🚨 When You WOULD Need to Recreate Database
+
+**Only in extreme cases:**
+- Database is completely corrupted (rare)
+- Unfixable migration conflicts (can usually be resolved)
+- Development/testing environment (not production!)
+- Changing database infrastructure (new server/region)
+
+**For production: NEVER delete database without backup!**
+
+### 🔧 Troubleshooting Migrations
+
+#### "Migration conflict" or "Multiple heads detected"
+
+```bash
+# View migration history
+flask db history
+
+# Merge heads
+flask db merge heads -m "Merge migration branches"
+
+# Or stamp to latest and recreate
+flask db stamp head
+flask db migrate -m "Resolve conflict"
+```
+
+#### "Column already exists"
+
+```bash
+# Migration was already applied
+# Just mark it as done:
+flask db stamp head
+```
+
+#### Migration fails on Render
+
+**Check logs for specific error:**
+1. Go to Render Dashboard → Backend Service → Logs
+2. Look for migration error message
+3. Common fixes:
+   - Column has NOT NULL but no default
+   - Data type conversion fails
+   - Foreign key constraint violation
+
+**Solution:**
+```bash
+# Fix locally first, then push:
+flask db downgrade -1  # Rollback
+# Fix migration or model
+flask db upgrade       # Test
+git push              # Deploy to Render
+```
+
+### 📋 Migration Best Practices
+
+**✅ DO:**
+- Always create migrations for schema changes
+- Test migrations locally before deploying
+- Review auto-generated migration files
+- Use descriptive migration messages
+- Keep all migrations in version control
+- Backup database before risky migrations
+
+**❌ DON'T:**
+- Manually edit database schema (bypass migrations)
+- Delete migration files from git
+- Delete and recreate production database
+- Edit applied migrations (create new one instead)
+- Skip testing migrations locally
+
+---
+
 ## Maintenance
 
 ### Regular Tasks
