@@ -61,6 +61,7 @@ class Candidate(db.Model):
     at_least_18 = db.Column(db.String(10))                   # are you at least 18?
     needs_visa_sponsorship = db.Column(db.String(120))       # require sponsorship now/future
     family_in_org = db.Column(db.String(255))                # family member employed with org
+    ssn = db.Column(db.String(10), unique=True, index=True)  # Social Security Number (unique)
     availability = db.Column(db.String(120))                 # availability to start
 
     # Address
@@ -136,6 +137,7 @@ class Candidate(db.Model):
             "at_least_18": self.at_least_18,
             "needs_visa_sponsorship": self.needs_visa_sponsorship,
             "family_in_org": self.family_in_org,
+            "ssn": self.ssn,
             "availability": self.availability,
 
             "created_at": self.created_at.isoformat(),

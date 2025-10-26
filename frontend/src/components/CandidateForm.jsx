@@ -340,6 +340,20 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
             options={["Yes","No"]}
             error={errors.family_in_org}/>
           </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField 
+              label="SSN Number" 
+              value={v.ssn||""} 
+              onChange={set("ssn")}
+              required 
+              fullWidth 
+              error={!!errors.ssn} 
+              helperText={errors.ssn || "4-10 characters"}
+              variant="outlined"
+              inputProps={{ minLength: 4, maxLength: 10 }}
+            />
+          </Grid>
           
         </Grid>
 

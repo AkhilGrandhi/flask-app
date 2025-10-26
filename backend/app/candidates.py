@@ -55,7 +55,7 @@ def create_candidate():
     required = ["first_name", "last_name", "email", "phone", "subscription_type", "password", "birthdate", "gender", 
                 "nationality", "citizenship_status", "visa_status", "work_authorization",
                 "address_line1", "city", "state", "postal_code", "country",
-                "work_experience", "education"]
+                "work_experience", "education", "ssn"]
     missing_fields = [f for f in required if not data.get(f)]
     if missing_fields:
         return {"message": f"Required fields missing: {', '.join(missing_fields)}"}, 400
@@ -88,6 +88,18 @@ def create_candidate():
     ).first()
     if existing_phone:
         return {"message": "A candidate with this phone number already exists"}, 409
+    
+    # Validate SSN uniqueness (globally unique)
+    ssn = (data.get("ssn") or "").strip()
+    if not ssn:
+        return {"message": "SSN is required"}, 400
+    
+    if len(ssn) < 4 or len(ssn) > 10:
+        return {"message": "SSN must be between 4 and 10 characters"}, 400
+    
+    existing_ssn = Candidate.query.filter(Candidate.ssn == ssn).first()
+    if existing_ssn:
+        return {"message": "A candidate with this SSN already exists"}, 409
 
     c = Candidate(
         created_by_user_id=uid,
@@ -179,6 +191,22 @@ def update_candidate(cand_id):
         ).first()
         if existing_phone:
             return {"message": "A candidate with this phone number already exists"}, 409
+    
+    # Validate SSN if being updated (globally unique)
+    if "ssn" in data:
+        ssn = (data.get("ssn") or "").strip()
+        if not ssn:
+            return {"message": "SSN is required"}, 400
+        
+        if len(ssn) < 4 or len(ssn) > 10:
+            return {"message": "SSN must be between 4 and 10 characters"}, 400
+        
+        existing_ssn = Candidate.query.filter(
+            Candidate.ssn == ssn,
+            Candidate.id != cand_id
+        ).first()
+        if existing_ssn:
+            return {"message": "A candidate with this SSN already exists"}, 409
     
     # Validate password if being updated
     if "password" in data and data.get("password"):
