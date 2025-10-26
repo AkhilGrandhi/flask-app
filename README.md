@@ -1,374 +1,336 @@
-# Flask + React Candidate Management System
+# Data Fyre - Candidate Management System
 
-A full-stack web application for managing job candidates with AI-powered resume generation.
+> AI-powered candidate management platform with intelligent form autofill capabilities
 
-## 🚀 Features
+## 🚀 Quick Links
 
-- **User Management**: Admin panel for creating and managing users
-- **Candidate Database**: Store and manage candidate information
-- **Job Tracking**: Track job applications for each candidate
-- **AI Resume Generation**: Automatically generate tailored resumes using OpenAI
-- **Chrome Extension**: Auto-fill candidate data from web forms
-- **JWT Authentication**: Secure authentication with cookie-based sessions
-- **PostgreSQL Database**: Production-ready database (SQLite for local dev)
+- **[Developer Documentation](DEVELOPER_README.md)** - Understand the codebase, architecture, and how to contribute
+- **[Deployment Guide](DEPLOYMENT_README.md)** - Deploy the application to production (Render)
 
-## 📁 Project Structure
+## 📖 Overview
+
+Data Fyre is a comprehensive candidate management system designed to streamline the job application process. The platform consists of three integrated components:
+
+### 🖥️ Backend (Flask API)
+- RESTful API built with Flask and PostgreSQL
+- Multi-role authentication (Admin, User, Candidate)
+- AI-powered resume generation using OpenAI GPT-4
+- Comprehensive candidate data management
+
+### 🎨 Frontend (React)
+- Modern React application with Material-UI
+- Intuitive dashboards for all user roles
+- Real-time form validation
+- Responsive design
+
+### 🔌 Chrome Extension
+- One-click form autofill for job applications
+- AI-powered field mapping
+- Works on any website
+- Automatic backend detection
+
+## ✨ Key Features
+
+- **Multi-Role Access Control** - Admin, User, and Candidate portals
+- **AI Resume Generation** - Tailored resumes for each job application using GPT-4
+- **Smart Autofill** - Chrome extension with intelligent form field mapping
+- **Candidate Tracking** - Comprehensive candidate profiles with job history
+- **Database Migrations** - Version-controlled schema changes
+- **RESTful API** - Clean, well-documented API endpoints
+- **Secure Authentication** - JWT-based auth with cookies and headers support
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────┐
+│         Client Applications              │
+├─────────────┬────────────┬──────────────┤
+│   React     │  Chrome    │  API Clients │
+│   Frontend  │  Extension │              │
+└──────┬──────┴──────┬─────┴──────┬───────┘
+       │             │            │
+       └─────────────┼────────────┘
+                     │
+              ┌──────▼──────┐
+              │  Flask API  │
+              │  (Backend)  │
+              └──────┬──────┘
+                     │
+    ┌────────────────┼────────────────┐
+    │                │                │
+┌───▼───┐     ┌──────▼──────┐  ┌─────▼─────┐
+│ PostgreSQL   │  OpenAI API │  │  File     │
+│ Database │   │   (GPT-4)   │  │  System   │
+└──────────┘   └─────────────┘  └───────────┘
+```
+
+## 🛠️ Tech Stack
+
+**Backend:**
+- Python 3.11
+- Flask 3.0.3
+- PostgreSQL
+- SQLAlchemy
+- OpenAI API
+- JWT Authentication
+
+**Frontend:**
+- React 19.1.1
+- Vite
+- Material-UI
+- React Router
+
+**Extension:**
+- JavaScript (Manifest V3)
+- Chrome APIs
+
+## 📚 Documentation Structure
+
+### For Developers (New to the Project)
+👉 **Start here:** [DEVELOPER_README.md](DEVELOPER_README.md)
+
+Learn about:
+- Complete architecture overview
+- Backend structure and API endpoints
+- Frontend components and routing
+- Chrome extension functionality
+- Database schema
+- Local development setup
+- Code style guidelines
+
+### For Deployment (DevOps/Production)
+👉 **Start here:** [DEPLOYMENT_README.md](DEPLOYMENT_README.md)
+
+Learn about:
+- Step-by-step deployment to Render
+- Environment configuration
+- Database setup
+- Chrome Web Store publishing
+- Monitoring and maintenance
+- Troubleshooting common issues
+- Security best practices
+
+## 🚦 Getting Started
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL 12+
+- OpenAI API key
+
+### Local Development Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd flask-app
+   ```
+
+2. **Set up Backend**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   
+   # Create .env file with your config
+   flask db upgrade
+   flask run
+   ```
+
+3. **Set up Frontend**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+4. **Install Extension**
+   - Open Chrome → `chrome://extensions`
+   - Enable "Developer mode"
+   - Click "Load unpacked"
+   - Select `extension` folder
+
+📖 **For detailed setup instructions, see [DEVELOPER_README.md](DEVELOPER_README.md#development-setup)**
+
+## 🌐 Live Demo
+
+**Backend API:** `https://flask-app-r5xw.onrender.com/api`  
+**Health Check:** `https://flask-app-r5xw.onrender.com/api/healthz`
+
+## 📦 Project Structure
 
 ```
 flask-app/
-├── backend/              # Flask REST API
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── models.py     # Database models
-│   │   ├── auth.py       # Authentication routes
-│   │   ├── admin.py      # Admin routes
-│   │   ├── candidates.py # Candidate routes
-│   │   ├── ai.py         # AI form mapping
-│   │   └── candidateresumebuilder.py  # Resume generation
-│   ├── migrations/       # Database migrations
-│   ├── config.py         # Configuration
-│   ├── wsgi.py          # Application entry point
-│   └── requirements.txt  # Python dependencies
+├── backend/                 # Flask API
+│   ├── app/                # Application modules
+│   │   ├── __init__.py     # App factory
+│   │   ├── models.py       # Database models
+│   │   ├── auth.py         # Authentication
+│   │   ├── admin.py        # Admin routes
+│   │   ├── candidates.py   # Candidate CRUD
+│   │   ├── ai.py           # AI field mapping
+│   │   ├── candidateresumebuilder.py  # Resume generation
+│   │   └── public.py       # Public API
+│   ├── migrations/         # Database migrations
+│   ├── config.py           # Configuration
+│   ├── requirements.txt    # Python dependencies
+│   └── wsgi.py            # WSGI entry point
 │
-├── frontend/             # React Frontend (Vite)
+├── frontend/               # React application
 │   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── pages/       # Page components
-│   │   ├── api.js       # API client
-│   │   └── main.jsx     # App entry point
-│   └── package.json     # Node dependencies
+│   │   ├── pages/         # Page components
+│   │   ├── components/    # Reusable components
+│   │   ├── utils/         # Utility functions
+│   │   ├── api.js         # API client
+│   │   └── AuthContext.jsx # Auth state
+│   ├── package.json
+│   └── vite.config.js
 │
-├── extension/           # Chrome Extension
-│   ├── manifest.json
-│   ├── popup.html
-│   ├── contentScript.js
-│   └── background.js
+├── extension/              # Chrome extension
+│   ├── manifest.json      # Extension config
+│   ├── popup.html         # Extension UI
+│   ├── popup.js           # Extension logic
+│   └── content.js         # Form detection/filling
 │
-└── RENDER_DEPLOYMENT_GUIDE.md  # Deployment instructions
+├── DEVELOPER_README.md     # Developer documentation
+├── DEPLOYMENT_README.md    # Deployment guide
+└── README.md              # This file
 ```
 
-## 🛠️ Technology Stack
-
-### Backend
-- **Flask**: Python web framework
-- **SQLAlchemy**: ORM for database operations
-- **Flask-JWT-Extended**: JWT authentication
-- **PostgreSQL**: Production database
-- **OpenAI API**: AI-powered resume generation
-- **python-docx**: Word document generation
-
-### Frontend
-- **React**: UI library
-- **Vite**: Build tool
-- **Material-UI**: Component library
-- **React Router**: Client-side routing
-
-### Extension
-- **Chrome Extension API**: Browser integration
-- **Manifest V3**: Extension platform
-
-## 📋 Prerequisites
-
-- Python 3.10+
-- Node.js 18+
-- PostgreSQL (for production) or SQLite (for local dev)
-- OpenAI API key
-
-## 🚀 Local Development Setup
-
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/flask-app.git
-cd flask-app
-```
-
-### 2. Backend Setup
-
-```bash
-cd backend
-
-# Create virtual environment (optional but recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Create .env file
-cat > .env << EOL
-DATABASE_URL=sqlite:///app.db
-SECRET_KEY=your-secret-key
-JWT_SECRET_KEY=your-jwt-secret
-OPENAI_API_KEY=your-openai-key
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=Passw0rd!
-ADMIN_MOBILE=9999999999
-ADMIN_NAME=Administrator
-EOL
-
-# Run migrations
-flask db upgrade
-
-# Start backend server
-python wsgi.py
-```
-
-Backend will be available at: `http://localhost:5000`
-
-### 3. Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-Frontend will be available at: `http://localhost:5173`
-
-### 4. Chrome Extension Setup (Optional)
-
-1. Open Chrome and go to `chrome://extensions/`
-2. Enable "Developer mode" (top right)
-3. Click "Load unpacked"
-4. Select the `extension` folder
-
-## 🔐 Default Credentials
+## 🔑 Default Credentials
 
 **Admin Login:**
 - Email: `admin@example.com`
-- Password: `Passw0rd!` (or what you set in `.env`)
+- Password: `Passw0rd!`
 
-## 📖 API Documentation
-
-### Authentication Endpoints
-
-- `POST /api/auth/login-admin` - Admin login
-- `POST /api/auth/login-user` - User login
-- `POST /api/auth/logout` - Logout
-- `GET /api/auth/me` - Get current user
-
-### Candidate Endpoints
-
-- `GET /api/candidates` - List user's candidates
-- `POST /api/candidates` - Create candidate
-- `GET /api/candidates/:id` - Get candidate details
-- `PUT /api/candidates/:id` - Update candidate
-- `DELETE /api/candidates/:id` - Delete candidate
-
-### Job Endpoints
-
-- `GET /api/candidates/:id/jobs` - List candidate's jobs
-- `POST /api/candidates/:id/jobs` - Add job
-- `PUT /api/candidates/:id/jobs/:jobId` - Update job
-- `DELETE /api/candidates/:id/jobs/:jobId` - Delete job
-
-### Admin Endpoints
-
-- `GET /api/admin/users` - List all users
-- `POST /api/admin/users` - Create user
-- `PUT /api/admin/users/:id` - Update user
-- `DELETE /api/admin/users/:id` - Delete user
-- `GET /api/admin/candidates` - List all candidates
-
-### Resume Generation
-
-- `POST /api/resume/generate` - Generate resume (requires job description and candidate info)
-
-## 🌐 Deployment to Render
-
-For detailed deployment instructions, see **[RENDER_DEPLOYMENT_GUIDE.md](./RENDER_DEPLOYMENT_GUIDE.md)**
-
-### Quick Deployment Steps:
-
-1. Push code to GitHub
-2. Create PostgreSQL database on Render
-3. Deploy Flask backend as Web Service
-4. Deploy React frontend as Static Site
-5. Configure environment variables
-6. Run database migrations
-7. Test deployment
-
-**Estimated time**: 30-45 minutes
-
-## 🔄 Database Migrations
-
-### Create New Migration
-
-```bash
-cd backend
-flask db migrate -m "Description of changes"
-flask db upgrade
-```
-
-### Reset Database (Development Only)
-
-```bash
-# Delete database
-rm instance/app.db
-
-# Recreate with migrations
-flask db upgrade
-```
+⚠️ **Change these credentials immediately after first deployment!**
 
 ## 🧪 Testing
 
-### Test Backend
-
+### Backend
 ```bash
 cd backend
-python -c "from app import create_app; app = create_app(); print('✓ Backend OK')"
+pytest
 ```
 
-### Test Database Connection
-
+### Frontend
 ```bash
-cd backend
-python -c "from app import create_app; from app.models import User; app = create_app(); app.app_context().push(); print('Users:', User.query.count())"
+cd frontend
+npm test
 ```
 
-### Test OpenAI API
+### Extension
+1. Load extension in Chrome
+2. Navigate to any job application form
+3. Click extension icon
+4. Select user and candidate
+5. Click "Autofill" to test
 
-```bash
-cd backend
-python -c "from openai import OpenAI; import os; client = OpenAI(api_key=os.getenv('OPENAI_API_KEY')); print('✓ OpenAI API OK')"
-```
+## 🔐 Security
 
-## 🐛 Troubleshooting
-
-### Backend won't start
-
-- Check Python version: `python --version` (should be 3.10+)
-- Verify all dependencies: `pip install -r requirements.txt`
-- Check `.env` file exists and has correct values
-
-### Frontend won't start
-
-- Check Node version: `node --version` (should be 18+)
-- Clear node_modules: `rm -rf node_modules && npm install`
-- Clear build cache: `rm -rf dist && npm run dev`
-
-### Database errors
-
-- SQLite: Delete `instance/app.db` and run `flask db upgrade`
-- PostgreSQL: Check `DATABASE_URL` in `.env`
-- Migrations: Check `migrations/versions/` for conflicting files
-
-### CORS errors
-
-- Verify frontend URL in `backend/app/__init__.py` CORS configuration
-- Clear browser cookies and cache
-- Try incognito/private mode
-
-### JWT authentication errors
-
-- Clear browser cookies
-- Check `JWT_SECRET_KEY` hasn't changed
-- Verify `credentials: "include"` in frontend API calls
-
-## 📝 Environment Variables
-
-### Backend (.env)
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `DATABASE_URL` | Database connection string | `postgresql://user:pass@host/db` |
-| `SECRET_KEY` | Flask secret key | Random 32-char string |
-| `JWT_SECRET_KEY` | JWT signing key | Random 32-char string |
-| `OPENAI_API_KEY` | OpenAI API key | `sk-...` |
-| `ADMIN_EMAIL` | Default admin email | `admin@example.com` |
-| `ADMIN_PASSWORD` | Default admin password | `Passw0rd!` |
-| `ADMIN_MOBILE` | Default admin mobile | `9999999999` |
-| `ADMIN_NAME` | Default admin name | `Administrator` |
-
-### Frontend (.env)
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `VITE_API_URL` | Backend API URL | `http://localhost:5000/api` |
-
-## 🔧 Configuration
-
-### Switch from SQLite to PostgreSQL
-
-1. Install PostgreSQL locally
-2. Create database: `createdb flask_app_db`
-3. Update `.env`: `DATABASE_URL=postgresql://postgres:password@localhost:5432/flask_app_db`
-4. Run migrations: `flask db upgrade`
-5. Restart backend
-
-### Configure OpenAI Model
-
-In `backend/app/candidateresumebuilder.py`, change:
-
-```python
-model="gpt-4o-mini"  # or "gpt-4", "gpt-3.5-turbo"
-```
-
-## 📊 Database Schema
-
-### User Table
-- `id`, `name`, `email`, `mobile`, `password_hash`, `role`
-
-### Candidate Table
-- Personal info (name, email, phone, birthdate, gender)
-- Immigration (nationality, citizenship, visa, work authorization)
-- Address (line1, line2, city, state, postal_code, country)
-- Professional (skills, experience, education, certificates)
-- Preferences (willing to relocate/travel, disability status)
-
-### CandidateJob Table
-- `id`, `candidate_id`, `job_id`, `job_description`, `resume_content`
-
-## 🎨 Customization
-
-### Change Theme Colors
-
-Edit `frontend/src/index.css` or Material-UI theme in `main.jsx`
-
-### Add New Fields to Candidate Form
-
-1. Update model in `backend/app/models.py`
-2. Create migration: `flask db migrate`
-3. Update form in `frontend/src/components/CandidateForm.jsx`
-4. Update API in `backend/app/candidates.py`
-
-### Modify Resume Template
-
-Edit `backend/app/candidateresumebuilder.py` → `create_resume_docx()` function
+- JWT-based authentication
+- Password hashing with bcrypt
+- CORS protection
+- SQL injection prevention via SQLAlchemy ORM
+- HTTPS enforcement in production
+- Environment variable configuration
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create feature branch: `git checkout -b feature-name`
-3. Commit changes: `git commit -m "Add feature"`
-4. Push to branch: `git push origin feature-name`
-5. Open pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 API Documentation
+
+### Authentication Endpoints
+```
+POST /api/auth/login-admin      # Admin login
+POST /api/auth/login-user       # User login
+POST /api/auth/login-candidate  # Candidate login
+GET  /api/auth/me              # Get current user
+POST /api/auth/logout          # Logout
+```
+
+### Candidate Endpoints
+```
+GET    /api/candidates              # List my candidates
+POST   /api/candidates              # Create candidate
+GET    /api/candidates/:id          # Get candidate
+PUT    /api/candidates/:id          # Update candidate
+DELETE /api/candidates/:id          # Delete candidate
+GET    /api/candidates/:id/jobs     # List jobs
+POST   /api/candidates/:id/jobs     # Add job
+```
+
+### AI & Resume Endpoints
+```
+POST /api/ai/map-fields    # AI field mapping
+POST /api/resume/generate  # Generate resume
+```
+
+📖 **For complete API documentation, see [DEVELOPER_README.md](DEVELOPER_README.md#api-endpoints)**
+
+## 🐛 Troubleshooting
+
+**Common Issues:**
+
+- **Backend won't start** → Check `DATABASE_URL` in `.env`
+- **Frontend can't connect** → Verify `VITE_API_URL` 
+- **Extension not working** → Check host permissions in `manifest.json`
+- **CORS errors** → Update `FRONTEND_URL` in backend config
+
+📖 **For detailed troubleshooting, see [DEPLOYMENT_README.md](DEPLOYMENT_README.md#troubleshooting)**
+
+## 📊 Database Schema
+
+**Core Tables:**
+- `user` - Admin and regular users
+- `candidate` - Candidate profiles
+- `candidate_job` - Job applications per candidate
+
+📖 **For detailed schema, see [DEVELOPER_README.md](DEVELOPER_README.md#database-schema)**
+
+## 🚀 Deployment
+
+**Recommended Platform:** Render (Free tier available)
+
+**Quick Deploy:**
+1. Create PostgreSQL database on Render
+2. Deploy backend as Web Service
+3. Deploy frontend as Static Site
+4. Install/publish Chrome extension
+
+📖 **For step-by-step deployment guide, see [DEPLOYMENT_README.md](DEPLOYMENT_README.md)**
 
 ## 📄 License
 
-This project is for educational purposes. Modify as needed for your use case.
+This project is proprietary software of Data Fyre Pvt. Ltd.
 
-## 🆘 Support
+## 📧 Support
 
-For deployment issues, see [RENDER_DEPLOYMENT_GUIDE.md](./RENDER_DEPLOYMENT_GUIDE.md)
+For issues or questions:
+- Check documentation: [DEVELOPER_README.md](DEVELOPER_README.md) or [DEPLOYMENT_README.md](DEPLOYMENT_README.md)
+- Review troubleshooting sections
+- Contact: support@datafyre.com
 
-For bugs or feature requests, open an issue on GitHub.
+## 🎯 Roadmap
 
-## 📚 Additional Resources
-
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [React Documentation](https://react.dev/)
-- [Render Documentation](https://render.com/docs)
-- [OpenAI API Documentation](https://platform.openai.com/docs)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [ ] Email notifications for job applications
+- [ ] Advanced analytics dashboard
+- [ ] Multi-language support
+- [ ] Mobile application
+- [ ] Integration with LinkedIn API
+- [ ] Bulk candidate import/export
+- [ ] Custom resume templates
+- [ ] Interview scheduling
 
 ---
 
-**Happy Coding!** 🚀
+**Built with ❤️ by Data Fyre Pvt. Ltd.**
 
-*Last Updated: October 23, 2025*
+Last Updated: October 2025
+

@@ -2,18 +2,34 @@
 # exit on error
 set -o errexit
 
-echo "Installing dependencies..."
+echo "=========================================="
+echo "Starting Build Process"
+echo "=========================================="
+
+echo "Step 1: Installing dependencies..."
 pip install -r requirements.txt
+echo "✓ Dependencies installed"
 
-echo "Running database migrations..."
-# Try to run migrations, if it fails due to existing columns, handle it gracefully
-flask db upgrade || {
-    echo "Migration failed, attempting to fix..."
-    # Stamp the database with current migrations
-    flask db stamp head
-    # Manually add f1_type column if it doesn't exist
-    python -c "from app import create_app; from app.models import db; from sqlalchemy import text; app = create_app(); app.app_context().push(); db.session.execute(text('ALTER TABLE candidate ADD COLUMN IF NOT EXISTS f1_type VARCHAR(120)')); db.session.commit(); print('✓ f1_type column added or already exists')" || echo "Column already exists or couldn't be added"
-}
+echo ""
+echo "Step 2: Running database migrations..."
+# Check if migrations directory exists
+if [ -d "migrations" ]; then
+    echo "✓ Migrations directory found"
+    
+    # Run migrations
+    flask db upgrade
+    echo "✓ Database migrations completed successfully"
+else
+    echo "⚠ No migrations directory found"
+    echo "Creating initial migration..."
+    flask db init
+    flask db migrate -m "Initial migration"
+    flask db upgrade
+    echo "✓ Initial migration completed"
+fi
 
+echo ""
+echo "=========================================="
 echo "Build completed successfully!"
+echo "=========================================="
 
