@@ -1,17 +1,30 @@
 {
   "manifest_version": 3,
-  "name": "Candidate Autofill (Prototype)",
-  "version": "0.0.4",
-  "description": "Popup loads Users & Candidates from Flask; logs candidate + form schema.",
+  "name": "Data Fyre - Candidate Autofill",
+  "version": "1.0.0",
+  "description": "AI-powered candidate autofill extension by Data Fyre Pvt. Ltd.",
   "permissions": ["storage", "tabs", "scripting"],
+  "icons": {
+    "16": "only_logo.png",
+    "48": "only_logo.png",
+    "128": "only_logo.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "only_logo.png",
+      "48": "only_logo.png",
+      "128": "only_logo.png"
+    }
+  },
   "host_permissions": [
+    "https://flask-app-r5xw.onrender.com/*",
     "http://localhost:5000/*",
     "http://127.0.0.1:5000/*",
     "http://*/*",
     "https://*/*",
     "file://*/*"
   ],
-  "action": { "default_popup": "popup.html" },
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*", "file://*/*"],

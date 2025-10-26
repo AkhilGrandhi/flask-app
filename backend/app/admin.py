@@ -30,8 +30,25 @@ def create_user():
     role = data.get("role", "user")
     if not all([name, email, mobile, password]) or role not in {"user", "admin"}:
         return {"message":"Invalid input"}, 400
-    if User.query.filter((User.email==email)|(User.mobile==mobile)).first():
-        return {"message":"Email or mobile already exists"}, 409
+    
+    # Validate mobile number - only digits allowed
+    if not mobile.isdigit():
+        return {"message": "Mobile number must contain only numbers"}, 400
+    
+    # Validate password length - minimum 6 characters
+    if len(password) < 6:
+        return {"message": "Password must be at least 6 characters"}, 400
+    
+    # Check if email already exists
+    existing_email = User.query.filter(User.email == email).first()
+    if existing_email:
+        return {"message": "Email already exists"}, 409
+    
+    # Check if mobile number already exists
+    existing_mobile = User.query.filter(User.mobile == mobile).first()
+    if existing_mobile:
+        return {"message": "Mobile number already exists"}, 409
+    
     user = User(name=name, email=email, mobile=mobile,
                 password_hash=generate_password_hash(password), role=role)
     db.session.add(user); db.session.commit()
@@ -43,12 +60,34 @@ def update_user(user_id):
     require_admin()
     u = User.query.get_or_404(user_id)
     data = request.get_json() or {}
+    
+    # Validate email if being updated
+    if "email" in data:
+        new_email = data["email"].lower().strip()
+        existing_email = User.query.filter(User.email == new_email, User.id != user_id).first()
+        if existing_email:
+            return {"message": "Email already exists"}, 409
+        u.email = new_email
+    
+    # Validate mobile if being updated
+    if "mobile" in data:
+        new_mobile = data["mobile"].strip()
+        # Validate mobile number - only digits allowed
+        if not new_mobile.isdigit():
+            return {"message": "Mobile number must contain only numbers"}, 400
+        existing_mobile = User.query.filter(User.mobile == new_mobile, User.id != user_id).first()
+        if existing_mobile:
+            return {"message": "Mobile number already exists"}, 409
+        u.mobile = new_mobile
+    
     if "name" in data: u.name = data["name"].strip()
-    if "email" in data: u.email = data["email"].lower().strip()
-    if "mobile" in data: u.mobile = data["mobile"].strip()
     if "role" in data and data["role"] in {"user","admin"}: u.role = data["role"]
     if "password" in data and data["password"]:
-        u.password_hash = generate_password_hash(data["password"])
+        new_password = data["password"]
+        # Validate password length - minimum 6 characters
+        if len(new_password) < 6:
+            return {"message": "Password must be at least 6 characters"}, 400
+        u.password_hash = generate_password_hash(new_password)
     db.session.commit()
     return {"message":"User updated"}
 
@@ -66,7 +105,7 @@ def delete_user(user_id):
 def list_all_candidates():
     require_admin()
     cs = Candidate.query.order_by(Candidate.id.desc()).all()
-    return {"candidates":[c.to_dict(include_creator=True) for c in cs]}
+    return {"candidates":[c.to_dict(include_creator=True, include_jobs=True) for c in cs]}
 
 @bp.put("/candidates/<int:cand_id>")
 @jwt_required()
@@ -74,11 +113,46 @@ def admin_update_candidate(cand_id):
     require_admin()
     c = Candidate.query.get_or_404(cand_id)
     data = request.get_json() or {}
+    
+    # Validate email if being updated
+    if "email" in data:
+        email = (data.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            return {"message": "Valid email is required"}, 400
+        
+        # Check for duplicate email across all candidates (admin can edit any candidate)
+        existing_email = Candidate.query.filter(
+            Candidate.email == email,
+            Candidate.id != cand_id
+        ).first()
+        if existing_email:
+            return {"message": "A candidate with this email already exists"}, 409
+    
+    # Validate phone if being updated
+    if "phone" in data:
+        phone = (data.get("phone") or "").strip()
+        if not phone.isdigit():
+            return {"message": "Phone number must contain only digits"}, 400
+        
+        # Check for duplicate phone across all candidates (admin can edit any candidate)
+        existing_phone = Candidate.query.filter(
+            Candidate.phone == phone,
+            Candidate.id != cand_id
+        ).first()
+        if existing_phone:
+            return {"message": "A candidate with this phone number already exists"}, 409
+    
+    # Validate password if being updated
+    if "password" in data and data.get("password"):
+        password = data.get("password")
+        if len(password) < 6:
+            return {"message": "Password must be at least 6 characters"}, 400
+    
     for field in [
-        "first_name","last_name","email","phone","gender","nationality","citizenship_status",
-        "visa_status","work_authorization","veteran_status","race_ethnicity","address_line1",
+        "first_name","last_name","email","phone","password","gender","nationality","citizenship_status",
+        "visa_status","f1_type","work_authorization","veteran_status","race_ethnicity","address_line1",
         "address_line2","city","state","postal_code","country","personal_website","linkedin",
-        "github","technical_skills","work_experience",
+        "github","technical_skills","work_experience","subscription_type",
 
         # NEW
         "expected_wage","contact_current_employer","recent_degree","authorized_work_us",
@@ -87,9 +161,16 @@ def admin_update_candidate(cand_id):
     ]:
         if field in data: setattr(c, field, data[field])
         
-    # booleans
+    # booleans - convert Yes/No to boolean
+    def to_bool(val):
+        if isinstance(val, bool):
+            return val
+        if isinstance(val, str):
+            return val.lower() in ("yes", "true", "1")
+        return bool(val)
+    
     for field in ["willing_relocate","willing_travel","disability_status","military_experience"]:
-        if field in data: setattr(c, field, bool(data[field]))
+        if field in data: setattr(c, field, to_bool(data[field]))
     # birthdate (YYYY-MM-DD)
     if "birthdate" in data and data["birthdate"]:
         from datetime import date

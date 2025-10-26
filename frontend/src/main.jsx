@@ -5,27 +5,36 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext";
 import LoginUser from "./pages/LoginUser";
 import LoginAdmin from "./pages/LoginAdmin";
+import LoginCandidate from "./pages/LoginCandidate";
 import Admin from "./pages/Admin";
 import UserDashboard from "./pages/UserDashboard";
+import CandidateDashboard from "./pages/CandidateDashboard";
 import ProtectedRoute from "./ProtectedRoute";
-import CandidateDetail from "./pages/CandidateDetail"; // NEW
+import CandidateDetail from "./pages/CandidateDetail";
 
 function RoleRedirect() {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <LoginUser />;
-  return user.role === "admin" ? <Admin /> : <UserDashboard />;
+  if (user.role === "admin") return <Admin />;
+  if (user.role === "candidate") return <CandidateDashboard />;
+  return <UserDashboard />;
 }
 
 const router = createBrowserRouter([
+  // Login pages
   { path: "/login", element: <LoginUser /> },
-  { path: "/login-admin", element: <LoginAdmin /> },
+  { path: "/admin/login", element: <LoginAdmin /> },
+  { path: "/candidate/login", element: <LoginCandidate /> },
+  
+  // Dashboards
+  { path: "/recruiter", element: <ProtectedRoute role="user"><UserDashboard /></ProtectedRoute> },
   { path: "/admin", element: <ProtectedRoute role="admin"><Admin /></ProtectedRoute> },
-  { path: "/dashboard", element: <ProtectedRoute role="user"><UserDashboard /></ProtectedRoute> },
-
-  // NEW: Candidate detail page
-  { path: "/candidates/:id", element: <ProtectedRoute role="user"><CandidateDetail /></ProtectedRoute> },
-
+  { path: "/candidate", element: <ProtectedRoute role="candidate"><CandidateDashboard /></ProtectedRoute> },
+  
+  // Resources
+  { path: "/candidates/:id", element: <ProtectedRoute role={["user", "admin"]}><CandidateDetail /></ProtectedRoute> },
+  
   // Default -> role-based landing
   { path: "/", element: <ProtectedRoute><RoleRedirect /></ProtectedRoute> },
 ]);

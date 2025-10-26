@@ -1,13 +1,14 @@
 // src/components/CandidateForm.jsx
-import { useMemo, useId } from "react";
+import { useMemo, useId, useState } from "react";
 import {
   Box, Grid, Paper, Typography, TextField, Select, MenuItem,
-  FormControl, InputLabel, FormHelperText
+  FormControl, InputLabel, FormHelperText, IconButton, InputAdornment
 } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import {
   OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
-  WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
-  COUNTRY_OPTIONS
+  F1_TYPE_OPTIONS, WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
+  COUNTRY_OPTIONS, SUBSCRIPTION_TYPE_OPTIONS
 } from "../constants/options";
 
 // Reusable, wide, label-friendly select
@@ -18,13 +19,13 @@ function RequiredSelect({ label, value, onChange, options, error, helperText, na
       fullWidth
       required
       error={!!error}
-      size="small"
-      sx={{ width: "100%", minWidth: 280 }}   // keep a sensible min width
+      sx={{ width: "100%", minWidth: 280 }}
+      variant="outlined"
     >
       <InputLabel
         id={labelId}
-        shrink                                   // keep label above the field
-        sx={{ whiteSpace: "normal", lineHeight: 1.2, maxWidth: "100%" }} // wrap long labels
+        shrink
+        sx={{ whiteSpace: "normal", lineHeight: 1.2, maxWidth: "100%" }}
       >
         {label}
       </InputLabel>
@@ -35,13 +36,33 @@ function RequiredSelect({ label, value, onChange, options, error, helperText, na
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
         fullWidth
-        sx={{ width: "100%" }}
+        sx={{ 
+          width: "100%",
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "rgba(0, 0, 0, 0.23)",
+          }
+        }}
         MenuProps={{
-          PaperProps: { sx: { minWidth: 300, maxHeight: 320 } }, // nicer dropdown
+          PaperProps: { 
+            sx: { 
+              minWidth: 300, 
+              maxHeight: 320,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.1)"
+            } 
+          },
         }}
       >
         {options.map((opt) => (
-          <MenuItem key={String(opt)} value={opt}>
+          <MenuItem 
+            key={String(opt)} 
+            value={opt}
+            sx={{
+              "&:hover": {
+                backgroundColor: "primary.light",
+                color: "primary.contrastText"
+              }
+            }}
+          >
             {opt === "__OTHER__" ? "Other" : String(opt)}
           </MenuItem>
         ))}
@@ -51,8 +72,9 @@ function RequiredSelect({ label, value, onChange, options, error, helperText, na
   );
 }
 
-export default function CandidateForm({ value, onChange, errors = {} }) {
+export default function CandidateForm({ value, onChange, errors = {}, isEditing = false }) {
   const v = useMemo(() => value || {}, [value]);
+  const [showPassword, setShowPassword] = useState(false);
 
   const set = (k) => (eOrVal) => {
     const newVal = eOrVal?.target ? eOrVal.target.value : eOrVal;
@@ -60,37 +82,146 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
   };
 
   return (
-    <Box sx={{ display: "grid", gap: 2, "& .MuiFormControl-root": { width: "100%" } }}>
+    <Box sx={{ display: "grid", gap: 3, "& .MuiFormControl-root": { width: "100%" } }}>
       {/* PERSONAL */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Personal Information</Typography>
-        <Grid container spacing={2}>
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 2,
+          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 2.5, 
+            fontWeight: 600,
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            "&:before": {
+              content: '""',
+              display: "inline-block",
+              width: 4,
+              height: 24,
+              backgroundColor: "primary.main",
+              marginRight: 1.5,
+              borderRadius: 1
+            }
+          }}
+        >
+          Personal Information
+        </Typography>
+        <Grid container spacing={2.5}>
           <Grid item xs={12} sm={6}>
-            <TextField size="small" label="First Name" value={v.first_name||""} onChange={set("first_name")}
-              required fullWidth error={!!errors.first_name} helperText={errors.first_name}/>
+            <TextField 
+              label="First Name" 
+              value={v.first_name||""} 
+              onChange={set("first_name")}
+              required 
+              fullWidth 
+              error={!!errors.first_name} 
+              helperText={errors.first_name}
+              variant="outlined"
+            />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField size="small" label="Last Name" value={v.last_name||""} onChange={set("last_name")}
-              required fullWidth error={!!errors.last_name} helperText={errors.last_name}/>
+            <TextField 
+              label="Last Name" 
+              value={v.last_name||""} 
+              onChange={set("last_name")}
+              required 
+              fullWidth 
+              error={!!errors.last_name} 
+              helperText={errors.last_name}
+              variant="outlined"
+            />
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <TextField size="small" type="email" label="Email" value={v.email||""} onChange={set("email")}
-              required fullWidth error={!!errors.email} helperText={errors.email}/>
+            <TextField 
+              type="email" 
+              label="Email" 
+              value={v.email||""} 
+              onChange={set("email")}
+              required 
+              fullWidth 
+              error={!!errors.email} 
+              helperText={errors.email}
+              variant="outlined"
+            />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField size="small" label="Phone" value={v.phone||""} onChange={set("phone")}
-              required fullWidth error={!!errors.phone} helperText={errors.phone}/>
+            <TextField 
+              label="Phone" 
+              type="number"
+              value={v.phone||""} 
+              onChange={set("phone")}
+              required 
+              fullWidth 
+              error={!!errors.phone} 
+              helperText={errors.phone || "Numbers only"}
+              variant="outlined"
+            />
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <TextField size="small" label="Birthdate" type="date" InputLabelProps={{shrink:true}}
-              value={v.birthdate||""} onChange={set("birthdate")}
-              required fullWidth error={!!errors.birthdate} helperText={errors.birthdate}/>
+            <RequiredSelect
+              label="Subscription Type"
+              value={v.subscription_type}
+              onChange={set("subscription_type")}
+              options={SUBSCRIPTION_TYPE_OPTIONS}
+              error={errors.subscription_type}
+              helperText={errors.subscription_type}
+              name="subscription_type"
+            />
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Gender" value={v.gender} onChange={set("gender")}
+            <TextField 
+              label={isEditing ? "Password (Leave blank to keep existing)" : "Password"} 
+              type={showPassword ? "text" : "password"}
+              value={v.password||""} 
+              onChange={set("password")}
+              required={!isEditing}
+              fullWidth 
+              error={!!errors.password} 
+              helperText={errors.password || (isEditing ? "Leave blank to keep existing password" : "Minimum 6 characters")}
+              variant="outlined"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField 
+              label="Birthdate" 
+              type="date" 
+              InputLabelProps={{shrink:true}}
+              value={v.birthdate||""} 
+              onChange={set("birthdate")}
+              required 
+              fullWidth 
+              error={!!errors.birthdate} 
+              helperText={errors.birthdate}
+              variant="outlined"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <RequiredSelect label="Gender" value={v.gender ?? "Male"} onChange={set("gender")}
               options={GENDER_OPTIONS} error={errors.gender}/>
           </Grid>
           {v.gender === OTHER && (
@@ -102,7 +233,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Nationality" value={v.nationality} onChange={set("nationality")}
+            <RequiredSelect label="Nationality" value={v.nationality ?? "India"} onChange={set("nationality")}
               options={COUNTRY_OPTIONS} error={errors.nationality}/>
           </Grid>
           {v.nationality === OTHER && (
@@ -114,7 +245,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Citizenship Status" value={v.citizenship_status} onChange={set("citizenship_status")}
+            <RequiredSelect label="Citizenship Status" value={v.citizenship_status ?? "Non-Resident"} onChange={set("citizenship_status")}
               options={CITIZENSHIP_OPTIONS} error={errors.citizenship_status}/>
           </Grid>
           {v.citizenship_status === OTHER && (
@@ -126,9 +257,15 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Visa Status" value={v.visa_status} onChange={set("visa_status")}
+            <RequiredSelect label="Visa Status" value={v.visa_status ?? "None"} onChange={set("visa_status")}
               options={VISA_OPTIONS} error={errors.visa_status}/>
           </Grid>
+          {v.visa_status === "F1" && (
+            <Grid item xs={12} sm={6}>
+              <RequiredSelect label="F1 Type" value={v.f1_type ?? "Post OPT"} onChange={set("f1_type")}
+                options={F1_TYPE_OPTIONS} error={errors.f1_type}/>
+            </Grid>
+          )}
           {v.visa_status === OTHER && (
             <Grid item xs={12} sm={6}>
               <TextField size="small" label="Specify Visa" value={v.visa_other_value||""}
@@ -138,7 +275,7 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Work Authorization" value={v.work_authorization} onChange={set("work_authorization")}
+            <RequiredSelect label="Work Authorization" value={v.work_authorization ?? "Authorized"} onChange={set("work_authorization")}
               options={WORK_AUTH_OPTIONS} error={errors.work_authorization}/>
           </Grid>
           {v.work_authorization === OTHER && (
@@ -150,35 +287,35 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
           )}
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Willing to Relocate" value={String(v.willing_relocate ?? true)}
-              onChange={(val)=>onChange({...v, willing_relocate: val==="true"})}
-              options={["true","false"]} error={errors.willing_relocate}/>
+            <RequiredSelect label="Willing to Relocate" value={v.willing_relocate ?? "Yes"}
+              onChange={(val)=>onChange({...v, willing_relocate: val})}
+              options={["Yes","No"]} error={errors.willing_relocate}/>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Willing to Travel" value={String(v.willing_travel ?? true)}
-              onChange={(val)=>onChange({...v, willing_travel: val==="true"})}
-              options={["true","false"]} error={errors.willing_travel}/>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Disability Status" value={String(v.disability_status ?? false)}
-              onChange={(val)=>onChange({...v, disability_status: val==="true"})}
-              options={["true","false"]} error={errors.disability_status}/>
+            <RequiredSelect label="Willing to Travel" value={v.willing_travel ?? "Yes"}
+              onChange={(val)=>onChange({...v, willing_travel: val})}
+              options={["Yes","No"]} error={errors.willing_travel}/>
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Veteran Status" value={v.veteran_status} onChange={set("veteran_status")}
+            <RequiredSelect label="Disability Status" value={v.disability_status ?? "No"}
+              onChange={(val)=>onChange({...v, disability_status: val})}
+              options={["Yes","No"]} error={errors.disability_status}/>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <RequiredSelect label="Veteran Status" value={v.veteran_status ?? "Not a Veteran"} onChange={set("veteran_status")}
               options={VETERAN_OPTIONS} error={errors.veteran_status}/>
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Military Experience" value={String(v.military_experience ?? false)}
-              onChange={(val)=>onChange({...v, military_experience: val==="true"})}
-              options={["true","false"]} error={errors.military_experience}/>
+            <RequiredSelect label="Military Experience" value={v.military_experience ?? "No"}
+              onChange={(val)=>onChange({...v, military_experience: val})}
+              options={["Yes","No"]} error={errors.military_experience}/>
           </Grid>
 
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Race / Ethnicity" value={v.race_ethnicity} onChange={set("race_ethnicity")}
+            <RequiredSelect label="Race / Ethnicity" value={v.race_ethnicity ?? "Asian"} onChange={set("race_ethnicity")}
               options={RACE_ETHNICITY_OPTIONS} error={errors.race_ethnicity}/>
           </Grid>
           {v.race_ethnicity === OTHER && (
@@ -188,11 +325,27 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
                 error={!!errors.race_other_value} helperText={errors.race_other_value}/>
             </Grid>
           )}
+          <Grid item xs={12} sm={6}>
+          <RequiredSelect label="Are you at least 18 years of age?" 
+            value={v.at_least_18 ?? "Yes"} 
+            onChange={set("at_least_18")}
+            options={["Yes","No"]} 
+            error={errors.at_least_18}/>
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+          <RequiredSelect label="Family member employed here?"
+            value={v.family_in_org ?? "No"}
+            onChange={set("family_in_org")}
+            options={["Yes","No"]}
+            error={errors.family_in_org}/>
+          </Grid>
+          
         </Grid>
 
         
         {/* Extra personal questions (2 per row) */}
-      <Grid container spacing={2} sx={{ mt: 0 }}>
+      <Grid container spacing={2.5} sx={{ mt: 1 }}>
         <Grid item xs={12} sm={6}>
           <TextField size="small" label="Expected Salary / Hourly Wage"
             value={v.expected_wage||""} onChange={set("expected_wage")} fullWidth />
@@ -224,19 +377,11 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
         </Grid>
 
         <Grid item xs={12} sm={6}>
-          <TextField size="small" label="Are you at least 18 years of age?"
-            value={v.at_least_18||""} onChange={set("at_least_18")} fullWidth />
-        </Grid>
-
-        <Grid item xs={12} sm={6}>
           <TextField size="small" label="Require visa sponsorship now or in future?"
             value={v.needs_visa_sponsorship||""} onChange={set("needs_visa_sponsorship")} fullWidth />
         </Grid>
 
-        <Grid item xs={12} sm={6}>
-          <TextField size="small" label="Family member employed with our organization?"
-            value={v.family_in_org||""} onChange={set("family_in_org")} fullWidth />
-        </Grid>
+        
 
         <Grid item xs={12} sm={6}>
           <TextField size="small" label="Availability to start"
@@ -246,9 +391,36 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
       </Paper>
 
       {/* ADDRESS */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Address Information</Typography>
-        <Grid container spacing={2}>
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 2,
+          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 2.5, 
+            fontWeight: 600,
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            "&:before": {
+              content: '""',
+              display: "inline-block",
+              width: 4,
+              height: 24,
+              backgroundColor: "primary.main",
+              marginRight: 1.5,
+              borderRadius: 1
+            }
+          }}
+        >
+          Address Information
+        </Typography>
+        <Grid container spacing={2.5}>
           <Grid item xs={12}>
             <TextField size="small" label="Address Line 1" value={v.address_line1||""} onChange={set("address_line1")}
               required fullWidth error={!!errors.address_line1} helperText={errors.address_line1}/>
@@ -266,11 +438,20 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
               required fullWidth error={!!errors.state} helperText={errors.state}/>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField size="small" label="Postal Code" value={v.postal_code||""} onChange={set("postal_code")}
-              required fullWidth error={!!errors.postal_code} helperText={errors.postal_code}/>
+            <TextField 
+              size="small" 
+              label="Postal Code" 
+              type="number"
+              value={v.postal_code||""} 
+              onChange={set("postal_code")}
+              required 
+              fullWidth 
+              error={!!errors.postal_code} 
+              helperText={errors.postal_code || "Numbers only"}
+            />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <RequiredSelect label="Country" value={v.country} onChange={set("country")}
+            <RequiredSelect label="Country" value={v.country ?? "India"} onChange={set("country")}
               options={COUNTRY_OPTIONS} error={errors.country}/>
           </Grid>
           {v.country === OTHER && (
@@ -284,48 +465,138 @@ export default function CandidateForm({ value, onChange, errors = {} }) {
       </Paper>
 
       {/* ONLINE */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Online Presence</Typography>
-        <Grid container spacing={2}>
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 2,
+          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 2.5, 
+            fontWeight: 600,
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            "&:before": {
+              content: '""',
+              display: "inline-block",
+              width: 4,
+              height: 24,
+              backgroundColor: "primary.main",
+              marginRight: 1.5,
+              borderRadius: 1
+            }
+          }}
+        >
+          Online Presence
+        </Typography>
+        <Grid container spacing={2.5}>
           <Grid item xs={12} sm={4}>
-            <TextField size="small" type="url" label="Personal Website" value={v.personal_website||""} onChange={set("personal_website")}
+            <TextField size="small" type="url" label="Personal Website (Optional)" value={v.personal_website||""} onChange={set("personal_website")}
               fullWidth error={!!errors.personal_website} helperText={errors.personal_website}/>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField size="small" type="url" label="LinkedIn" value={v.linkedin||""} onChange={set("linkedin")}
+            <TextField size="small" type="url" label="LinkedIn (Optional)" value={v.linkedin||""} onChange={set("linkedin")}
               fullWidth error={!!errors.linkedin} helperText={errors.linkedin}/>
           </Grid>
           <Grid item xs={12} sm={4}>
-            <TextField size="small" type="url" label="GitHub" value={v.github||""} onChange={set("github")}
+            <TextField size="small" type="url" label="GitHub (Optional)" value={v.github||""} onChange={set("github")}
               fullWidth error={!!errors.github} helperText={errors.github}/>
           </Grid>
         </Grid>
       </Paper>
 
       {/* ADDITIONAL */}
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ mb: 1 }}>Additional Details</Typography>
-        <Grid container spacing={2}>
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 2,
+          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 2.5, 
+            fontWeight: 600,
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            "&:before": {
+              content: '""',
+              display: "inline-block",
+              width: 4,
+              height: 24,
+              backgroundColor: "primary.main",
+              marginRight: 1.5,
+              borderRadius: 1
+            }
+          }}
+        >
+          Additional Details
+        </Typography>
+        <Grid container spacing={2.5}>
           <Grid item xs={12}>
-            <TextField size="small" label="Technical Skills" value={v.technical_skills||""} onChange={set("technical_skills")}
-              required fullWidth multiline minRows={3}
-              error={!!errors.technical_skills} helperText={errors.technical_skills}/>
+            <TextField 
+              label="Technical Skills" 
+              value={v.technical_skills||""} 
+              onChange={set("technical_skills")}
+              required 
+              fullWidth 
+              multiline 
+              minRows={3}
+              error={!!errors.technical_skills} 
+              helperText={errors.technical_skills}
+              variant="outlined"
+            />
           </Grid>
           <Grid item xs={12}>
-            <TextField size="small" label="Work Experience" value={v.work_experience||""} onChange={set("work_experience")}
-              required fullWidth multiline minRows={3}
-              error={!!errors.work_experience} helperText={errors.work_experience}/>
+            <TextField 
+              label="Work Experience" 
+              value={v.work_experience||""} 
+              onChange={set("work_experience")}
+              required 
+              fullWidth 
+              multiline 
+              minRows={3}
+              error={!!errors.work_experience} 
+              helperText={errors.work_experience}
+              variant="outlined"
+            />
           </Grid>
           <Grid item xs={12}>
-          <TextField size="small" label="Education"
-            value={v.education||""} onChange={set("education")}
-            fullWidth multiline minRows={3}/>
-        </Grid>
-        <Grid item xs={12}>
-          <TextField size="small" label="Certificates"
-            value={v.certificates||""} onChange={set("certificates")}
-            fullWidth multiline minRows={3}/>
-        </Grid>
+            <TextField 
+              label="Education"
+              value={v.education||""} 
+              onChange={set("education")}
+              required
+              fullWidth 
+              multiline 
+              minRows={3}
+              error={!!errors.education} 
+              helperText={errors.education}
+              variant="outlined"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField 
+              label="Certificates"
+              value={v.certificates||""} 
+              onChange={set("certificates")}
+              required
+              fullWidth 
+              multiline 
+              minRows={3}
+              error={!!errors.certificates} 
+              helperText={errors.certificates}
+              variant="outlined"
+            />
+          </Grid>
         </Grid>
       </Paper>
     </Box>

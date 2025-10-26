@@ -1,4 +1,8 @@
-const API = "/api";
+//For Local Development
+// const API = "/api";
+
+//For Production
+const API = import.meta.env.VITE_API_URL || "/api";
 
 function getCookie(name) {
   return document.cookie.split("; ").find(c => c.startsWith(name + "="))?.split("=")[1];
@@ -19,6 +23,7 @@ export async function api(path, { method="GET", body } = {}) {
 // Auth
 export const loginAdmin = (email, password) => api("/auth/login-admin", { method:"POST", body:{email, password} });
 export const loginUser  = (mobile, password) => api("/auth/login-user",  { method:"POST", body:{mobile, password} });
+export const loginCandidate = (phone, password) => api("/auth/login-candidate", { method:"POST", body:{phone, password} });
 export const meApi      = () => api("/auth/me");
 export const logoutApi  = () => api("/auth/logout", { method:"POST" });
 
@@ -38,6 +43,10 @@ export const listMyCandidates = () => api("/candidates");
 export const createCandidate = (payload) => api("/candidates", { method:"POST", body: payload });
 export const updateCandidate = (id, payload) => api(`/candidates/${id}`, { method:"PUT", body: payload });
 export const deleteCandidate = (id) => api(`/candidates/${id}`, { method:"DELETE" });
+
+// Candidate self-service
+export const getMyCandidateProfile = () => api("/candidates/me");
+export const updateMyCandidateProfile = (payload) => api("/candidates/me", { method: "PUT", body: payload });
 
 // Candidate details + jobs
 export const getCandidate     = (id)                => api(`/candidates/${id}`);

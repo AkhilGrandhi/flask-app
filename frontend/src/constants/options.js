@@ -10,7 +10,11 @@ export const CITIZENSHIP_OPTIONS = [
 ];
 
 export const VISA_OPTIONS = [
-  "None", "H1B", "H4", "L1", "F1", "OPT", "PR-in-process", OTHER
+  "None", "F1", "Citizen", "Green card (GC)", "GC-EAD", "H1B", "H4", "L1", "J1", OTHER
+];
+
+export const F1_TYPE_OPTIONS = [
+  "Post OPT", "STEM OPT"
 ];
 
 export const WORK_AUTH_OPTIONS = [
@@ -32,6 +36,10 @@ export const RACE_ETHNICITY_OPTIONS = [
 export const COUNTRY_OPTIONS = [
   "India", "United States", "United Kingdom", "Canada",
   "Australia", "Germany", "France", "Singapore", "United Arab Emirates", OTHER
+];
+
+export const SUBSCRIPTION_TYPE_OPTIONS = [
+  "Gold", "Silver"
 ];
 
 // If you want a STATE list, add here, else keep TextField for free input.

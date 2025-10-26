@@ -16,11 +16,9 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object("config.Config")
 
-    # If DATABASE_URL not provided, default to instance/app.db
+    # Ensure database URI is configured
     if not app.config.get("SQLALCHEMY_DATABASE_URI"):
-        os.makedirs(app.instance_path, exist_ok=True)
-        db_path = os.path.join(app.instance_path, "app.db")
-        app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_path}"
+        raise RuntimeError("SQLALCHEMY_DATABASE_URI is not configured. Check your config.py and .env file.")
 
     # Init extensions
     db.init_app(app)
@@ -28,7 +26,16 @@ def create_app():
     jwt.init_app(app)
 
     # Allow your React app / extension to call the API in dev
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://localhost:3000"]}}, supports_credentials=True)
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    CORS(app, 
+     resources={r"/api/*": {
+         "origins": [
+             "http://localhost:5173",
+             "http://localhost:3000",
+             frontend_url
+         ]
+     }}, 
+     supports_credentials=True)
 
     # Blueprints
     from .auth import bp as auth_bp
@@ -49,26 +56,44 @@ def create_app():
     def health():
         return {"status": "ok"}
 
-    # One-time dev bootstrap: create tables (if no migrations ran) and seed admin
+    # One-time dev bootstrap: seed admin user
     with app.app_context():
-        # You can remove this create_all once you fully use Alembic migrations
-        db.create_all()
+        # Use migrations instead of create_all() to avoid conflicts
+        # Only run create_all() in development if no migrations exist
+        try:
+            email    = os.getenv("ADMIN_EMAIL", "admin@example.com").lower().strip()
+            password = os.getenv("ADMIN_PASSWORD", "Passw0rd!")
+            mobile   = os.getenv("ADMIN_MOBILE", "9999999999")
+            name     = os.getenv("ADMIN_NAME", "Administrator")
 
-        email    = os.getenv("ADMIN_EMAIL", "admin@example.com").lower().strip()
-        password = os.getenv("ADMIN_PASSWORD", "Passw0rd!")
-        mobile   = os.getenv("ADMIN_MOBILE", "9999999999")
-        name     = os.getenv("ADMIN_NAME", "Administrator")
-
-        if not User.query.filter_by(email=email).first():
-            admin = User(
-                name=name,
-                email=email,
-                mobile=mobile,
-                password_hash=generate_password_hash(password),
-                role="admin",
-            )
-            db.session.add(admin)
-            db.session.commit()
-            app.logger.info(f"Default admin created: {email}")
+            if not User.query.filter_by(email=email).first():
+                admin = User(
+                    name=name,
+                    email=email,
+                    mobile=mobile,
+                    password_hash=generate_password_hash(password),
+                    role="admin",
+                )
+                db.session.add(admin)
+                db.session.commit()
+                app.logger.info(f"Default admin created: {email}")
+        except Exception as e:
+            app.logger.error(f"Error creating admin user: {e}")
+            # If tables don't exist yet, create them (development only)
+            if "does not exist" in str(e).lower() or "no such table" in str(e).lower():
+                app.logger.info("Tables not found, creating them...")
+                db.create_all()
+                # Retry admin creation
+                if not User.query.filter_by(email=email).first():
+                    admin = User(
+                        name=name,
+                        email=email,
+                        mobile=mobile,
+                        password_hash=generate_password_hash(password),
+                        role="admin",
+                    )
+                    db.session.add(admin)
+                    db.session.commit()
+                    app.logger.info(f"Default admin created: {email}")
 
     return app

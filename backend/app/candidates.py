@@ -1,6 +1,6 @@
 # server/candidates.py
 from flask import Blueprint, request, abort
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from .models import db, Candidate, CandidateJob
 
 bp = Blueprint("candidates", __name__)
@@ -8,9 +8,32 @@ bp = Blueprint("candidates", __name__)
 def current_user_id():
     return int(get_jwt_identity())
 
+def current_candidate_id():
+    """Extract candidate ID from JWT for candidate logins"""
+    claims = get_jwt()
+    if claims.get("role") == "candidate":
+        return claims.get("candidate_id")
+    return None
+
+def is_admin():
+    """Check if current user is admin"""
+    claims = get_jwt()
+    return claims.get("role") == "admin"
+
 def owns_or_404(cand: Candidate, uid: int):
+    # Admins can access any candidate
+    if is_admin():
+        return
     if not cand or cand.created_by_user_id != uid:
         abort(404)
+
+# Helper function to convert Yes/No strings to boolean
+def to_bool(val):
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        return val.lower() in ("yes", "true", "1")
+    return bool(val)
 
 # --------- MY CANDIDATES (list/create/update/delete) ---------
 
@@ -20,16 +43,51 @@ def list_my_candidates():
     uid = current_user_id()
     cs = Candidate.query.filter_by(created_by_user_id=uid)\
                         .order_by(Candidate.id.desc()).all()
-    return {"candidates": [c.to_dict() for c in cs]}
+    return {"candidates": [c.to_dict(include_jobs=True) for c in cs]}
 
 @bp.post("")
 @jwt_required()
 def create_candidate():
     uid = current_user_id()
     data = request.get_json() or {}
-    required = ["first_name", "last_name"]
-    if any(not data.get(f) for f in required):
-        return {"message": "First & Last name required"}, 400
+    
+    # Validate required fields
+    required = ["first_name", "last_name", "email", "phone", "subscription_type", "password", "birthdate", "gender", 
+                "nationality", "citizenship_status", "visa_status", "work_authorization",
+                "address_line1", "address_line2", "city", "state", "postal_code", "country",
+                "technical_skills", "work_experience", "education", "certificates"]
+    missing_fields = [f for f in required if not data.get(f)]
+    if missing_fields:
+        return {"message": f"Required fields missing: {', '.join(missing_fields)}"}, 400
+    
+    # Validate password length
+    password = data.get("password", "")
+    if len(password) < 6:
+        return {"message": "Password must be at least 6 characters"}, 400
+    
+    # Validate email format and uniqueness
+    email = (data.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return {"message": "Valid email is required"}, 400
+    
+    existing_email = Candidate.query.filter(
+        Candidate.email == email,
+        Candidate.created_by_user_id == uid
+    ).first()
+    if existing_email:
+        return {"message": "A candidate with this email already exists"}, 409
+    
+    # Validate phone number - only digits allowed
+    phone = (data.get("phone") or "").strip()
+    if not phone.isdigit():
+        return {"message": "Phone number must contain only digits"}, 400
+    
+    existing_phone = Candidate.query.filter(
+        Candidate.phone == phone,
+        Candidate.created_by_user_id == uid
+    ).first()
+    if existing_phone:
+        return {"message": "A candidate with this phone number already exists"}, 409
 
     c = Candidate(
         created_by_user_id=uid,
@@ -37,16 +95,19 @@ def create_candidate():
         last_name=data.get("last_name"),
         email=data.get("email"),
         phone=data.get("phone"),
+        subscription_type=data.get("subscription_type"),
+        password=data.get("password"),
         gender=data.get("gender"),
         nationality=data.get("nationality"),
         citizenship_status=data.get("citizenship_status"),
         visa_status=data.get("visa_status"),
+        f1_type=data.get("f1_type"),
         work_authorization=data.get("work_authorization"),
-        willing_relocate=bool(data.get("willing_relocate")),
-        willing_travel=bool(data.get("willing_travel")),
-        disability_status=bool(data.get("disability_status")),
+        willing_relocate=to_bool(data.get("willing_relocate")),
+        willing_travel=to_bool(data.get("willing_travel")),
+        disability_status=to_bool(data.get("disability_status")),
         veteran_status=data.get("veteran_status"),
-        military_experience=bool(data.get("military_experience")),
+        military_experience=to_bool(data.get("military_experience")),
         race_ethnicity=data.get("race_ethnicity"),
         address_line1=data.get("address_line1"),
         address_line2=data.get("address_line2"),
@@ -90,10 +151,44 @@ def update_candidate(cand_id):
     c = Candidate.query.get_or_404(cand_id)
     owns_or_404(c, uid)
     data = request.get_json() or {}
+    
+    # Validate email if being updated
+    if "email" in data:
+        email = (data.get("email") or "").strip().lower()
+        if not email or "@" not in email:
+            return {"message": "Valid email is required"}, 400
+        
+        existing_email = Candidate.query.filter(
+            Candidate.email == email,
+            Candidate.created_by_user_id == uid,
+            Candidate.id != cand_id
+        ).first()
+        if existing_email:
+            return {"message": "A candidate with this email already exists"}, 409
+    
+    # Validate phone if being updated
+    if "phone" in data:
+        phone = (data.get("phone") or "").strip()
+        if not phone.isdigit():
+            return {"message": "Phone number must contain only digits"}, 400
+        
+        existing_phone = Candidate.query.filter(
+            Candidate.phone == phone,
+            Candidate.created_by_user_id == uid,
+            Candidate.id != cand_id
+        ).first()
+        if existing_phone:
+            return {"message": "A candidate with this phone number already exists"}, 409
+    
+    # Validate password if being updated
+    if "password" in data and data.get("password"):
+        password = data.get("password")
+        if len(password) < 6:
+            return {"message": "Password must be at least 6 characters"}, 400
 
     for field in [
-        "first_name", "last_name", "email", "phone", "gender", "nationality",
-        "citizenship_status", "visa_status", "work_authorization",
+        "first_name", "last_name", "email", "phone", "subscription_type", "gender", "nationality",
+        "citizenship_status", "visa_status", "f1_type", "work_authorization",
         "veteran_status", "race_ethnicity", "address_line1", "address_line2",
         "city", "state", "postal_code", "country", "personal_website",
         "linkedin", "github", "technical_skills", "work_experience",
@@ -105,10 +200,14 @@ def update_candidate(cand_id):
     ]:
         if field in data:
             setattr(c, field, data[field])
+    
+    # Handle password separately - only update if provided and not empty
+    if "password" in data and data.get("password") and data.get("password").strip():
+        c.password = data.get("password")
 
     for field in ["willing_relocate", "willing_travel", "disability_status", "military_experience"]:
         if field in data:
-            setattr(c, field, bool(data[field]))
+            setattr(c, field, to_bool(data[field]))
 
     if "birthdate" in data:
         from datetime import date
@@ -212,3 +311,66 @@ def delete_job(cand_id, row_id):
     db.session.delete(row)
     db.session.commit()
     return {"message": "deleted"}
+
+# --------- CANDIDATE SELF-SERVICE (for candidate login) ---------
+
+@bp.get("/me")
+@jwt_required()
+def get_my_profile():
+    """Get logged-in candidate's own profile and jobs"""
+    cand_id = current_candidate_id()
+    if not cand_id:
+        abort(403, description="Candidates only")
+    
+    c = Candidate.query.get_or_404(cand_id)
+    return c.to_dict(include_creator=False, include_jobs=True)
+
+@bp.put("/me")
+@jwt_required()
+def update_my_profile():
+    """Update logged-in candidate's own profile"""
+    cand_id = current_candidate_id()
+    if not cand_id:
+        abort(403, description="Candidates only")
+    
+    candidate = Candidate.query.get_or_404(cand_id)
+    data = request.get_json() or {}
+    
+    # Candidates cannot update their email, phone, or password through this endpoint
+    # Those should have separate secure endpoints
+    restricted_fields = ["email", "phone", "password", "created_by_user_id"]
+    for field in restricted_fields:
+        if field in data:
+            del data[field]
+    
+    # Update allowed fields
+    for field in [
+        "first_name", "last_name", "gender", "nationality",
+        "citizenship_status", "visa_status", "f1_type", "work_authorization",
+        "veteran_status", "race_ethnicity", "address_line1", "address_line2",
+        "city", "state", "postal_code", "country", "personal_website",
+        "linkedin", "github", "technical_skills", "work_experience",
+        "expected_wage", "contact_current_employer", "recent_degree",
+        "authorized_work_us", "authorized_without_sponsorship",
+        "referral_source", "at_least_18", "needs_visa_sponsorship",
+        "family_in_org", "availability", "education", "certificates",
+    ]:
+        if field in data:
+            setattr(candidate, field, data[field])
+    
+    # Boolean fields
+    for field in ["willing_relocate", "willing_travel", "disability_status", "military_experience"]:
+        if field in data:
+            setattr(candidate, field, to_bool(data[field]))
+    
+    # Handle birthdate
+    if "birthdate" in data:
+        from datetime import date
+        if data["birthdate"]:
+            y, m, d = map(int, data["birthdate"].split("-"))
+            candidate.birthdate = date(y, m, d)
+        else:
+            candidate.birthdate = None
+    
+    db.session.commit()
+    return {"message": "Profile updated successfully", "candidate": candidate.to_dict(include_creator=False, include_jobs=True)}

@@ -5,12 +5,12 @@ import {
   Alert, IconButton, InputAdornment, Divider
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { loginAdmin, meApi } from "../api";
+import { loginCandidate, meApi } from "../api";
 import { useAuth } from "../AuthContext";
 import logo from "../assets/logo.png";
 
-export default function LoginAdmin() {
-  const [email, setEmail] = useState("");
+export default function LoginCandidate() {
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
@@ -21,10 +21,26 @@ export default function LoginAdmin() {
     e.preventDefault();
     setErr("");
     try {
-      await loginAdmin(email, password);
+      // Validate inputs
+      if (!phone || !password) {
+        setErr("Please enter both phone number and password");
+        return;
+      }
+
+      if (!/^\d+$/.test(phone)) {
+        setErr("Phone number must contain only digits");
+        return;
+      }
+
+      if (password.length < 6) {
+        setErr("Password must be at least 6 characters");
+        return;
+      }
+
+      await loginCandidate(phone, password);
       const me = await meApi();
       setUser(me.user);
-      navigate("/admin", { replace: true });
+      navigate("/candidate", { replace: true });
     } catch (e) {
       setErr(e.message);
     }
@@ -41,20 +57,20 @@ export default function LoginAdmin() {
           />
         </Box>
         <Typography variant="h4" sx={{ mb: 1, textAlign: "center", fontWeight: 600 }}>
-          Admin Login
+          Candidate Login
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: "center" }}>
-          Sign in with your admin credentials
+          Sign in with your phone number
         </Typography>
 
         {err && <Alert severity="error" sx={{ mb: 3 }}>{err}</Alert>}
 
         <Box component="form" onSubmit={onSubmit} sx={{ display: "grid", gap: 2.5 }}>
           <TextField
-            label="Email Address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            label="Phone Number"
+            type="number"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
             required
             fullWidth
             variant="outlined"
@@ -99,11 +115,12 @@ export default function LoginAdmin() {
           <Button onClick={() => navigate("/login")} size="small" variant="text">
             User Login
           </Button>
-          <Button onClick={() => navigate("/candidate/login")} size="small" variant="text">
-            Candidate Login
+          <Button onClick={() => navigate("/admin/login")} size="small" variant="text">
+            Admin Login
           </Button>
         </Box>
       </Paper>
     </Container>
   );
 }
+

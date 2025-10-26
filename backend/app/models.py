@@ -35,11 +35,14 @@ class Candidate(db.Model):
     last_name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(255))
     phone = db.Column(db.String(50))
+    subscription_type = db.Column(db.String(50))  # Gold or Silver
+    password = db.Column(db.String(255))  # Candidate password (minimum 6 characters)
     birthdate = db.Column(db.Date)
     gender = db.Column(db.String(50))
     nationality = db.Column(db.String(120))
     citizenship_status = db.Column(db.String(120))
     visa_status = db.Column(db.String(120))
+    f1_type = db.Column(db.String(120))  # F1 Type (Post OPT or STEM OPT)
     work_authorization = db.Column(db.String(120))
     willing_relocate = db.Column(db.Boolean, default=False)
     willing_travel = db.Column(db.Boolean, default=False)
@@ -91,20 +94,28 @@ class Candidate(db.Model):
     )
 
     def to_dict(self, include_creator: bool = False, include_jobs: bool = False):
+        # Helper to convert boolean to Yes/No for frontend
+        def to_yes_no(val):
+            if val is None:
+                return None
+            return "Yes" if val else "No"
+        
         d = {
             "id": self.id,
             "first_name": self.first_name, "last_name": self.last_name,
             "email": self.email, "phone": self.phone,
+            "subscription_type": self.subscription_type,
             "birthdate": self.birthdate.isoformat() if self.birthdate else None,
             "gender": self.gender, "nationality": self.nationality,
             "citizenship_status": self.citizenship_status,
             "visa_status": self.visa_status,
+            "f1_type": self.f1_type,
             "work_authorization": self.work_authorization,
-            "willing_relocate": self.willing_relocate,
-            "willing_travel": self.willing_travel,
-            "disability_status": self.disability_status,
+            "willing_relocate": to_yes_no(self.willing_relocate),
+            "willing_travel": to_yes_no(self.willing_travel),
+            "disability_status": to_yes_no(self.disability_status),
             "veteran_status": self.veteran_status,
-            "military_experience": self.military_experience,
+            "military_experience": to_yes_no(self.military_experience),
             "race_ethnicity": self.race_ethnicity,
 
             "address_line1": self.address_line1, "address_line2": self.address_line2,
