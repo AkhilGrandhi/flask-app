@@ -99,7 +99,8 @@ export default function UserDashboard() {
       race_ethnicity: "Asian",
       country: "India",
       at_least_18: "Yes",
-      family_in_org: "No"
+      family_in_org: "No",
+      subscription_type: "Gold"
     }); 
     setFieldErrors({});
     setErr("");
@@ -134,7 +135,7 @@ export default function UserDashboard() {
       let required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
                         "address_line1", "address_line2", "city", "state", "postal_code", "country",
-                        "technical_skills", "work_experience", "education", "certificates"];
+                        "technical_skills", "work_experience", "education", "certificates", "subscription_type"];
       
       // Password is only required when creating, not when editing
       if (!editing) {
