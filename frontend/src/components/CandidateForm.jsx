@@ -427,7 +427,7 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
           </Grid>
           <Grid item xs={12}>
             <TextField size="small" label="Address Line 2" value={v.address_line2||""} onChange={set("address_line2")}
-              required fullWidth error={!!errors.address_line2} helperText={errors.address_line2}/>
+              fullWidth error={!!errors.address_line2} helperText={errors.address_line2 || "Optional"}/>
           </Grid>
           <Grid item xs={12} sm={4}>
             <TextField size="small" label="City" value={v.city||""} onChange={set("city")}
@@ -546,12 +546,11 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
               label="Technical Skills" 
               value={v.technical_skills||""} 
               onChange={set("technical_skills")}
-              required 
               fullWidth 
               multiline 
               minRows={3}
               error={!!errors.technical_skills} 
-              helperText={errors.technical_skills}
+              helperText={errors.technical_skills || "Optional"}
               variant="outlined"
             />
           </Grid>
@@ -588,12 +587,11 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
               label="Certificates"
               value={v.certificates||""} 
               onChange={set("certificates")}
-              required
               fullWidth 
               multiline 
               minRows={3}
               error={!!errors.certificates} 
-              helperText={errors.certificates}
+              helperText={errors.certificates || "Optional"}
               variant="outlined"
             />
           </Grid>
