@@ -561,6 +561,8 @@ function CandidatesTab() {
     // Ensure birthdate is YYYY-MM-DD for the date input (if present)
     const bd = r.birthdate ? r.birthdate.slice(0,10) : "";
     setForm({ ...r, birthdate: bd });
+    // Set the assigned user to the current creator
+    setAssignedUserId(r.created_by?.id || "");
     setFieldErrors({});
     setErr("");
     setOpen(true);
@@ -571,8 +573,8 @@ function CandidatesTab() {
       setErr("");
       setFieldErrors({});
       
-      // Validate assigned user is selected when creating
-      if (!editing && !assignedUserId) {
+      // Validate assigned user is selected
+      if (!assignedUserId) {
         setErr("Please select a user to assign this candidate to.");
         return;
       }
@@ -646,11 +648,12 @@ function CandidatesTab() {
         delete dataToSend.password;
       }
       
+      // Add the assigned user ID to the payload (for both create and edit)
+      dataToSend.created_by_user_id = assignedUserId;
+      
       if (editing) {
         await adminUpdateCandidate(editing.id, dataToSend);
       } else {
-        // Add the assigned user ID to the payload
-        dataToSend.created_by_user_id = assignedUserId;
         await createCandidate(dataToSend);
       }
       setOpen(false);
@@ -1030,36 +1033,36 @@ function CandidatesTab() {
             </Alert>
           )}
           
-          {/* Assign User Dropdown - Only show when creating new candidate */}
-          {!editing && (
-            <Paper elevation={1} sx={{ p: 2.5, mb: 3, bgcolor: "white" }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5, color: "primary.main" }}>
-                Assign User (Creator) *
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Select the user who will be assigned as the creator of this candidate
-              </Typography>
-              <Autocomplete
-                fullWidth
-                options={users.filter(u => u.role === "user")}
-                getOptionLabel={(option) => `${option.name} (${option.email})`}
-                value={users.find(u => u.id === assignedUserId) || null}
-                onChange={(event, newValue) => {
-                  setAssignedUserId(newValue ? newValue.id : "");
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Search and select a user..."
-                    required
-                    sx={{ bgcolor: "white" }}
-                  />
-                )}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                noOptionsText="No users found"
-              />
-            </Paper>
-          )}
+          {/* Assign User Dropdown - Show for both create and edit */}
+          <Paper elevation={1} sx={{ p: 2.5, mb: 3, bgcolor: "white" }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5, color: "primary.main" }}>
+              Assign User (Creator) *
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {editing 
+                ? "Change the user who will be assigned as the creator of this candidate"
+                : "Select the user who will be assigned as the creator of this candidate"}
+            </Typography>
+            <Autocomplete
+              fullWidth
+              options={users.filter(u => u.role === "user")}
+              getOptionLabel={(option) => `${option.name} (${option.email})`}
+              value={users.find(u => u.id === assignedUserId) || null}
+              onChange={(event, newValue) => {
+                setAssignedUserId(newValue ? newValue.id : "");
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Search and select a user..."
+                  required
+                  sx={{ bgcolor: "white" }}
+                />
+              )}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              noOptionsText="No users found"
+            />
+          </Paper>
           
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>
@@ -1068,7 +1071,7 @@ function CandidatesTab() {
           <Button 
             variant="contained" 
             onClick={submit}
-            disabled={Object.keys(fieldErrors).length > 0 || (!editing && !assignedUserId)}
+            disabled={Object.keys(fieldErrors).length > 0 || !assignedUserId}
             sx={{ px: 4 }}
           >
             {editing ? "Save Changes" : "Create Candidate"}

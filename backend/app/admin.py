@@ -114,6 +114,15 @@ def admin_update_candidate(cand_id):
     c = Candidate.query.get_or_404(cand_id)
     data = request.get_json() or {}
     
+    # Validate and update creator if provided
+    if "created_by_user_id" in data:
+        new_creator_id = data.get("created_by_user_id")
+        if new_creator_id:
+            creator_user = User.query.get(new_creator_id)
+            if not creator_user:
+                return {"message": "Assigned user not found"}, 404
+            c.created_by_user_id = new_creator_id
+    
     # Validate email if being updated
     if "email" in data:
         email = (data.get("email") or "").strip().lower()
