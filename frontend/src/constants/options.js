@@ -13,6 +13,10 @@ export const VISA_OPTIONS = [
   "None", "F1", "Citizen", "Green card (GC)", "GC-EAD", "H1B", "H4", "L1", "J1", OTHER
 ];
 
+export const F1_TYPE_OPTIONS = [
+  "Post OPT", "STEM OPT"
+];
+
 export const WORK_AUTH_OPTIONS = [
   "Authorized", "Needs Sponsorship", "Open to Sponsorship", OTHER
 ];

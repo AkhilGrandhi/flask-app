@@ -7,7 +7,7 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import {
   OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
-  WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
+  F1_TYPE_OPTIONS, WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
   COUNTRY_OPTIONS, SUBSCRIPTION_TYPE_OPTIONS
 } from "../constants/options";
 
@@ -260,6 +260,12 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
             <RequiredSelect label="Visa Status" value={v.visa_status ?? "None"} onChange={set("visa_status")}
               options={VISA_OPTIONS} error={errors.visa_status}/>
           </Grid>
+          {v.visa_status === "F1" && (
+            <Grid item xs={12} sm={6}>
+              <RequiredSelect label="F1 Type" value={v.f1_type ?? "Post OPT"} onChange={set("f1_type")}
+                options={F1_TYPE_OPTIONS} error={errors.f1_type}/>
+            </Grid>
+          )}
           {v.visa_status === OTHER && (
             <Grid item xs={12} sm={6}>
               <TextField size="small" label="Specify Visa" value={v.visa_other_value||""}

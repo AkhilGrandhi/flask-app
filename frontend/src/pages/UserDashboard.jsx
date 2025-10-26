@@ -55,6 +55,11 @@ export default function UserDashboard() {
   };
 
   const handleFormChange = (newForm) => {
+    // Clear f1_type if visa_status changes away from "F1"
+    if (newForm.visa_status !== form.visa_status && newForm.visa_status !== "F1") {
+      newForm = { ...newForm, f1_type: undefined };
+    }
+    
     setForm(newForm);
     
     // Clear field errors when user starts typing

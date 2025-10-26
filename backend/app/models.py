@@ -42,6 +42,7 @@ class Candidate(db.Model):
     nationality = db.Column(db.String(120))
     citizenship_status = db.Column(db.String(120))
     visa_status = db.Column(db.String(120))
+    f1_type = db.Column(db.String(120))  # F1 Type (Post OPT or STEM OPT)
     work_authorization = db.Column(db.String(120))
     willing_relocate = db.Column(db.Boolean, default=False)
     willing_travel = db.Column(db.Boolean, default=False)
@@ -108,6 +109,7 @@ class Candidate(db.Model):
             "gender": self.gender, "nationality": self.nationality,
             "citizenship_status": self.citizenship_status,
             "visa_status": self.visa_status,
+            "f1_type": self.f1_type,
             "work_authorization": self.work_authorization,
             "willing_relocate": to_yes_no(self.willing_relocate),
             "willing_travel": to_yes_no(self.willing_travel),

@@ -101,6 +101,7 @@ def create_candidate():
         nationality=data.get("nationality"),
         citizenship_status=data.get("citizenship_status"),
         visa_status=data.get("visa_status"),
+        f1_type=data.get("f1_type"),
         work_authorization=data.get("work_authorization"),
         willing_relocate=to_bool(data.get("willing_relocate")),
         willing_travel=to_bool(data.get("willing_travel")),
@@ -187,7 +188,7 @@ def update_candidate(cand_id):
 
     for field in [
         "first_name", "last_name", "email", "phone", "subscription_type", "gender", "nationality",
-        "citizenship_status", "visa_status", "work_authorization",
+        "citizenship_status", "visa_status", "f1_type", "work_authorization",
         "veteran_status", "race_ethnicity", "address_line1", "address_line2",
         "city", "state", "postal_code", "country", "personal_website",
         "linkedin", "github", "technical_skills", "work_experience",
@@ -345,7 +346,7 @@ def update_my_profile():
     # Update allowed fields
     for field in [
         "first_name", "last_name", "gender", "nationality",
-        "citizenship_status", "visa_status", "work_authorization",
+        "citizenship_status", "visa_status", "f1_type", "work_authorization",
         "veteran_status", "race_ethnicity", "address_line1", "address_line2",
         "city", "state", "postal_code", "country", "personal_website",
         "linkedin", "github", "technical_skills", "work_experience",
