@@ -1,8 +1,28 @@
-//For Local Development
-// const API = "/api";
+// Automatically detect the correct API URL based on environment
+const getApiUrl = () => {
+  // If explicitly set via environment variable, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Check if we're on Render deployment
+  const hostname = window.location.hostname;
+  
+  // If on Render frontend, use the known backend URL
+  if (hostname.includes('flask-app-frontend-dev.onrender.com')) {
+    return 'https://flask-app-r5xw.onrender.com/api';
+  }
+  
+  // For local development or other deployments
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return '/api'; // Vite dev server will proxy this
+  }
+  
+  // Default fallback
+  return '/api';
+};
 
-//For Production
-const API = import.meta.env.VITE_API_URL || "/api";
+const API = getApiUrl();
 
 function getCookie(name) {
   return document.cookie.split("; ").find(c => c.startsWith(name + "="))?.split("=")[1];
