@@ -1,7 +1,7 @@
 """add resume generation job table
 
 Revision ID: f9a8b7c6d5e4
-Revises: df629fdccf7e
+Revises: 85fc35d7805b
 Create Date: 2025-10-27 12:00:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'f9a8b7c6d5e4'
-down_revision = 'df629fdccf7e'
+down_revision = '85fc35d7805b'
 branch_labels = None
 depends_on = None
 
