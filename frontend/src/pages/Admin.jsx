@@ -3,7 +3,7 @@ import {
   Tabs, Tab, Container, Box, Typography, Button, Paper,
   Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert
+  TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert, Autocomplete
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
@@ -414,6 +414,8 @@ function UsersTab() {
 
 function CandidatesTab() {
   const [rows, setRows] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [assignedUserId, setAssignedUserId] = useState("");
   const [open, setOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [viewing, setViewing] = useState(null);
@@ -426,7 +428,16 @@ function CandidatesTab() {
     const d = await listAllCandidates();
     setRows(d.candidates);
   };
-  useEffect(()=>{ load(); }, []);
+  
+  const loadUsers = async () => {
+    const d = await listUsers();
+    setUsers(d.users);
+  };
+  
+  useEffect(()=>{ 
+    load();
+    loadUsers();
+  }, []);
 
   // Check for duplicate email or phone in existing candidates
   const checkDuplicates = (field, value) => {
@@ -451,6 +462,16 @@ function CandidatesTab() {
       );
       if (duplicate) {
         return `Candidate "${duplicate.first_name} ${duplicate.last_name}" (ID: ${duplicate.id}) already exists with this phone number`;
+      }
+    }
+    
+    if (field === "ssn") {
+      const duplicate = rows.find(c => 
+        String(c.ssn) === String(value) && 
+        c.id !== currentEditingId
+      );
+      if (duplicate) {
+        return `Candidate "${duplicate.first_name} ${duplicate.last_name}" (ID: ${duplicate.id}) already exists with this SSN`;
       }
     }
     
@@ -487,6 +508,15 @@ function CandidatesTab() {
       }
     }
     
+    if (newForm.ssn !== form.ssn) {
+      const ssnError = checkDuplicates("ssn", newForm.ssn);
+      if (ssnError) {
+        newFieldErrors.ssn = ssnError;
+      } else {
+        delete newFieldErrors.ssn;
+      }
+    }
+    
     // Clear visa_status error when user changes it from "None"
     if (newForm.visa_status !== form.visa_status && newForm.visa_status !== "None") {
       delete newFieldErrors.visa_status;
@@ -520,6 +550,7 @@ function CandidatesTab() {
       family_in_org: "No",
       subscription_type: "Gold"
     });
+    setAssignedUserId("");
     setFieldErrors({});
     setErr("");
     setOpen(true);
@@ -530,6 +561,8 @@ function CandidatesTab() {
     // Ensure birthdate is YYYY-MM-DD for the date input (if present)
     const bd = r.birthdate ? r.birthdate.slice(0,10) : "";
     setForm({ ...r, birthdate: bd });
+    // Set the assigned user to the current creator
+    setAssignedUserId(r.created_by?.id || "");
     setFieldErrors({});
     setErr("");
     setOpen(true);
@@ -540,24 +573,32 @@ function CandidatesTab() {
       setErr("");
       setFieldErrors({});
       
-      // Check for duplicate email/phone first
+      // Validate assigned user is selected
+      if (!assignedUserId) {
+        setErr("Please select a user to assign this candidate to.");
+        return;
+      }
+      
+      // Check for duplicate email/phone/ssn first
       const emailError = checkDuplicates("email", form.email);
       const phoneError = checkDuplicates("phone", form.phone);
+      const ssnError = checkDuplicates("ssn", form.ssn);
       
-      if (emailError || phoneError) {
+      if (emailError || phoneError || ssnError) {
         const newFieldErrors = {};
         if (emailError) newFieldErrors.email = emailError;
         if (phoneError) newFieldErrors.phone = phoneError;
+        if (ssnError) newFieldErrors.ssn = ssnError;
         setFieldErrors(newFieldErrors);
-        setErr("Please fix the duplicate email or phone number errors before submitting.");
+        setErr("Please fix the duplicate email, phone number, or SSN errors before submitting.");
         return;
       }
       
       // Client-side validation
       let required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
-                        "address_line1", "address_line2", "city", "state", "postal_code", "country",
-                        "technical_skills", "work_experience", "education", "certificates", "subscription_type"];
+                        "address_line1", "city", "state", "postal_code", "country",
+                        "work_experience", "education", "subscription_type", "ssn"];
       
       // Password is only required when creating, not when editing
       if (!editing) {
@@ -582,6 +623,12 @@ function CandidatesTab() {
         return;
       }
       
+      // Validate SSN length
+      if (form.ssn && (form.ssn.length < 4 || form.ssn.length > 10)) {
+        setErr("SSN must be between 4 and 10 characters");
+        return;
+      }
+      
       // Validate password length if provided
       if (form.password && form.password.length < 6) {
         setErr("Password must be at least 6 characters");
@@ -600,6 +647,9 @@ function CandidatesTab() {
       if (editing && (!form.password || form.password.trim() === "")) {
         delete dataToSend.password;
       }
+      
+      // Add the assigned user ID to the payload (for both create and edit)
+      dataToSend.created_by_user_id = assignedUserId;
       
       if (editing) {
         await adminUpdateCandidate(editing.id, dataToSend);
@@ -982,6 +1032,38 @@ function CandidatesTab() {
               {err}
             </Alert>
           )}
+          
+          {/* Assign User Dropdown - Show for both create and edit */}
+          <Paper elevation={1} sx={{ p: 2.5, mb: 3, bgcolor: "white" }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5, color: "primary.main" }}>
+              Assign User (Creator) *
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              {editing 
+                ? "Change the user who will be assigned as the creator of this candidate"
+                : "Select the user who will be assigned as the creator of this candidate"}
+            </Typography>
+            <Autocomplete
+              fullWidth
+              options={users.filter(u => u.role === "user")}
+              getOptionLabel={(option) => `${option.name} (${option.email})`}
+              value={users.find(u => u.id === assignedUserId) || null}
+              onChange={(event, newValue) => {
+                setAssignedUserId(newValue ? newValue.id : "");
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Search and select a user..."
+                  required
+                  sx={{ bgcolor: "white" }}
+                />
+              )}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              noOptionsText="No users found"
+            />
+          </Paper>
+          
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
@@ -989,7 +1071,7 @@ function CandidatesTab() {
           <Button 
             variant="contained" 
             onClick={submit}
-            disabled={Object.keys(fieldErrors).length > 0}
+            disabled={Object.keys(fieldErrors).length > 0 || !assignedUserId}
             sx={{ px: 4 }}
           >
             {editing ? "Save Changes" : "Create Candidate"}

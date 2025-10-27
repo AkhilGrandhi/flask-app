@@ -10,5 +10,20 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    // Generate source maps for better debugging in production
+    sourcemap: false,
+    // Optimize chunk size
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        // Manual chunk splitting for better caching
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'mui-vendor': ['@mui/material', '@mui/icons-material']
+        }
+      }
+    }
   }
 })

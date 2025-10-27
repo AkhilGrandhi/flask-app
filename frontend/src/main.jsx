@@ -1,48 +1,134 @@
 // src/main.jsx
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./AuthContext";
-import LoginUser from "./pages/LoginUser";
-import LoginAdmin from "./pages/LoginAdmin";
-import LoginCandidate from "./pages/LoginCandidate";
-import Admin from "./pages/Admin";
-import UserDashboard from "./pages/UserDashboard";
-import CandidateDashboard from "./pages/CandidateDashboard";
 import ProtectedRoute from "./ProtectedRoute";
-import CandidateDetail from "./pages/CandidateDetail";
+import LoadingSpinner from "./components/LoadingSpinner";
+import ErrorBoundary from "./components/ErrorBoundary";
 
+// Lazy load all page components for better performance
+const LoginUser = lazy(() => import("./pages/LoginUser"));
+const LoginAdmin = lazy(() => import("./pages/LoginAdmin"));
+const LoginCandidate = lazy(() => import("./pages/LoginCandidate"));
+const Admin = lazy(() => import("./pages/Admin"));
+const UserDashboard = lazy(() => import("./pages/UserDashboard"));
+const CandidateDashboard = lazy(() => import("./pages/CandidateDashboard"));
+const CandidateDetail = lazy(() => import("./pages/CandidateDetail"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Role-based redirect component
 function RoleRedirect() {
   const { user, loading } = useAuth();
-  if (loading) return null;
-  if (!user) return <LoginUser />;
-  if (user.role === "admin") return <Admin />;
-  if (user.role === "candidate") return <CandidateDashboard />;
-  return <UserDashboard />;
+  
+  if (loading) {
+    return <LoadingSpinner message="Loading your dashboard..." />;
+  }
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Redirect based on role
+  if (user.role === "admin") return <Navigate to="/admin" replace />;
+  if (user.role === "candidate") return <Navigate to="/candidate" replace />;
+  return <Navigate to="/recruiter" replace />;
 }
 
 const router = createBrowserRouter([
-  // Login pages
-  { path: "/login", element: <LoginUser /> },
-  { path: "/admin/login", element: <LoginAdmin /> },
-  { path: "/candidate/login", element: <LoginCandidate /> },
+  // Public routes - Login pages
+  { 
+    path: "/login", 
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <LoginUser />
+      </Suspense>
+    )
+  },
+  { 
+    path: "/admin/login", 
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <LoginAdmin />
+      </Suspense>
+    )
+  },
+  { 
+    path: "/candidate/login", 
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <LoginCandidate />
+      </Suspense>
+    )
+  },
   
-  // Dashboards
-  { path: "/recruiter", element: <ProtectedRoute role="user"><UserDashboard /></ProtectedRoute> },
-  { path: "/admin", element: <ProtectedRoute role="admin"><Admin /></ProtectedRoute> },
-  { path: "/candidate", element: <ProtectedRoute role="candidate"><CandidateDashboard /></ProtectedRoute> },
+  // Protected routes - Dashboards
+  { 
+    path: "/recruiter", 
+    element: (
+      <ProtectedRoute role="user">
+        <Suspense fallback={<LoadingSpinner message="Loading dashboard..." />}>
+          <UserDashboard />
+        </Suspense>
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/admin", 
+    element: (
+      <ProtectedRoute role="admin">
+        <Suspense fallback={<LoadingSpinner message="Loading admin panel..." />}>
+          <Admin />
+        </Suspense>
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/candidate", 
+    element: (
+      <ProtectedRoute role="candidate">
+        <Suspense fallback={<LoadingSpinner message="Loading candidate dashboard..." />}>
+          <CandidateDashboard />
+        </Suspense>
+      </ProtectedRoute>
+    )
+  },
   
-  // Resources
-  { path: "/candidates/:id", element: <ProtectedRoute role={["user", "admin"]}><CandidateDetail /></ProtectedRoute> },
+  // Protected routes - Resources
+  { 
+    path: "/candidates/:id", 
+    element: (
+      <ProtectedRoute role={["user", "admin"]}>
+        <Suspense fallback={<LoadingSpinner message="Loading candidate details..." />}>
+          <CandidateDetail />
+        </Suspense>
+      </ProtectedRoute>
+    )
+  },
   
-  // Default -> role-based landing
-  { path: "/", element: <ProtectedRoute><RoleRedirect /></ProtectedRoute> },
+  // Default route -> role-based landing
+  { 
+    path: "/", 
+    element: <RoleRedirect />
+  },
+  
+  // 404 - Catch all undefined routes
+  { 
+    path: "*", 
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <NotFound />
+      </Suspense>
+    )
+  }
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

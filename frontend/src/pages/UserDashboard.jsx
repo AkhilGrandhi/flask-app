@@ -51,6 +51,16 @@ export default function UserDashboard() {
       }
     }
     
+    if (field === "ssn") {
+      const duplicate = rows.find(c => 
+        String(c.ssn) === String(value) && 
+        c.id !== currentEditingId
+      );
+      if (duplicate) {
+        return `Candidate "${duplicate.first_name} ${duplicate.last_name}" (ID: ${duplicate.id}) already exists with this SSN`;
+      }
+    }
+    
     return null;
   };
 
@@ -81,6 +91,15 @@ export default function UserDashboard() {
         newFieldErrors.phone = phoneError;
       } else {
         delete newFieldErrors.phone;
+      }
+    }
+    
+    if (newForm.ssn !== form.ssn) {
+      const ssnError = checkDuplicates("ssn", newForm.ssn);
+      if (ssnError) {
+        newFieldErrors.ssn = ssnError;
+      } else {
+        delete newFieldErrors.ssn;
       }
     }
     
@@ -117,8 +136,10 @@ export default function UserDashboard() {
     setOpen(true); 
   };
   const startEdit = (r) => { 
-    setEditing(r); 
-    setForm(r); 
+    setEditing(r);
+    // Ensure birthdate is YYYY-MM-DD for the date input (if present)
+    const bd = r.birthdate ? r.birthdate.slice(0,10) : "";
+    setForm({ ...r, birthdate: bd });
     setFieldErrors({});
     setErr("");
     setOpen(true); 
@@ -129,24 +150,26 @@ export default function UserDashboard() {
       setErr("");
       setFieldErrors({});
       
-      // Check for duplicate email/phone first
+      // Check for duplicate email/phone/ssn first
       const emailError = checkDuplicates("email", form.email);
       const phoneError = checkDuplicates("phone", form.phone);
+      const ssnError = checkDuplicates("ssn", form.ssn);
       
-      if (emailError || phoneError) {
+      if (emailError || phoneError || ssnError) {
         const newFieldErrors = {};
         if (emailError) newFieldErrors.email = emailError;
         if (phoneError) newFieldErrors.phone = phoneError;
+        if (ssnError) newFieldErrors.ssn = ssnError;
         setFieldErrors(newFieldErrors);
-        setErr("Please fix the duplicate email or phone number errors before submitting.");
+        setErr("Please fix the duplicate email, phone number, or SSN errors before submitting.");
         return;
       }
       
       // Client-side validation
       let required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
-                        "address_line1", "address_line2", "city", "state", "postal_code", "country",
-                        "technical_skills", "work_experience", "education", "certificates", "subscription_type"];
+                        "address_line1", "city", "state", "postal_code", "country",
+                        "work_experience", "education", "subscription_type", "ssn"];
       
       // Password is only required when creating, not when editing
       if (!editing) {
@@ -168,6 +191,12 @@ export default function UserDashboard() {
       // Validate phone - only digits
       if (form.phone && !/^\d+$/.test(String(form.phone))) {
         setErr("Phone number must contain only digits");
+        return;
+      }
+      
+      // Validate SSN length
+      if (form.ssn && (form.ssn.length < 4 || form.ssn.length > 10)) {
+        setErr("SSN must be between 4 and 10 characters");
         return;
       }
       

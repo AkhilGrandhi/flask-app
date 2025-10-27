@@ -51,11 +51,21 @@ def create_candidate():
     uid = current_user_id()
     data = request.get_json() or {}
     
+    # Allow admin to assign a different user as creator
+    creator_user_id = uid  # Default to current user
+    if is_admin() and data.get("created_by_user_id"):
+        creator_user_id = data.get("created_by_user_id")
+        # Validate that the assigned user exists
+        from .models import User
+        assigned_user = User.query.get(creator_user_id)
+        if not assigned_user:
+            return {"message": "Assigned user not found"}, 404
+    
     # Validate required fields
     required = ["first_name", "last_name", "email", "phone", "subscription_type", "password", "birthdate", "gender", 
                 "nationality", "citizenship_status", "visa_status", "work_authorization",
-                "address_line1", "address_line2", "city", "state", "postal_code", "country",
-                "technical_skills", "work_experience", "education", "certificates"]
+                "address_line1", "city", "state", "postal_code", "country",
+                "work_experience", "education", "ssn"]
     missing_fields = [f for f in required if not data.get(f)]
     if missing_fields:
         return {"message": f"Required fields missing: {', '.join(missing_fields)}"}, 400
@@ -70,10 +80,14 @@ def create_candidate():
     if not email or "@" not in email:
         return {"message": "Valid email is required"}, 400
     
-    existing_email = Candidate.query.filter(
-        Candidate.email == email,
-        Candidate.created_by_user_id == uid
-    ).first()
+    # For admin, check globally; for regular users, check within their candidates only
+    if is_admin():
+        existing_email = Candidate.query.filter(Candidate.email == email).first()
+    else:
+        existing_email = Candidate.query.filter(
+            Candidate.email == email,
+            Candidate.created_by_user_id == uid
+        ).first()
     if existing_email:
         return {"message": "A candidate with this email already exists"}, 409
     
@@ -82,15 +96,31 @@ def create_candidate():
     if not phone.isdigit():
         return {"message": "Phone number must contain only digits"}, 400
     
-    existing_phone = Candidate.query.filter(
-        Candidate.phone == phone,
-        Candidate.created_by_user_id == uid
-    ).first()
+    # For admin, check globally; for regular users, check within their candidates only
+    if is_admin():
+        existing_phone = Candidate.query.filter(Candidate.phone == phone).first()
+    else:
+        existing_phone = Candidate.query.filter(
+            Candidate.phone == phone,
+            Candidate.created_by_user_id == uid
+        ).first()
     if existing_phone:
         return {"message": "A candidate with this phone number already exists"}, 409
+    
+    # Validate SSN uniqueness (globally unique)
+    ssn = (data.get("ssn") or "").strip()
+    if not ssn:
+        return {"message": "SSN is required"}, 400
+    
+    if len(ssn) < 4 or len(ssn) > 10:
+        return {"message": "SSN must be between 4 and 10 characters"}, 400
+    
+    existing_ssn = Candidate.query.filter(Candidate.ssn == ssn).first()
+    if existing_ssn:
+        return {"message": "A candidate with this SSN already exists"}, 409
 
     c = Candidate(
-        created_by_user_id=uid,
+        created_by_user_id=creator_user_id,
         first_name=data.get("first_name"),
         last_name=data.get("last_name"),
         email=data.get("email"),
@@ -130,6 +160,7 @@ def create_candidate():
         at_least_18=data.get("at_least_18"),
         needs_visa_sponsorship=data.get("needs_visa_sponsorship"),
         family_in_org=data.get("family_in_org"),
+        ssn=data.get("ssn"),
         availability=data.get("availability"),
         education=data.get("education"),
         certificates=data.get("certificates"),
@@ -180,6 +211,22 @@ def update_candidate(cand_id):
         if existing_phone:
             return {"message": "A candidate with this phone number already exists"}, 409
     
+    # Validate SSN if being updated (globally unique)
+    if "ssn" in data:
+        ssn = (data.get("ssn") or "").strip()
+        if not ssn:
+            return {"message": "SSN is required"}, 400
+        
+        if len(ssn) < 4 or len(ssn) > 10:
+            return {"message": "SSN must be between 4 and 10 characters"}, 400
+        
+        existing_ssn = Candidate.query.filter(
+            Candidate.ssn == ssn,
+            Candidate.id != cand_id
+        ).first()
+        if existing_ssn:
+            return {"message": "A candidate with this SSN already exists"}, 409
+    
     # Validate password if being updated
     if "password" in data and data.get("password"):
         password = data.get("password")
@@ -196,7 +243,7 @@ def update_candidate(cand_id):
         "expected_wage", "contact_current_employer", "recent_degree",
         "authorized_work_us", "authorized_without_sponsorship",
         "referral_source", "at_least_18", "needs_visa_sponsorship",
-        "family_in_org", "availability", "education", "certificates",
+        "family_in_org", "ssn", "availability", "education", "certificates",
     ]:
         if field in data:
             setattr(c, field, data[field])
@@ -353,7 +400,7 @@ def update_my_profile():
         "expected_wage", "contact_current_employer", "recent_degree",
         "authorized_work_us", "authorized_without_sponsorship",
         "referral_source", "at_least_18", "needs_visa_sponsorship",
-        "family_in_org", "availability", "education", "certificates",
+        "family_in_org", "ssn", "availability", "education", "certificates",
     ]:
         if field in data:
             setattr(candidate, field, data[field])
