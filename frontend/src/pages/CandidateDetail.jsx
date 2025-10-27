@@ -7,7 +7,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Alert, Chip, Grid
 } from "@mui/material";
 import { ArrowBack, Person, Email, Phone, Work, Add, Download } from "@mui/icons-material";
-import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume } from "../api";
+import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume, generateResumeAsync, getJobStatus, downloadResumeAsync } from "../api";
 import { fullName } from "../utils/display";
 
 export default function CandidateDetail() {
@@ -17,6 +17,8 @@ export default function CandidateDetail() {
   const [jobDesc, setJobDesc] = useState("");
   const [err, setErr] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [jobProgress, setJobProgress] = useState({});  // Track progress for each job
+  const [useAsync, setUseAsync] = useState(true);  // Toggle between async and sync
   
   // View dialog state
   const [viewOpen, setViewOpen] = useState(false);
@@ -69,38 +71,130 @@ export default function CandidateDetail() {
     return info;
   };
 
+  // Poll job status until complete
+  const pollJobStatus = async (jobTaskId, jobRowId) => {
+    const maxAttempts = 60;  // 60 attempts * 2s = 2 minutes max
+    let attempts = 0;
+    
+    const poll = async () => {
+      try {
+        const statusData = await getJobStatus(jobTaskId);
+        
+        // Update progress in UI
+        setJobProgress(prev => ({
+          ...prev,
+          [jobRowId]: {
+            status: statusData.status,
+            progress: statusData.progress,
+            error: statusData.error_message
+          }
+        }));
+        
+        if (statusData.status === 'SUCCESS') {
+          // Download the resume automatically
+          const blob = await downloadResumeAsync(jobTaskId);
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${cand.first_name}_${cand.last_name}_Resume.docx`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+          
+          // Clean up progress indicator
+          setTimeout(() => {
+            setJobProgress(prev => {
+              const newProgress = { ...prev };
+              delete newProgress[jobRowId];
+              return newProgress;
+            });
+          }, 3000);
+          
+          await load();  // Reload candidate data
+          return true;
+        } else if (statusData.status === 'FAILURE') {
+          setErr(statusData.error_message || 'Resume generation failed');
+          return true;
+        } else if (statusData.status === 'PROCESSING' || statusData.status === 'PENDING') {
+          attempts++;
+          if (attempts < maxAttempts) {
+            setTimeout(() => poll(), 2000);  // Poll every 2 seconds
+          } else {
+            setErr('Resume generation timed out');
+            return true;
+          }
+        }
+      } catch (e) {
+        console.error('Error polling job status:', e);
+        setErr('Error checking resume status: ' + e.message);
+        return true;
+      }
+    };
+    
+    poll();
+  };
+
   const addJob = async () => {
     let jobRowId = null;
     try {
       setErr("");
       setGenerating(true);
       
-      // Step 1: Create job record FIRST to get job_row_id
-      const response = await addCandidateJob(id, { job_id: jobId, job_description: jobDesc });
-      jobRowId = response.id; // Store the job ID for cleanup if needed
-      
-      // Step 2: Generate resume with job_row_id so content gets saved to database
-      const candidateInfo = formatCandidateInfo(cand);
-      const blob = await generateResume(jobDesc, candidateInfo, "word", id, jobRowId);
-      
-      // Step 3: Trigger download
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${cand.first_name}_${cand.last_name}_Resume.docx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      setJobId(""); 
-      setJobDesc("");
-      await load();
+      if (useAsync) {
+        // ASYNC MODE: Start background job and return immediately
+        const response = await generateResumeAsync({
+          candidate_id: parseInt(id),
+          job_id: jobId,
+          job_description: jobDesc,
+          file_type: "word"
+        });
+        
+        jobRowId = response.job_row_id;
+        
+        // Set initial progress
+        setJobProgress(prev => ({
+          ...prev,
+          [jobRowId]: {
+            status: 'PENDING',
+            progress: 0
+          }
+        }));
+        
+        // Start polling for status
+        pollJobStatus(response.job_id, jobRowId);
+        
+        setJobId(""); 
+        setJobDesc("");
+        setGenerating(false);
+        await load();
+        
+      } else {
+        // SYNC MODE (Legacy): Wait for generation to complete
+        const response = await addCandidateJob(id, { job_id: jobId, job_description: jobDesc });
+        jobRowId = response.id;
+        
+        const candidateInfo = formatCandidateInfo(cand);
+        const blob = await generateResume(jobDesc, candidateInfo, "word", id, jobRowId);
+        
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${cand.first_name}_${cand.last_name}_Resume.docx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        setJobId(""); 
+        setJobDesc("");
+        await load();
+      }
     } catch (e) { 
       setErr(e.message);
       
       // If resume generation failed after creating job, delete the job record
-      if (jobRowId) {
+      if (jobRowId && !useAsync) {
         try {
           await deleteCandidateJob(id, jobRowId);
           console.log("Cleaned up job record after resume generation failure");
@@ -109,7 +203,9 @@ export default function CandidateDetail() {
         }
       }
     } finally {
-      setGenerating(false);
+      if (!useAsync) {
+        setGenerating(false);
+      }
     }
   };
 
@@ -455,26 +551,38 @@ ${job.resume_content}`;
                   </TableCell>
                   <TableCell>
                     <Stack direction="row" spacing={1} alignItems="center">
-                      {j.resume_content ? (
-                        <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
+                      {jobProgress[j.id] ? (
+                        // Show progress indicator for jobs being generated
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CircularProgress size={20} variant="determinate" value={jobProgress[j.id].progress} />
+                          <Typography variant="caption" sx={{ fontWeight: 600 }}>
+                            {jobProgress[j.id].status === 'PROCESSING' ? 
+                              `Generating... ${jobProgress[j.id].progress}%` : 
+                              'Queued...'}
+                          </Typography>
+                        </Box>
+                      ) : j.resume_content ? (
+                        // Job completed
+                        <>
+                          <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
+                          <Button
+                            size="small"
+                            variant="text"
+                            startIcon={<Download />}
+                            onClick={() => handleDownloadResume(j)}
+                            sx={{ 
+                              textTransform: "none", 
+                              fontWeight: 500,
+                              minWidth: "auto",
+                              px: 1
+                            }}
+                          >
+                            Download
+                          </Button>
+                        </>
                       ) : (
+                        // Job created but no resume yet
                         <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600 }} />
-                      )}
-                      {j.resume_content && (
-                        <Button
-                          size="small"
-                          variant="text"
-                          startIcon={<Download />}
-                          onClick={() => handleDownloadResume(j)}
-                          sx={{ 
-                            textTransform: "none", 
-                            fontWeight: 500,
-                            minWidth: "auto",
-                            px: 1
-                          }}
-                        >
-                          Download
-                        </Button>
                       )}
                     </Stack>
                   </TableCell>

@@ -177,3 +177,48 @@ class CandidateJob(db.Model):
     docx_path = db.Column(db.String(512))
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+
+# --- NEW: Async Job Tracking for Resume Generation ---
+class ResumeGenerationJob(db.Model):
+    """Track async resume generation jobs"""
+    __tablename__ = 'resume_generation_job'
+    
+    id = db.Column(db.String(255), primary_key=True)  # Celery task ID
+    candidate_id = db.Column(db.Integer, db.ForeignKey("candidate.id"), nullable=False, index=True)
+    job_row_id = db.Column(db.Integer, db.ForeignKey("candidate_job.id"), nullable=True, index=True)
+    
+    # Job details
+    status = db.Column(db.String(50), default='PENDING', index=True)  # PENDING, PROCESSING, SUCCESS, FAILURE
+    progress = db.Column(db.Integer, default=0)  # 0-100
+    
+    # Input parameters
+    file_type = db.Column(db.String(20), default='word')  # word or pdf
+    
+    # Results
+    result_url = db.Column(db.String(512))  # URL to download the resume (if stored)
+    error_message = db.Column(db.Text)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    started_at = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    
+    # Relationships
+    candidate = relationship("Candidate", backref="resume_jobs", lazy=True)
+    candidate_job = relationship("CandidateJob", backref="generation_jobs", lazy=True)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "candidate_id": self.candidate_id,
+            "job_row_id": self.job_row_id,
+            "status": self.status,
+            "progress": self.progress,
+            "file_type": self.file_type,
+            "result_url": self.result_url,
+            "error_message": self.error_message,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+        }

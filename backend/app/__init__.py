@@ -44,6 +44,7 @@ def create_app():
     from .ai import bp as ai_bp
     from .public import bp as public_bp
     from .candidateresumebuilder import bp as resume_bp
+    from .resume_async import bp as resume_async_bp
 
     app.register_blueprint(auth_bp,  url_prefix="/api/auth")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
@@ -51,6 +52,7 @@ def create_app():
     app.register_blueprint(ai_bp,    url_prefix="/api/ai")
     app.register_blueprint(public_bp, url_prefix="/api/public")
     app.register_blueprint(resume_bp, url_prefix="/api/resume")
+    app.register_blueprint(resume_async_bp, url_prefix="/api/resume-async")
 
     @app.get("/api/healthz")
     def health():

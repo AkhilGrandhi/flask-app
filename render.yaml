@@ -13,21 +13,80 @@ services:
         name: Cache-Control
         value: public, max-age=31536000, immutable
 
-  # Backend API (if deployed separately on Render)
+  # Redis (Required for Celery)
+  - type: redis
+    name: flask-app-redis-dev
+    region: oregon
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # Allow all connections
+
+  # Backend API
   - type: web
     name: flask-app-backend-dev
     env: python
     region: oregon
-    plan: free
+    plan: starter
     buildCommand: cd backend && pip install -r requirements.txt && python run_migrations.py
-    startCommand: cd backend && gunicorn wsgi:app
+    startCommand: cd backend && gunicorn wsgi:app --workers ${GUNICORN_WORKERS:-8} --threads ${GUNICORN_THREADS:-2} --timeout 120 --worker-class gthread --bind 0.0.0.0:$PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: DATABASE_URL
         sync: false
+      - key: REDIS_URL
+        fromService:
+          name: flask-app-redis-dev
+          type: redis
+          property: connectionString
       - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
         generateValue: true
       - key: FLASK_ENV
         value: production
+      - key: OPENAI_API_KEY
+        sync: false
+
+  # Celery Worker (Background Job Processing)
+  - type: worker
+    name: flask-app-celery-worker-dev
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && celery -A celery_config.celery_app worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-4}
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          name: flask-app-redis-dev
+          type: redis
+          property: connectionString
+      - key: SECRET_KEY
+        sync: false
+      - key: FLASK_ENV
+        value: production
+      - key: OPENAI_API_KEY
+        sync: false
+
+  # Celery Flower (Optional - Job Monitoring UI)
+  - type: web
+    name: flask-app-flower-dev
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && celery -A celery_config.celery_app flower --port=$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: REDIS_URL
+        fromService:
+          name: flask-app-redis-dev
+          type: redis
+          property: connectionString
 

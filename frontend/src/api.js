@@ -75,7 +75,7 @@ export const addCandidateJob   = (id, payload)      => api(`/candidates/${id}/jo
 export const updateCandidateJob = (id, jobRowId, payload) => api(`/candidates/${id}/jobs/${jobRowId}`, { method: "PUT", body: payload });
 export const deleteCandidateJob = (id, jobRowId)    => api(`/candidates/${id}/jobs/${jobRowId}`, { method: "DELETE" });
 
-// Resume generation
+// Resume generation (sync - legacy)
 export const generateResume = async (job_desc, candidate_info, file_type = "word", candidate_id = null, job_row_id = null) => {
   const res = await fetch(`${API}/resume/generate`, {
     method: "POST",
@@ -89,4 +89,29 @@ export const generateResume = async (job_desc, candidate_info, file_type = "word
   }
   return res.blob(); // Return blob for download
 };
+
+// Resume generation (async - NEW)
+export const generateResumeAsync = (payload) => 
+  api("/resume-async/generate-async", { method: "POST", body: payload });
+
+export const getJobStatus = (jobId) => 
+  api(`/resume-async/job-status/${jobId}`);
+
+export const downloadResumeAsync = async (jobId) => {
+  const res = await fetch(`${API}/resume-async/download/${jobId}`, {
+    method: "GET",
+    credentials: "include"
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || res.statusText);
+  }
+  return res.blob();
+};
+
+export const getMyJobs = () => 
+  api("/resume-async/my-jobs");
+
+export const cancelJob = (jobId) => 
+  api(`/resume-async/job/${jobId}`, { method: "DELETE" });
 
