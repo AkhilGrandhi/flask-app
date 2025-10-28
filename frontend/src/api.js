@@ -52,6 +52,7 @@ export const listUsers = () => api("/admin/users");
 export const createUser = (payload) => api("/admin/users", { method:"POST", body: payload });
 export const updateUser = (id, payload) => api(`/admin/users/${id}`, { method:"PUT", body: payload });
 export const deleteUser = (id) => api(`/admin/users/${id}`, { method:"DELETE" });
+export const getUserCandidates = (id) => api(`/admin/users/${id}/candidates`);
 
 // Admin candidates
 export const listAllCandidates = () => api("/admin/candidates");

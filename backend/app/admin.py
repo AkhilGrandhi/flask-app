@@ -99,6 +99,16 @@ def delete_user(user_id):
     db.session.delete(u); db.session.commit()
     return {"message":"User deleted"}
 
+@bp.get("/users/<int:user_id>/candidates")
+@jwt_required()
+def get_user_candidates(user_id):
+    require_admin()
+    # Verify user exists
+    u = User.query.get_or_404(user_id)
+    # Get all candidates created by this user
+    candidates = Candidate.query.filter_by(created_by_user_id=user_id).order_by(Candidate.id.desc()).all()
+    return {"user": u.to_dict(), "candidates": [c.to_dict(include_jobs=True) for c in candidates]}
+
 # ---- Candidates (admin view) ----
 @bp.get("/candidates")
 @jwt_required()

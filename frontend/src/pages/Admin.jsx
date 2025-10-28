@@ -12,7 +12,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 
 import {
-  listUsers, createUser, updateUser, deleteUser,
+  listUsers, createUser, updateUser, deleteUser, getUserCandidates,
   listAllCandidates, createCandidate, adminUpdateCandidate, adminDeleteCandidate
 } from "../api";
 
@@ -29,58 +29,59 @@ export default function Admin() {
   const [tab, setTab] = useState(0);
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 2, mb: 2, height: "calc(100vh - 32px)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
       {/* Header Section */}
       <Box sx={{ 
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center", 
-        mb: 3,
-        pb: 2,
+        mb: 2,
+        pb: 1.5,
         borderBottom: "2px solid",
-        borderColor: "primary.main"
+        borderColor: "primary.main",
+        flexShrink: 0
       }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
             src="/only_logo.png" 
             alt="Data Fyre Logo" 
-            style={{ height: "60px", width: "auto", objectFit: "contain" }}
+            style={{ height: "45px", width: "auto", objectFit: "contain" }}
           />
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.25 }}>
               Admin Panel
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
               Manage users and candidates across the entire system
             </Typography>
           </Box>
         </Box>
 
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Box sx={{ textAlign: "right", mr: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box sx={{ textAlign: "right", mr: 0.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
               Admin Dashboard
             </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>
               {fullName(user)}
           </Typography>
           </Box>
           <Avatar sx={{ 
-            width: 48, 
-            height: 48, 
+            width: 40, 
+            height: 40, 
             bgcolor: "error.main",
-            fontSize: "1.2rem",
+            fontSize: "1rem",
             fontWeight: 600
           }}>
             {initials(user)}
           </Avatar>
-          <Button onClick={logout} variant="outlined" color="error">
+          <Button onClick={logout} variant="outlined" color="error" size="small">
             Logout
           </Button>
         </Stack>
       </Box>
 
-      <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
         <Tabs 
           value={tab} 
           onChange={(_,v)=>setTab(v)} 
@@ -89,11 +90,12 @@ export default function Admin() {
             bgcolor: "grey.50",
             borderBottom: "1px solid",
             borderColor: "divider",
+            flexShrink: 0,
             "& .MuiTab-root": {
               fontWeight: 600,
-              fontSize: "1rem",
-              py: 2,
-              minHeight: 60,
+              fontSize: "0.95rem",
+              py: 1.5,
+              minHeight: 48,
               "&.Mui-selected": {
                 color: "primary.main"
               }
@@ -106,7 +108,7 @@ export default function Admin() {
           <Tab label="👥 Users" />
           <Tab label="📋 Candidates" />
         </Tabs>
-        <Box sx={{ p: 3, pt: 1.5 }}>
+        <Box sx={{ p: 2, pt: 1.5, flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {tab === 0 ? <UsersTab /> : <CandidatesTab />}
         </Box>
       </Paper>
@@ -124,6 +126,10 @@ function UsersTab() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewingUser, setViewingUser] = useState(null);
+  const [userCandidates, setUserCandidates] = useState([]);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
 
   const load = async () => { 
     setLoading(true);
@@ -187,6 +193,24 @@ function UsersTab() {
     await deleteUser(id); await load();
   };
 
+  const viewUserCandidates = async (user) => {
+    setViewingUser(user);
+    setViewOpen(true);
+    setLoadingCandidates(true);
+    try {
+      const data = await getUserCandidates(user.id);
+      setUserCandidates(data.candidates || []);
+    } catch (e) {
+      setToast({ 
+        open: true, 
+        message: `Failed to load candidates: ${e.message}`, 
+        severity: 'error' 
+      });
+    } finally {
+      setLoadingCandidates(false);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner message="Loading users..." />;
   }
@@ -194,11 +218,11 @@ function UsersTab() {
   return (
     <>
       {/* Stats Card */}
-      <Box sx={{ mb: 4.5 }}>
+      <Box sx={{ mb: 2, flexShrink: 0 }}>
         <Paper 
           elevation={2} 
           sx={{ 
-            p: 2, 
+            p: 1.5, 
             background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
             color: "white",
             borderRadius: 2,
@@ -208,23 +232,23 @@ function UsersTab() {
           }}
         >
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.25 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.25 }}>
               {rows.length}
             </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
+            <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.8rem" }}>
               Total Users in System
             </Typography>
           </Box>
           <Box 
             sx={{ 
-              width: 50, 
-              height: 50, 
+              width: 40, 
+              height: 40, 
               borderRadius: "50%", 
               bgcolor: "rgba(255,255,255,0.25)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "1.6rem"
+              fontSize: "1.3rem"
             }}
           >
             👤
@@ -233,18 +257,19 @@ function UsersTab() {
       </Box>
 
       {/* Users Table */}
-      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
         <Box sx={{ 
-          px: 2.5,
-          py: 1.5, 
+          px: 2,
+          py: 1.25, 
           bgcolor: "grey.50",
           borderBottom: "1px solid",
           borderColor: "divider",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center"
+          alignItems: "center",
+          flexShrink: 0
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
             All Users
           </Typography>
           <Button 
@@ -253,8 +278,9 @@ function UsersTab() {
             size="small"
             sx={{ 
               fontWeight: 600,
-              px: 2.5,
-              py: 0.75,
+              px: 2,
+              py: 0.5,
+              fontSize: "0.85rem",
               boxShadow: 2,
               "&:hover": {
                 transform: "translateY(-1px)",
@@ -268,15 +294,16 @@ function UsersTab() {
         </Box>
 
         {rows.length > 0 ? (
-      <Table size="small">
+          <Box sx={{ flex: 1, overflow: "auto" }}>
+      <Table size="small" stickyHeader>
         <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Mobile</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Role</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Mobile</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Role</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -326,6 +353,17 @@ function UsersTab() {
                     <Stack direction="row" spacing={1} justifyContent="flex-end">
                       <Button 
                         size="small" 
+                        variant="outlined"
+                        onClick={()=>viewUserCandidates(r)}
+                        sx={{ 
+                          textTransform: "none",
+                          fontWeight: 500
+                        }}
+                      >
+                        View
+                      </Button>
+                      <Button 
+                        size="small" 
                         variant="contained"
                         onClick={()=>startEdit(r)}
                         sx={{ 
@@ -353,6 +391,7 @@ function UsersTab() {
           ))}
         </TableBody>
       </Table>
+          </Box>
         ) : (
           <Box sx={{ 
             textAlign: "center", 
@@ -447,6 +486,128 @@ function UsersTab() {
           >
             {submitting ? (editing ? "Saving..." : "Creating...") : (editing ? "Save" : "Create")}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View User Candidates Dialog */}
+      <Dialog open={viewOpen} onClose={()=>setViewOpen(false)} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            Candidates for {viewingUser?.name}
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+            Email: {viewingUser?.email} • Role: {viewingUser?.role}
+          </Typography>
+        </DialogTitle>
+        <DialogContent dividers sx={{ minHeight: 300 }}>
+          {loadingCandidates ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 8 }}>
+              <CircularProgress />
+              <Typography sx={{ ml: 2 }}>Loading candidates...</Typography>
+            </Box>
+          ) : userCandidates.length > 0 ? (
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                Total Candidates: {userCandidates.length}
+              </Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: "grey.100" }}>
+                    <TableCell sx={{ fontWeight: 600 }}>ID</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Visa Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Applications</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {userCandidates.map(c => (
+                    <TableRow key={c.id} hover>
+                      <TableCell>#{c.id}</TableCell>
+                      <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>
+                        {c.first_name} {c.last_name}
+                      </TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>{c.email}</TableCell>
+                      <TableCell sx={{ color: "text.secondary" }}>{c.phone}</TableCell>
+                      <TableCell>
+                        <Box 
+                          component="span" 
+                          sx={{ 
+                            px: 1, 
+                            py: 0.5, 
+                            borderRadius: 1, 
+                            bgcolor: "info.light",
+                            color: "white",
+                            fontSize: "0.75rem",
+                            fontWeight: 600
+                          }}
+                        >
+                          {c.visa_status || "N/A"}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box 
+                          component="span" 
+                          sx={{ 
+                            px: 1.5, 
+                            py: 0.5, 
+                            borderRadius: 1, 
+                            bgcolor: "success.light",
+                            color: "white",
+                            fontSize: "0.75rem",
+                            fontWeight: 600
+                          }}
+                        >
+                          {c.jobs?.length || 0}
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Button 
+                          component={RouterLink}
+                          to={`/candidates/${c.id}`}
+                          size="small" 
+                          variant="contained"
+                          sx={{ 
+                            textTransform: "none",
+                            fontWeight: 500
+                          }}
+                        >
+                          View Details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          ) : (
+            <Box sx={{ 
+              textAlign: "center", 
+              py: 8,
+              px: 2
+            }}>
+              <Avatar sx={{ 
+                width: 80, 
+                height: 80, 
+                mx: "auto", 
+                mb: 2,
+                bgcolor: "grey.200"
+              }}>
+                <Typography variant="h3">📋</Typography>
+              </Avatar>
+              <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                No Candidates Found
+              </Typography>
+              <Typography color="text.secondary">
+                This user hasn't created any candidates yet
+              </Typography>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={()=>setViewOpen(false)} variant="contained">Close</Button>
         </DialogActions>
       </Dialog>
 
@@ -766,14 +927,14 @@ function CandidatesTab() {
   return (
     <>
       {/* Stats Cards */}
-      <Box sx={{ mb: 5.5 }}>
-        <Grid container spacing={2}>
+      <Box sx={{ mb: 2, flexShrink: 0 }}>
+        <Grid container spacing={1.5}>
           {/* Total Candidates Card */}
           <Grid item xs={12} sm={6}>
             <Paper 
               elevation={2} 
               sx={{ 
-                p: 2, 
+                p: 1.5, 
                 background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
                 color: "white",
                 borderRadius: 2,
@@ -784,23 +945,23 @@ function CandidatesTab() {
               }}
             >
               <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.25 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.25 }}>
                   {rows.length}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
+                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.8rem" }}>
                   Total Candidates
                 </Typography>
               </Box>
               <Box 
                 sx={{ 
-                  width: 50, 
-                  height: 50, 
+                  width: 40, 
+                  height: 40, 
                   borderRadius: "50%", 
                   bgcolor: "rgba(255,255,255,0.25)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "1.6rem"
+                  fontSize: "1.3rem"
                 }}
               >
                 👥
@@ -813,7 +974,7 @@ function CandidatesTab() {
             <Paper 
               elevation={2} 
               sx={{ 
-                p: 2, 
+                p: 1.5, 
                 background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
                 color: "white",
                 borderRadius: 2,
@@ -824,7 +985,7 @@ function CandidatesTab() {
               }}
             >
               <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.25 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.25 }}>
                   {(() => {
                     const jobIds = new Set();
                     rows.forEach(candidate => {
@@ -835,20 +996,20 @@ function CandidatesTab() {
                     return jobIds.size;
                   })()}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
+                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.8rem" }}>
                   Total Applications
                 </Typography>
               </Box>
               <Box 
                 sx={{ 
-                  width: 50, 
-                  height: 50, 
+                  width: 40, 
+                  height: 40, 
                   borderRadius: "50%", 
                   bgcolor: "rgba(255,255,255,0.25)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "1.6rem"
+                  fontSize: "1.3rem"
                 }}
               >
                 💼
@@ -859,18 +1020,19 @@ function CandidatesTab() {
       </Box>
 
       {/* Candidates Table */}
-      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
         <Box sx={{ 
-          px: 2.5,
-          py: 1.5, 
+          px: 2,
+          py: 1.25, 
           bgcolor: "grey.50",
           borderBottom: "1px solid",
           borderColor: "divider",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center"
+          alignItems: "center",
+          flexShrink: 0
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
             All Candidates
           </Typography>
           <Button 
@@ -879,8 +1041,9 @@ function CandidatesTab() {
             size="small"
             sx={{ 
               fontWeight: 600,
-              px: 2.5,
-              py: 0.75,
+              px: 2,
+              py: 0.5,
+              fontSize: "0.85rem",
               boxShadow: 2,
               "&:hover": {
                 transform: "translateY(-1px)",
@@ -894,15 +1057,16 @@ function CandidatesTab() {
         </Box>
 
         {rows.length > 0 ? (
-      <Table size="small">
+          <Box sx={{ flex: 1, overflow: "auto" }}>
+      <Table size="small" stickyHeader>
         <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Phone</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Creator</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Phone</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Creator</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -995,6 +1159,7 @@ function CandidatesTab() {
           ))}
         </TableBody>
       </Table>
+          </Box>
         ) : (
           <Box sx={{ 
             textAlign: "center", 
