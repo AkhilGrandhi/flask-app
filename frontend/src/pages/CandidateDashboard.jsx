@@ -3,7 +3,7 @@ import {
   Container, Box, Typography, Paper, Table, TableHead,
   TableRow, TableCell, TableBody, Button, Avatar, Stack, Grid,
   Dialog, DialogTitle, DialogContent, DialogActions, Chip, Divider, TextField, Alert,
-  FormControl, InputLabel, Select, MenuItem, CircularProgress
+  FormControl, InputLabel, Select, MenuItem, CircularProgress, Snackbar
 } from "@mui/material";
 import {
   PersonOutline, EmailOutlined, PhoneOutlined,
@@ -86,6 +86,8 @@ export default function CandidateDashboard() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editError, setEditError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
   
   // Generate Resume state (for Silver subscribers)
   const [jobId, setJobId] = useState("");
@@ -112,7 +114,11 @@ export default function CandidateDashboard() {
 
   const handleDownloadResume = (job) => {
     if (!job.resume_content) {
-      setError("No resume content available to download");
+      setToast({ 
+        open: true, 
+        message: '⚠️ No resume content available to download', 
+        severity: 'warning' 
+      });
       return;
     }
 
@@ -133,9 +139,19 @@ ${job.resume_content}`;
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      setToast({ 
+        open: true, 
+        message: '✓ Resume downloaded successfully!', 
+        severity: 'success' 
+      });
     } catch (e) {
       console.error("Error downloading resume:", e);
-      setError("Failed to download resume: " + e.message);
+      setToast({ 
+        open: true, 
+        message: `✗ Failed to download resume: ${e.message}`, 
+        severity: 'error' 
+      });
     }
   };
 
@@ -191,9 +207,19 @@ ${job.resume_content}`;
       
       setJobId(""); 
       setJobDesc("");
+      setToast({ 
+        open: true, 
+        message: '✓ Resume generated and downloaded successfully!', 
+        severity: 'success' 
+      });
       await load();
     } catch (e) { 
       setGenerateError(e.message);
+      setToast({ 
+        open: true, 
+        message: `✗ Failed to generate resume: ${e.message}`, 
+        severity: 'error' 
+      });
       
       // If resume generation failed after creating job, delete the job record
       if (jobRowId) {
@@ -1007,11 +1033,12 @@ ${job.resume_content}`;
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
-          <Button onClick={() => setEditOpen(false)} variant="outlined">Cancel</Button>
+          <Button onClick={() => setEditOpen(false)} variant="outlined" disabled={submitting}>Cancel</Button>
           <Button
             variant="contained"
             onClick={async () => {
               try {
+                setSubmitting(true);
                 setEditError("");
                 
                 // Clean the data before sending - remove fields that shouldn't be updated
@@ -1027,15 +1054,29 @@ ${job.resume_content}`;
                 
                 setCandidate(response.candidate);
                 setEditOpen(false);
+                setToast({ 
+                  open: true, 
+                  message: '✓ Profile updated successfully!', 
+                  severity: 'success' 
+                });
                 await load();
               } catch (e) {
                 console.error("Update error:", e);
                 setEditError(e.message || "Failed to update profile");
+                setToast({ 
+                  open: true, 
+                  message: `✗ Failed to update profile: ${e.message}`, 
+                  severity: 'error' 
+                });
+              } finally {
+                setSubmitting(false);
               }
             }}
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
             sx={{ px: 4 }}
           >
-            Save Changes
+            {submitting ? "Saving..." : "Save Changes"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1500,6 +1541,23 @@ ${job.resume_content}`;
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Toast Notification */}
+      <Snackbar 
+        open={toast.open} 
+        autoHideDuration={4000} 
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setToast({ ...toast, open: false })} 
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

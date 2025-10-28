@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import {
   Container, Box, Typography, Button, Paper,
   Table, TableHead, TableRow, TableCell, TableBody,
-  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Stack, Grid, Alert
+  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Stack, Grid, Alert,
+  Snackbar, CircularProgress
 } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../AuthContext";
@@ -20,6 +21,8 @@ export default function UserDashboard() {
   const [form, setForm] = useState({});
   const [err, setErr] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
   const load = async () => {
     setLoading(true);
@@ -154,6 +157,7 @@ export default function UserDashboard() {
 
   const submit = async () => {
     try {
+      setSubmitting(true);
       setErr("");
       setFieldErrors({});
       
@@ -228,11 +232,22 @@ export default function UserDashboard() {
       
       if (editing) await updateCandidate(editing.id, dataToSend);
       else await createCandidate(dataToSend);
+      
       setOpen(false);
       setFieldErrors({});
+      setToast({ 
+        open: true, 
+        message: editing ? '✓ Candidate updated successfully!' : '✓ Candidate created successfully!', 
+        severity: 'success' 
+      });
       await load();
     } catch (e) { 
       setErr(e.message);
+      setToast({ 
+        open: true, 
+        message: `✗ Failed to ${editing ? 'update' : 'create'} candidate: ${e.message}`, 
+        severity: 'error' 
+      });
       // Also check if backend returned duplicate errors
       if (e.message.includes("email already exists")) {
         setFieldErrors({ ...fieldErrors, email: e.message });
@@ -240,6 +255,8 @@ export default function UserDashboard() {
       if (e.message.includes("phone number already exists")) {
         setFieldErrors({ ...fieldErrors, phone: e.message });
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -584,17 +601,35 @@ export default function UserDashboard() {
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
-          <Button onClick={() => setOpen(false)} variant="outlined">Cancel</Button>
+          <Button onClick={() => setOpen(false)} variant="outlined" disabled={submitting}>Cancel</Button>
           <Button 
             variant="contained" 
             onClick={submit}
-            disabled={Object.keys(fieldErrors).length > 0}
+            disabled={submitting || Object.keys(fieldErrors).length > 0}
+            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
             sx={{ px: 4 }}
           >
-            {editing ? "Save Changes" : "Create Candidate"}
+            {submitting ? (editing ? "Saving..." : "Creating...") : (editing ? "Save Changes" : "Create Candidate")}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Toast Notification */}
+      <Snackbar 
+        open={toast.open} 
+        autoHideDuration={4000} 
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setToast({ ...toast, open: false })} 
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

@@ -3,7 +3,8 @@ import {
   Tabs, Tab, Container, Box, Typography, Button, Paper,
   Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert, Autocomplete
+  TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert, Autocomplete,
+  Snackbar, CircularProgress
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
@@ -121,6 +122,8 @@ function UsersTab() {
   const [form, setForm] = useState({ name:"", email:"", mobile:"", password:"", role:"user" });
   const [err, setErr] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
   const load = async () => { 
     setLoading(true);
@@ -138,6 +141,7 @@ function UsersTab() {
 
   const submit = async () => {
     try {
+      setSubmitting(true);
       setErr("");
       
       // Client-side validation
@@ -158,8 +162,24 @@ function UsersTab() {
       
       if (editing) await updateUser(editing.id, form);
       else await createUser(form);
-      setOpen(false); await load();
-    } catch (e) { setErr(e.message); }
+      
+      setOpen(false);
+      setToast({ 
+        open: true, 
+        message: editing ? '✓ User updated successfully!' : '✓ User created successfully!', 
+        severity: 'success' 
+      });
+      await load();
+    } catch (e) { 
+      setErr(e.message);
+      setToast({ 
+        open: true, 
+        message: `✗ Failed to ${editing ? 'update' : 'create'} user: ${e.message}`, 
+        severity: 'error' 
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const remove = async (id) => {
@@ -418,10 +438,34 @@ function UsersTab() {
           </Select>
         </DialogContent>
         <DialogActions>
-          <Button onClick={()=>setOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={submit}>{editing ? "Save" : "Create"}</Button>
+          <Button onClick={()=>setOpen(false)} disabled={submitting}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            onClick={submit}
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {submitting ? (editing ? "Saving..." : "Creating...") : (editing ? "Save" : "Create")}
+          </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Toast Notification */}
+      <Snackbar 
+        open={toast.open} 
+        autoHideDuration={4000} 
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setToast({ ...toast, open: false })} 
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }
@@ -438,6 +482,8 @@ function CandidatesTab() {
   const [form, setForm] = useState({});
   const [err, setErr] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
 
   const load = async () => {
     const d = await listAllCandidates();
@@ -592,6 +638,7 @@ function CandidatesTab() {
 
   const submit = async () => {
     try {
+      setSubmitting(true);
       setErr("");
       setFieldErrors({});
       
@@ -678,11 +725,22 @@ function CandidatesTab() {
       } else {
         await createCandidate(dataToSend);
       }
+      
       setOpen(false);
       setFieldErrors({});
+      setToast({ 
+        open: true, 
+        message: editing ? '✓ Candidate updated successfully!' : '✓ Candidate created successfully!', 
+        severity: 'success' 
+      });
       await load();
     } catch (e) {
       setErr(e.message);
+      setToast({ 
+        open: true, 
+        message: `✗ Failed to ${editing ? 'update' : 'create'} candidate: ${e.message}`, 
+        severity: 'error' 
+      });
       // Also check if backend returned duplicate errors
       if (e.message.includes("email already exists")) {
         setFieldErrors({ ...fieldErrors, email: e.message });
@@ -690,6 +748,8 @@ function CandidatesTab() {
       if (e.message.includes("phone number already exists")) {
         setFieldErrors({ ...fieldErrors, phone: e.message });
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -1093,17 +1153,35 @@ function CandidatesTab() {
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
-          <Button onClick={()=>setOpen(false)} variant="outlined">Cancel</Button>
+          <Button onClick={()=>setOpen(false)} variant="outlined" disabled={submitting}>Cancel</Button>
           <Button 
             variant="contained" 
             onClick={submit}
-            disabled={Object.keys(fieldErrors).length > 0 || !assignedUserId}
+            disabled={submitting || Object.keys(fieldErrors).length > 0 || !assignedUserId}
+            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
             sx={{ px: 4 }}
           >
-            {editing ? "Save Changes" : "Create Candidate"}
+            {submitting ? (editing ? "Saving..." : "Creating...") : (editing ? "Save Changes" : "Create Candidate")}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Toast Notification */}
+      <Snackbar 
+        open={toast.open} 
+        autoHideDuration={4000} 
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setToast({ ...toast, open: false })} 
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }
