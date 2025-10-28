@@ -29,19 +29,19 @@ async function saveBase(base) {
   await chrome.storage.sync.set({ backendBase: base.replace(/\/+$/, "") });
   console.log("[popup] saved backendBase:", base);
 }
-function withTimeout(promise, ms = 2500) {
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), ms);
-  return promise.finally(() => clearTimeout(t));
-}
 async function checkBase(base) {
   const url = `${base.replace(/\/+$/, "")}/api/public/users`;
+  const ac = new AbortController();
+  const timeout = setTimeout(() => ac.abort(), 2500);
+  
   try {
-    const res = await withTimeout(fetch(url, { signal: new AbortController().signal }), 2500);
+    const res = await fetch(url, { signal: ac.signal });
+    clearTimeout(timeout);
     if (!res.ok) return false;
     const data = await res.json().catch(() => ({}));
     return data && typeof data === "object" && "users" in data;
   } catch {
+    clearTimeout(timeout);
     return false;
   }
 }
@@ -91,19 +91,6 @@ async function api(path, opts = {}) {
   if (!res.ok) throw new Error(data.message || res.statusText);
   return data;
 }
-// async function api(path) {
-//   let base = await getStoredBase();
-//   if (!base) base = await autoDetectBase();
-//   if (!base) throw new Error("Could not detect API. Set backendBase or run Flask on :5000.");
-//   const url = `${base.replace(/\/+$/, "")}${path}`;
-//   console.log("[popup] GET", url);
-//   const res = await fetch(url);
-//   const text = await res.text();
-//   console.log("[popup] →", res.status, text);
-//   const data = (() => { try { return JSON.parse(text); } catch { return {}; } })();
-//   if (!res.ok) throw new Error(data.message || res.statusText);
-//   return data;
-// }
 
 async function loadUsersAndCandidates() {
   setStatus("📥 Loading users & candidates...", "loading");
