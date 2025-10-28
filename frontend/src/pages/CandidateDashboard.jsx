@@ -11,6 +11,7 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext";
 import { getMyCandidateProfile, updateMyCandidateProfile, addCandidateJob, generateResume, deleteCandidateJob } from "../api";
+import LoadingSpinner from "../components/LoadingSpinner";
 import {
   OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
   WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
@@ -209,11 +210,7 @@ ${job.resume_content}`;
   };
 
   if (loading) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Typography>Loading...</Typography>
-      </Container>
-    );
+    return <LoadingSpinner message="Loading your profile..." />;
   }
 
   if (error) {

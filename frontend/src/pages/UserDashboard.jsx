@@ -8,11 +8,13 @@ import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import { listMyCandidates, createCandidate, updateCandidate, deleteCandidate } from "../api";
 import CandidateForm from "../components/CandidateForm";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { fullName, initials } from "../utils/display";
 
 export default function UserDashboard() {
   const { user, logout } = useAuth();
   const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
@@ -20,8 +22,13 @@ export default function UserDashboard() {
   const [fieldErrors, setFieldErrors] = useState({});
 
   const load = async () => {
-    const d = await listMyCandidates();
-    setRows(d.candidates);
+    setLoading(true);
+    try {
+      const d = await listMyCandidates();
+      setRows(d.candidates);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -241,6 +248,10 @@ export default function UserDashboard() {
     await deleteCandidate(id);
     await load();
   };
+
+  if (loading) {
+    return <LoadingSpinner message="Loading your candidates..." />;
+  }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
