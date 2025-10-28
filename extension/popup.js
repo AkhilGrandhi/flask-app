@@ -78,7 +78,7 @@ async function saveBase(base) {
 
 // ========== Backend Detection ==========
 async function checkBase(base) {
-  const url = `${base.replace(/\/+$/, "")}/api/public/users`;
+  const url = `${base.replace(/\/+$/, "")}/api/healthz`;
   const ac = new AbortController();
   const timeout = setTimeout(() => ac.abort(), 2500);
   
@@ -87,7 +87,7 @@ async function checkBase(base) {
     clearTimeout(timeout);
     if (!res.ok) return false;
     const data = await res.json().catch(() => ({}));
-    return data && typeof data === "object" && "users" in data;
+    return data && typeof data === "object" && "status" in data;
   } catch {
     clearTimeout(timeout);
     return false;
@@ -145,11 +145,11 @@ async function api(path, opts = {}) {
   if (!base) throw new Error("Could not detect API. Check connection to backend.");
   
   const url = `${base.replace(/\/+$/, "")}${path}`;
-  const { method = "GET", body, useAuth = false } = opts;
+  const { method = "GET", body, useAuth = true } = opts;  // Changed default to true
   
   const headers = { "Content-Type": "application/json" };
   
-  // Add JWT token if useAuth is true
+  // Add JWT token if useAuth is true (now default for all calls except login)
   if (useAuth && state.token) {
     headers["Authorization"] = `Bearer ${state.token}`;
   }
@@ -175,10 +175,11 @@ async function login(mobile, password) {
   setStatus("🔐 Logging in...", "loading");
   
   try {
-    // Use token-user endpoint to get JWT
+    // Use token-user endpoint to get JWT (no auth needed for login)
     const response = await api("/api/auth/token-user", {
       method: "POST",
-      body: { mobile, password }
+      body: { mobile, password },
+      useAuth: false  // Don't send token for login request
     });
     
     if (!response.access_token) {

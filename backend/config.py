@@ -16,12 +16,26 @@ if not os.getenv("DATABASE_URL"):
     load_dotenv('.env', override=True)
 
 class Config:
+    # Security: Validate secrets in production
+    is_development = os.getenv("FLASK_ENV") == "development"
+    
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-change-me")
-    # Require DATABASE_URL to be set - no SQLite fallback
+    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt-change-me")
+    
+    # Enforce strong secrets in production
+    if not is_development:
+        if SECRET_KEY == "dev-change-me":
+            raise RuntimeError("❌ SECURITY ERROR: SECRET_KEY must be set in production! Do not use default value.")
+        if JWT_SECRET_KEY == "jwt-change-me":
+            raise RuntimeError("❌ SECURITY ERROR: JWT_SECRET_KEY must be set in production! Do not use default value.")
+        if len(SECRET_KEY) < 32:
+            raise RuntimeError("❌ SECURITY ERROR: SECRET_KEY must be at least 32 characters long.")
+        if len(JWT_SECRET_KEY) < 32:
+            raise RuntimeError("❌ SECURITY ERROR: JWT_SECRET_KEY must be at least 32 characters long.")
+    
+    # Database
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL") or "postgresql://postgres:admin@localhost:5432/flask_app_db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-    JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt-change-me")
 
     # Web UI uses cookies; Extension uses headers
     JWT_TOKEN_LOCATION = ["cookies", "headers"]

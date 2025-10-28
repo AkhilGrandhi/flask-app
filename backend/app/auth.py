@@ -5,11 +5,13 @@ from flask_jwt_extended import (
     jwt_required, get_jwt, get_jwt_identity
 )
 from .models import db, User, Candidate
+from . import limiter
 
 bp = Blueprint("auth", __name__)
 
 # Admin login (email + password)
 @bp.post("/login-admin")
+@limiter.limit("5 per minute")  # Stricter rate limit for login
 def login_admin():
     data = request.get_json() or {}
     email = (data.get("email") or "").lower().strip()
@@ -26,6 +28,7 @@ def login_admin():
 
 # User login (mobile + password)
 @bp.post("/login-user")
+@limiter.limit("5 per minute")  # Stricter rate limit for login
 def login_user():
     data = request.get_json() or {}
     mobile = (data.get("mobile") or "").strip()
@@ -42,6 +45,7 @@ def login_user():
 
 # Candidate login (phone + password)
 @bp.post("/login-candidate")
+@limiter.limit("5 per minute")  # Stricter rate limit for login
 def login_candidate():
     data = request.get_json() or {}
     phone = (data.get("phone") or "").strip()
@@ -103,6 +107,7 @@ def me():
 
 #chrom extension code
 @bp.post("/token-admin")
+@limiter.limit("5 per minute")  # Stricter rate limit for token generation
 def token_admin():
     data = request.get_json() or {}
     email = (data.get("email") or "").lower().strip()
@@ -118,6 +123,7 @@ def token_admin():
     return {"access_token": token, "role": user.role}
 
 @bp.post("/token-user")
+@limiter.limit("5 per minute")  # Stricter rate limit for token generation
 def token_user():
     data = request.get_json() or {}
     mobile = (data.get("mobile") or "").strip()

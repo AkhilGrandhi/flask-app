@@ -4,12 +4,19 @@ from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from werkzeug.security import generate_password_hash
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # Import your SQLAlchemy handle and models once (no duplicates)
 from .models import db, User
 
 migrate = Migrate()
 jwt = JWTManager()
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",  # Use Redis in production: "redis://localhost:6379"
+)
 
 def create_app():
     # instance_relative_config=True lets us use the /instance folder cleanly
@@ -24,18 +31,26 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    limiter.init_app(app)
 
-    # Allow your React app / extension to call the API in dev
+    # CORS Configuration - secure for production
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    is_dev = os.getenv("FLASK_ENV") == "development"
+    
+    if is_dev:
+        # Development: allow localhost origins
+        allowed_origins = [
+            "http://localhost:5173",
+            "http://localhost:3000",
+            frontend_url
+        ]
+    else:
+        # Production: only allow configured frontend URL
+        allowed_origins = [frontend_url] if frontend_url else []
+    
     CORS(app, 
-     resources={r"/api/*": {
-         "origins": [
-             "http://localhost:5173",
-             "http://localhost:3000",
-             frontend_url
-         ]
-     }}, 
-     supports_credentials=True)
+         resources={r"/api/*": {"origins": allowed_origins}}, 
+         supports_credentials=True)
 
     # Blueprints
     from .auth import bp as auth_bp
