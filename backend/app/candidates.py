@@ -310,9 +310,22 @@ def list_jobs(cand_id):
 @bp.post("/<int:cand_id>/jobs")
 @jwt_required()
 def add_job(cand_id):
-    uid = current_user_id()
+    # Handle both candidate and user/admin logins
+    claims = get_jwt()
+    role = claims.get("role")
+    
     c = Candidate.query.get_or_404(cand_id)
-    owns_or_404(c, uid)
+    
+    if role == "candidate":
+        # Candidate can only add jobs to their own profile
+        candidate_id = claims.get("candidate_id")
+        if candidate_id != cand_id:
+            abort(403)  # Forbidden
+    else:
+        # User/Admin - check ownership
+        uid = current_user_id()
+        owns_or_404(c, uid)
+    
     data = request.get_json() or {}
     job_id = (data.get("job_id") or "").strip()
     job_desc = (data.get("job_description") or "").strip()
@@ -327,9 +340,21 @@ def add_job(cand_id):
 @bp.put("/<int:cand_id>/jobs/<int:row_id>")
 @jwt_required()
 def update_job(cand_id, row_id):
-    uid = current_user_id()
+    # Handle both candidate and user/admin logins
+    claims = get_jwt()
+    role = claims.get("role")
+    
     c = Candidate.query.get_or_404(cand_id)
-    owns_or_404(c, uid)
+    
+    if role == "candidate":
+        # Candidate can only update their own jobs
+        candidate_id = claims.get("candidate_id")
+        if candidate_id != cand_id:
+            abort(403)
+    else:
+        # User/Admin - check ownership
+        uid = current_user_id()
+        owns_or_404(c, uid)
     
     row = CandidateJob.query.filter_by(id=row_id, candidate_id=c.id).first_or_404()
     data = request.get_json() or {}
@@ -350,9 +375,21 @@ def update_job(cand_id, row_id):
 @bp.delete("/<int:cand_id>/jobs/<int:row_id>")
 @jwt_required()
 def delete_job(cand_id, row_id):
-    uid = current_user_id()
+    # Handle both candidate and user/admin logins
+    claims = get_jwt()
+    role = claims.get("role")
+    
     c = Candidate.query.get_or_404(cand_id)
-    owns_or_404(c, uid)
+    
+    if role == "candidate":
+        # Candidate can only delete their own jobs
+        candidate_id = claims.get("candidate_id")
+        if candidate_id != cand_id:
+            abort(403)
+    else:
+        # User/Admin - check ownership
+        uid = current_user_id()
+        owns_or_404(c, uid)
 
     row = CandidateJob.query.filter_by(id=row_id, candidate_id=c.id).first_or_404()
     db.session.delete(row)

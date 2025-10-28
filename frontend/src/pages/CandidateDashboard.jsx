@@ -3,7 +3,7 @@ import {
   Container, Box, Typography, Paper, Table, TableHead,
   TableRow, TableCell, TableBody, Button, Avatar, Stack, Grid,
   Dialog, DialogTitle, DialogContent, DialogActions, Chip, Divider, TextField, Alert,
-  FormControl, InputLabel, Select, MenuItem, CircularProgress, Snackbar
+  FormControl, InputLabel, Select, MenuItem, CircularProgress, Snackbar, Menu, IconButton, Tooltip
 } from "@mui/material";
 import {
   PersonOutline, EmailOutlined, PhoneOutlined,
@@ -94,6 +94,10 @@ export default function CandidateDashboard() {
   const [jobDesc, setJobDesc] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
+  
+  // Profile menu state
+  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
+  const profileMenuOpen = Boolean(profileMenuAnchor);
 
   const load = async () => {
     try {
@@ -248,207 +252,169 @@ ${job.resume_content}`;
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Header */}
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
+      {/* Compact Header */}
+      <Box sx={{ 
+        bgcolor: 'white',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        zIndex: 1100,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        flexShrink: 0
+      }}>
+        <Container maxWidth="lg">
       <Box sx={{ 
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center", 
-        mb: 3,
-        pb: 2,
-        borderBottom: "2px solid",
-        borderColor: "primary.main"
+            py: 1.25
       }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {/* Logo and Brand */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
             src="/only_logo.png" 
             alt="Data Fyre Logo" 
-            style={{ height: "60px", width: "auto", objectFit: "contain" }}
+                style={{ height: "36px", width: "auto", objectFit: "contain" }}
           />
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-              My Dashboard
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', lineHeight: 1.1, fontSize: '1.1rem' }}>
+                  Data Fyre
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Welcome back, {candidate?.first_name}!
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  Candidate Portal
             </Typography>
           </Box>
         </Box>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Box sx={{ textAlign: "right", mr: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
-              Candidate Portal
-            </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+
+            {/* User Menu */}
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Chip 
+                label={candidate?.subscription_type === "Gold" ? "🥇 Gold" : "🥈 Silver"} 
+                sx={{ 
+                  bgcolor: candidate?.subscription_type === "Gold" ? "#FFD700" : "#C0C0C0",
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '0.7rem',
+                  height: 24
+                }}
+                size="small"
+              />
+              <Box sx={{ textAlign: "right", display: { xs: 'none', sm: 'block' } }}>
+                <Typography variant="body2" sx={{ fontSize: "0.8rem", fontWeight: 600, lineHeight: 1.2 }}>
               {candidate?.first_name} {candidate?.last_name}
             </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  {candidate?.email}
+                </Typography>
           </Box>
-          <Avatar sx={{ 
-            width: 48, 
-            height: 48, 
+              <Avatar 
+                onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
+                sx={{ 
+                  width: 32, 
+                  height: 32, 
             bgcolor: "primary.main", 
-            fontSize: "1.2rem",
-            fontWeight: 600
-          }}>
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)'
+                  }
+                }}
+              >
             {candidate?.first_name?.[0]}{candidate?.last_name?.[0]}
           </Avatar>
-          <Button onClick={logout} variant="outlined" color="error">
-            Logout
-          </Button>
-        </Stack>
-      </Box>
-
-      {/* Profile Overview Card */}
-      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", mb: 3 }}>
-        <Box sx={{ 
-          px: 2.5,
-          py: 2, 
-          bgcolor: "grey.50",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
-            Profile Overview
-          </Typography>
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<VisibilityOutlined />}
-              onClick={() => setDetailsOpen(true)}
-              sx={{ textTransform: "none" }}
-            >
-              View Full Details
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
+              <Menu
+                anchorEl={profileMenuAnchor}
+                open={profileMenuOpen}
+                onClose={() => setProfileMenuAnchor(null)}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                sx={{ mt: 1 }}
+              >
+                <MenuItem 
+                  onClick={() => {
+                    setDetailsOpen(true);
+                    setProfileMenuAnchor(null);
+                  }}
+                  sx={{ gap: 1, py: 1, px: 2, minWidth: 160 }}
+                >
+                  <VisibilityOutlined sx={{ fontSize: 18 }} />
+                  <Typography variant="body2">View Profile</Typography>
+                </MenuItem>
+                <MenuItem 
               onClick={() => {
                 setEditForm(candidate);
                 setEditError("");
                 setEditOpen(true);
-              }}
-              sx={{ textTransform: "none" }}
-            >
-              Edit Details
-            </Button>
-          </Stack>
-        </Box>
-
-        <Box sx={{ p: 3, display: "flex", justifyContent: "space-between", gap: 3 }}>
-          {/* Full Name */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
-            <Avatar sx={{ bgcolor: "primary.main", mr: 1.5, width: 36, height: 36, flexShrink: 0 }}>
-              <PersonOutline sx={{ fontSize: 20 }} />
-            </Avatar>
-            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Full Name
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {candidate?.first_name} {candidate?.last_name}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Email Address */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
-            <Avatar sx={{ bgcolor: "success.main", mr: 1.5, width: 36, height: 36, flexShrink: 0 }}>
-              <EmailOutlined sx={{ fontSize: 20 }} />
-            </Avatar>
-            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Email Address
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {candidate?.email || "Not provided"}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Mobile Number */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
-            <Avatar sx={{ bgcolor: "warning.main", mr: 1.5, width: 36, height: 36, flexShrink: 0 }}>
-              <PhoneOutlined sx={{ fontSize: 20 }} />
-            </Avatar>
-            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Mobile Number
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {candidate?.phone || "Not provided"}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Subscription Type */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
-            <Avatar sx={{ 
-              bgcolor: candidate?.subscription_type === "Gold" ? "#FFD700" : candidate?.subscription_type === "Silver" ? "#C0C0C0" : "info.main",
-              mr: 1.5, 
-              width: 36, 
-              height: 36,
-              flexShrink: 0,
-              boxShadow: candidate?.subscription_type === "Gold" ? "0 0 12px rgba(255, 215, 0, 0.5)" : candidate?.subscription_type === "Silver" ? "0 0 12px rgba(192, 192, 192, 0.5)" : "none"
-            }}>
-              <WorkspacePremium sx={{ fontSize: 20, color: candidate?.subscription_type ? "white" : undefined }} />
-            </Avatar>
-            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Subscription Type
-              </Typography>
-              <Typography 
-                variant="body1" 
+                    setProfileMenuAnchor(null);
+                  }}
+                  sx={{ gap: 1, py: 1, px: 2 }}
+                >
+                  <PersonOutline sx={{ fontSize: 18 }} />
+                  <Typography variant="body2">Edit Profile</Typography>
+                </MenuItem>
+              </Menu>
+              <Button 
+                onClick={logout} 
+                variant="outlined" 
+                size="small"
                 sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
                   fontWeight: 600, 
-                  fontSize: "0.95rem",
-                  color: candidate?.subscription_type === "Gold" ? "#FFD700" : candidate?.subscription_type === "Silver" ? "#757575" : "text.primary",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
+                  py: 0.5,
+                  px: 1.5,
+                  fontSize: '0.8rem'
                 }}
               >
-                {candidate?.subscription_type === "Gold" && "🥇 "}
-                {candidate?.subscription_type === "Silver" && "🥈 "}
-                {candidate?.subscription_type || "Not provided"}
-              </Typography>
+                Logout
+              </Button>
+            </Stack>
             </Box>
+        </Container>
           </Box>
-        </Box>
-      </Paper>
 
+      {/* Main Content */}
+      <Container maxWidth="lg" sx={{ flex: 1, py: 1.5, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
       {/* Generate Resume Section - Only for Silver Subscribers */}
       {candidate?.subscription_type === "Silver" && (
-        <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden", mb: 3, border: "2px solid #C0C0C0" }}>
+        <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", mb: 1.2, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>
           <Box sx={{ 
-            px: 2.5,
-            py: 2, 
-            bgcolor: "#f5f5f5",
-            borderBottom: "2px solid #C0C0C0",
+            px: 1.2,
+            py: 0.6, 
+            bgcolor: "#fafafa",
+            borderBottom: "1px solid",
+            borderColor: "divider",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center"
           }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.05rem", color: "#757575" }}>
+            <Box>
+              <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '0.9rem', color: "#757575" }}>
               🚀 Generate Resume
             </Typography>
+            </Box>
             <Button 
               variant="contained" 
               size="small"
               onClick={handleGenerateResume} 
               disabled={generating || !jobId || !jobDesc}
-              startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <Add />}
+              startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <Add />}
               sx={{ 
                 fontWeight: 600,
-                fontSize: "0.8rem",
+                fontSize: "0.72rem",
                 textTransform: "none",
                 bgcolor: "#757575",
+                py: 0.4,
+                px: 1.2,
                 "&:hover": { bgcolor: "#616161" },
                 "&.Mui-disabled": {
                   bgcolor: "#e0e0e0",
@@ -456,18 +422,18 @@ ${job.resume_content}`;
                 }
               }}
             >
-              {generating ? "Generating..." : "+ Generate"}
+              {generating ? "Generating..." : "Generate"}
             </Button>
           </Box>
           
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: 1 }}>
             {generateError && (
-              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setGenerateError("")}>
+              <Alert severity="error" sx={{ mb: 0.6, py: 0.2, fontSize: '0.8rem' }} onClose={() => setGenerateError("")}>
                 {generateError}
               </Alert>
             )}
             
-            <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
+            <Box sx={{ display: "flex", gap: 0.8, alignItems: "flex-start" }}>
               <Box sx={{ width: "30%" }}>
                 <TextField
                   label="Job ID"
@@ -487,12 +453,11 @@ ${job.resume_content}`;
                   onChange={(e) => setJobDesc(e.target.value)}
                   fullWidth
                   multiline
-                  rows={2}
+                  rows={1.5}
                   disabled={generating}
                   required
                   variant="outlined"
                   size="small"
-                  sx={{ minWidth: 500 }}
                 />
               </Box>
             </Box>
@@ -500,41 +465,55 @@ ${job.resume_content}`;
         </Paper>
       )}
 
-      {/* Jobs Applied Section */}
-      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+      {/* Jobs Applied Section - Compact */}
+      <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden", border: '1px solid', borderColor: 'divider', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <Box sx={{ 
-          px: 2.5,
-          py: 2, 
-          bgcolor: "grey.50",
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          px: 1.2,
+          py: 0.6, 
+          bgcolor: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderBottom: "2px solid",
+          borderColor: "primary.dark",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center"
+          alignItems: "center",
+          flexShrink: 0
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
-            Jobs Applied
+          <Box>
+            <Typography variant="body1" sx={{ fontWeight: 700, mb: 0.1, color: 'white', fontSize: '1rem' }}>
+              💼 Jobs Applied
           </Typography>
-          {candidate?.jobs && candidate.jobs.length > 0 && (
-            <Chip
-              label={`${candidate.jobs.length} Application${candidate.jobs.length !== 1 ? 's' : ''}`}
-              color="primary"
-              size="small"
-              sx={{ fontWeight: 600 }}
-            />
-          )}
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>
+              Track your applications
+            </Typography>
+          </Box>
+          <Box sx={{ 
+            bgcolor: 'white', 
+            px: 1.2, 
+            py: 0.5, 
+            borderRadius: 2,
+            boxShadow: 2
+          }}>
+            <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', textAlign: 'center', lineHeight: 1, fontSize: '1.75rem' }}>
+              {candidate?.jobs ? candidate.jobs.length : 0}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', fontWeight: 600, fontSize: '0.7rem' }}>
+              Application{(candidate?.jobs?.length || 0) !== 1 ? 's' : ''}
+            </Typography>
+          </Box>
         </Box>
 
         {candidate?.jobs && candidate.jobs.length > 0 ? (
-          <Table size="small">
+          <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job ID</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job Description</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Resume Content</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Applied Date</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }} align="center">Actions</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Job ID</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Job Description</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Resume Content</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Applied Date</TableCell>
+                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }} align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -543,59 +522,60 @@ ${job.resume_content}`;
                   key={job.id} 
                   hover
                   sx={{ 
-                    "&:hover": { bgcolor: "primary.lighter" },
-                    "& td": { py: 1.5 }
+                    "&:hover": { bgcolor: "rgba(102, 126, 234, 0.05)" },
+                    "& td": { py: 0.9 }
                   }}
                 >
-                  <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 600, color: "primary.main" }}>
+                  <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 700, color: "primary.main", fontSize: '0.85rem' }}>
                     {job.job_id}
                   </TableCell>
-                  <TableCell sx={{ maxWidth: 300 }}>
-                    <Typography variant="body2">
-                      {job.job_description.length > 80
-                        ? job.job_description.substring(0, 80) + "..."
+                  <TableCell sx={{ maxWidth: 350 }}>
+                    <Typography variant="body2" sx={{ fontSize: '0.825rem' }}>
+                      {job.job_description.length > 100
+                        ? job.job_description.substring(0, 100) + "..."
                         : job.job_description}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ maxWidth: 200 }}>
-                    {job.resume_content ? (
-                      <Typography variant="body2" color="text.secondary">
-                        {job.resume_content.length > 60
-                          ? job.resume_content.substring(0, 60) + "..."
-                          : job.resume_content}
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                        Not generated
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                  <TableCell sx={{ maxWidth: 250 }}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
                       {job.resume_content ? (
-                        <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.825rem' }}>
+                          {job.resume_content.length > 80
+                            ? job.resume_content.substring(0, 80) + "..."
+                            : job.resume_content}
+                        </Typography>
                       ) : (
-                        <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600 }} />
+                        <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: '0.825rem' }}>
+                          Not generated
+                        </Typography>
                       )}
                       {job.resume_content && (
-                        <Button
-                          size="small"
-                          variant="text"
-                          startIcon={<Download />}
-                          onClick={() => handleDownloadResume(job)}
-                          sx={{ 
-                            textTransform: "none", 
-                            fontWeight: 500,
-                            minWidth: "auto",
-                            px: 1
-                          }}
-                        >
-                          Download
-                        </Button>
+                        <Tooltip title="Download Resume" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDownloadResume(job)}
+                            sx={{ 
+                              color: 'primary.main',
+                              p: 0.5,
+                              '&:hover': {
+                                bgcolor: 'primary.lighter'
+                              }
+                            }}
+                          >
+                            <Download sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
                       )}
                     </Stack>
                   </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary" }}>
+                  <TableCell>
+                    {job.resume_content ? (
+                      <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
+                    ) : (
+                      <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
+                    )}
+                  </TableCell>
+                  <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: '0.825rem' }}>
                     {new Date(job.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell align="center">
@@ -606,15 +586,16 @@ ${job.resume_content}`;
                         setSelectedJob(job);
                         setResumeOpen(true);
                       }}
-                      sx={{ textTransform: "none", fontWeight: 500 }}
+                      sx={{ textTransform: "none", fontWeight: 600, fontSize: '0.7rem', py: 0.3, px: 1 }}
                     >
-                      View
+                      View Details
                     </Button>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </Box>
         ) : (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <Avatar sx={{ 
@@ -1542,6 +1523,8 @@ ${job.resume_content}`;
         </DialogActions>
       </Dialog>
 
+    </Container>
+
       {/* Toast Notification */}
       <Snackbar 
         open={toast.open} 
@@ -1558,7 +1541,67 @@ ${job.resume_content}`;
           {toast.message}
         </Alert>
       </Snackbar>
-    </Container>
+
+      {/* Compact Footer */}
+      <Box 
+        component="footer" 
+        sx={{ 
+          bgcolor: 'white',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          py: 1.2,
+          flexShrink: 0
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' },
+            justifyContent: 'space-between', 
+            alignItems: { xs: 'center', md: 'center' },
+            gap: 1.2
+          }}>
+            {/* Logo & Copyright */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+              <img 
+                src="/only_logo.png" 
+                alt="Data Fyre Logo" 
+                style={{ height: "20px", width: "auto", objectFit: "contain" }}
+              />
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                © {new Date().getFullYear()} Data Fyre. All rights reserved.
+              </Typography>
+            </Box>
+
+            {/* Links */}
+            <Stack direction="row" spacing={1.8} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                About
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Help
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Privacy
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Terms
+              </Typography>
+            </Stack>
+
+            {/* Contact */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                <EmailOutlined sx={{ fontSize: 13, color: 'text.secondary' }} />
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                  support@datafyre.com
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Container>
+      </Box>
+    </Box>
   );
 }
 
