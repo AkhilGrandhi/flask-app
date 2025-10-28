@@ -16,6 +16,7 @@ import {
 } from "../api";
 
 import CandidateForm from "../components/CandidateForm";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 import { Avatar, Stack } from "@mui/material";
 import { fullName, initials } from "../utils/display";
@@ -114,13 +115,22 @@ export default function Admin() {
 
 function UsersTab() {
   const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name:"", email:"", mobile:"", password:"", role:"user" });
   const [err, setErr] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const load = async () => { const d = await listUsers(); setRows(d.users); };
+  const load = async () => { 
+    setLoading(true);
+    try {
+      const d = await listUsers(); 
+      setRows(d.users);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(()=>{ load(); }, []);
 
   const startCreate = ()=>{ setEditing(null); setForm({ name:"", email:"", mobile:"", password:"", role:"user" }); setShowPassword(false); setOpen(true); };
@@ -156,6 +166,10 @@ function UsersTab() {
     if (!confirm("Delete this user?")) return;
     await deleteUser(id); await load();
   };
+
+  if (loading) {
+    return <LoadingSpinner message="Loading users..." />;
+  }
 
   return (
     <>
@@ -415,6 +429,7 @@ function UsersTab() {
 function CandidatesTab() {
   const [rows, setRows] = useState([]);
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [assignedUserId, setAssignedUserId] = useState("");
   const [open, setOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -435,8 +450,15 @@ function CandidatesTab() {
   };
   
   useEffect(()=>{ 
-    load();
-    loadUsers();
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([load(), loadUsers()]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
   // Check for duplicate email or phone in existing candidates
@@ -676,6 +698,10 @@ function CandidatesTab() {
     await adminDeleteCandidate(id);
     await load();
   };
+
+  if (loading) {
+    return <LoadingSpinner message="Loading candidates..." />;
+  }
 
   return (
     <>
