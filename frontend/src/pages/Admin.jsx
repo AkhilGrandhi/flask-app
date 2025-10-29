@@ -1045,6 +1045,7 @@ function CandidatesTab() {
     name: "",
     email: "",
     phone: "",
+    role: "",
     creator: ""
   });
 
@@ -1339,6 +1340,9 @@ function CandidatesTab() {
     if (filters.phone && row.phone && !String(row.phone).includes(filters.phone)) {
       return false;
     }
+    if (filters.role && row.role && !row.role.toLowerCase().includes(filters.role.toLowerCase())) {
+      return false;
+    }
     if (filters.creator) {
       const creatorEmail = row.created_by?.email?.toLowerCase() || '';
       if (!creatorEmail.includes(filters.creator.toLowerCase())) {
@@ -1353,6 +1357,7 @@ function CandidatesTab() {
       name: "",
       email: "",
       phone: "",
+      role: "",
       creator: ""
     });
   };
@@ -1441,6 +1446,25 @@ function CandidatesTab() {
             
             <TextField
               size="small"
+              value={filters.role}
+              onChange={(e) => setFilters({ ...filters, role: e.target.value })}
+              placeholder="Role"
+              id="candidate-filter-role"
+              name="candidate-filter-role"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
               value={filters.creator}
               onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
               placeholder="Creator"
@@ -1458,7 +1482,7 @@ function CandidatesTab() {
               }}
             />
             
-            {(filters.name || filters.email || filters.phone || filters.creator) && (
+            {(filters.name || filters.email || filters.phone || filters.role || filters.creator) && (
               <Button 
                 size="small" 
                 variant="contained"
@@ -1510,6 +1534,7 @@ function CandidatesTab() {
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Phone</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Role</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Creator</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Assigned Users</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Actions</TableCell>
@@ -1558,6 +1583,9 @@ function CandidatesTab() {
                   </TableCell>
                   <TableCell sx={{ color: "text.secondary" }}>
                     {r.phone}
+                  </TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {r.role || "—"}
                   </TableCell>
                   <TableCell sx={{ color: "text.secondary" }}>
                     {r.created_by?.email || "Unknown"}

@@ -29,6 +29,7 @@ export default function UserDashboard() {
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -488,7 +489,24 @@ export default function UserDashboard() {
               }}
             />
             
-            {(nameFilter || emailFilter || phoneFilter) && (
+            <TextField
+              size="small"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              placeholder="Role"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            {(nameFilter || emailFilter || phoneFilter || roleFilter) && (
               <Button 
                 size="small" 
                 variant="contained"
@@ -496,6 +514,7 @@ export default function UserDashboard() {
                   setNameFilter("");
                   setEmailFilter("");
                   setPhoneFilter("");
+                  setRoleFilter("");
                 }}
                 sx={{ 
                   height: 32,
@@ -541,10 +560,12 @@ export default function UserDashboard() {
             const name = fullName(r).toLowerCase();
             const email = (r.email || "").toLowerCase();
             const phone = (r.phone || "").toLowerCase();
+            const role = (r.role || "").toLowerCase();
             
             if (nameFilter && !name.includes(nameFilter.toLowerCase())) return false;
             if (emailFilter && !email.includes(emailFilter.toLowerCase())) return false;
             if (phoneFilter && !phone.includes(phoneFilter.toLowerCase())) return false;
+            if (roleFilter && !role.includes(roleFilter.toLowerCase())) return false;
             
             return true;
           });
@@ -558,6 +579,7 @@ export default function UserDashboard() {
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Phone</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Role</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}># Applications</TableCell>
                 <TableCell align="center" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Actions</TableCell>
               </TableRow>
@@ -603,6 +625,9 @@ export default function UserDashboard() {
                   </TableCell>
                   <TableCell sx={{ color: "text.secondary" }}>
                     {r.phone || "—"}
+                  </TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {r.role || "—"}
                   </TableCell>
 
                   <TableCell align="center">
