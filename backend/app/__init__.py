@@ -55,9 +55,18 @@ def create_app():
         # Production: only allow configured frontend URL
         allowed_origins = [frontend_url] if frontend_url else []
     
+    # Log CORS configuration for debugging
+    app.logger.info(f"CORS configured with origins: {allowed_origins}")
+    
     CORS(app, 
-         resources={r"/api/*": {"origins": allowed_origins}}, 
-         supports_credentials=True)
+         resources={r"/api/*": {
+             "origins": allowed_origins,
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization"],
+             "expose_headers": ["Content-Type"],
+             "supports_credentials": True,
+             "max_age": 3600
+         }})
 
     # Blueprints
     from .auth import bp as auth_bp
