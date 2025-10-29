@@ -15,15 +15,26 @@ def require_admin():
 @jwt_required()
 def list_users():
     require_admin()
-    users = User.query.order_by(User.id.asc()).all()
-    users_data = []
-    for u in users:
-        user_dict = u.to_dict()
-        # Count candidates created by this user
-        candidate_count = Candidate.query.filter_by(created_by_user_id=u.id).count()
-        user_dict['candidate_count'] = candidate_count
-        users_data.append(user_dict)
-    return {"users": users_data}
+    try:
+        users = User.query.order_by(User.id.asc()).all()
+        users_data = []
+        for u in users:
+            user_dict = u.to_dict()
+            try:
+                # Count candidates created by this user
+                candidate_count = Candidate.query.filter_by(created_by_user_id=u.id).count()
+                user_dict['candidate_count'] = candidate_count
+            except Exception as e:
+                # If counting fails, just set to 0
+                import logging
+                logging.warning(f"Could not count candidates for user {u.id}: {e}")
+                user_dict['candidate_count'] = 0
+            users_data.append(user_dict)
+        return {"users": users_data}
+    except Exception as e:
+        import logging
+        logging.error(f"Error listing users: {e}")
+        return {"message": f"Failed to list users: {str(e)}"}, 500
 
 @bp.post("/users")
 @jwt_required()
@@ -236,6 +247,7 @@ def _update_candidate_fields(c, data, cand_id):
             from datetime import date
             birthdate_str = str(data["birthdate"]).strip()
             if birthdate_str:
+                y, m, d = None, None, None  # Initialize variables
                 # Handle different date formats
                 if "-" in birthdate_str:
                     y, m, d = map(int, birthdate_str.split("-"))
@@ -244,6 +256,14 @@ def _update_candidate_fields(c, data, cand_id):
                     parts = birthdate_str.split("/")
                     if len(parts) == 3:
                         m, d, y = map(int, parts)
+                    else:
+                        return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                else:
+                    return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                
+                if y is None or m is None or d is None:
+                    return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                    
                 c.birthdate = date(y, m, d)
         except (ValueError, AttributeError) as e:
             return {"message": f"Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
