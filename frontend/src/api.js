@@ -10,7 +10,7 @@ const getApiUrl = () => {
   
   // If on Render frontend, use the known backend URL
   if (hostname.includes('flask-app-frontend-dev.onrender.com')) {
-    return 'https://flask-app-r5xw.onrender.com/api';
+    return 'https://flask-app-dev-70xj.onrender.com/api';
   }
   
   // For local development or other deployments

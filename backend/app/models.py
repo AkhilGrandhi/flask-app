@@ -168,16 +168,21 @@ class Candidate(db.Model):
             }
             # Include assigned users (backward compatible - handle if table doesn't exist)
             try:
-                d["assigned_users"] = [
-                    {
-                        "id": u.id,
-                        "email": u.email,
-                        "name": u.name,
-                    }
-                    for u in self.assigned_users.all()
-                ]
-            except Exception:
-                # Table doesn't exist yet (migration not run)
+                # Check if the association table exists before querying
+                inspector_obj = inspect(db.engine)
+                if 'candidate_assigned_users' in inspector_obj.get_table_names():
+                    d["assigned_users"] = [
+                        {
+                            "id": u.id,
+                            "email": u.email,
+                            "name": u.name,
+                        }
+                        for u in self.assigned_users.all()
+                    ]
+                else:
+                    d["assigned_users"] = []
+            except Exception as e:
+                # Table doesn't exist yet (migration not run) or other error
                 d["assigned_users"] = []
 
         if include_jobs:
