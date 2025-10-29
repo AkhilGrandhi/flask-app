@@ -45,6 +45,15 @@ class Config:
     # Cookies (web only)
     # Use secure cookies in production (HTTPS), regular in development
     is_development = os.getenv("FLASK_ENV") == "development"
+    
+    # Auto-detect localhost for development
+    if not is_development:
+        # Check if we're likely running on localhost
+        database_uri = SQLALCHEMY_DATABASE_URI or ""
+        if "localhost" in database_uri or "127.0.0.1" in database_uri:
+            print("⚠️  Auto-detected localhost database - enabling development mode for JWT cookies")
+            is_development = True
+    
     JWT_COOKIE_SECURE = not is_development  # True in production, False in dev
     # SameSite=None required for cross-origin cookies (frontend and backend on different domains)
     JWT_COOKIE_SAMESITE = "Lax" if is_development else "None"  # Lax in dev, None in production

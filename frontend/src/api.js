@@ -31,12 +31,18 @@ function getCookie(name) {
 export async function api(path, { method="GET", body } = {}) {
   const headers = { "Content-Type": "application/json" };
   // If you enable CSRF later: if (method !== "GET") { const csrf = getCookie("csrf_access_token"); if (csrf) headers["X-CSRF-TOKEN"] = csrf; }
+  console.log(`API Call: ${method} ${API}${path}`);
   const res = await fetch(`${API}${path}`, {
     method, headers, credentials: "include",
     body: body ? JSON.stringify(body) : undefined
   });
+  console.log(`API Response: ${res.status} ${res.statusText}`);
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || res.statusText);
+  if (!res.ok) {
+    console.error(`API Error: ${data.message || res.statusText}`, data);
+    throw new Error(data.message || res.statusText);
+  }
+  console.log(`API Data:`, data);
   return data;
 }
 

@@ -37,11 +37,18 @@ def create_app():
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
     is_dev = os.getenv("FLASK_ENV") == "development"
     
+    # Auto-detect localhost for development
+    database_uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
+    if not is_dev and ("localhost" in database_uri or "127.0.0.1" in database_uri):
+        is_dev = True
+    
     if is_dev:
         # Development: allow localhost origins
         allowed_origins = [
             "http://localhost:5173",
             "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
             frontend_url
         ]
     else:

@@ -353,8 +353,17 @@ function UsersTab() {
   const load = async () => { 
     setLoading(true);
     try {
-      const d = await listUsers(); 
-      setRows(d.users);
+      const d = await listUsers();
+      console.log('Users data received:', d);
+      setRows(d.users || []);
+    } catch (e) {
+      console.error('Error loading users:', e);
+      setErr(`Failed to load users: ${e.message}`);
+      setToast({ 
+        open: true, 
+        message: `Failed to load users: ${e.message}`, 
+        severity: 'error' 
+      });
     } finally {
       setLoading(false);
     }
@@ -462,6 +471,13 @@ function UsersTab() {
 
   return (
     <>
+      {/* Error Alert */}
+      {err && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setErr("")}>
+          {err}
+        </Alert>
+      )}
+      
       {/* Users Table */}
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
         <Box sx={{ 
