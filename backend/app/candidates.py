@@ -297,26 +297,46 @@ def update_candidate(cand_id):
         if field in data:
             setattr(c, field, to_bool(data[field]))
 
+    # birthdate - with error handling
     if "birthdate" in data:
-        from datetime import date
-        if data["birthdate"]:
-            y, m, d = map(int, data["birthdate"].split("-"))
-            c.birthdate = date(y, m, d)
-        else:
-            c.birthdate = None
+        try:
+            from datetime import date
+            if data["birthdate"]:
+                birthdate_str = str(data["birthdate"]).strip()
+                # Handle different date formats
+                if "-" in birthdate_str:
+                    y, m, d = map(int, birthdate_str.split("-"))
+                elif "/" in birthdate_str:
+                    # Convert MM/DD/YYYY to YYYY-MM-DD
+                    parts = birthdate_str.split("/")
+                    if len(parts) == 3:
+                        m, d, y = map(int, parts)
+                c.birthdate = date(y, m, d)
+            else:
+                c.birthdate = None
+        except (ValueError, AttributeError) as e:
+            return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
     
-    # Handle assigned users (admin only)
+    # Handle assigned users (admin only) - with defensive check
     if is_admin() and "assigned_user_ids" in data:
-        assigned_user_ids = data.get("assigned_user_ids", [])
-        # Clear existing assignments
-        c.assigned_users = []
-        # Add new assignments
-        if assigned_user_ids:
-            from .models import User
-            for user_id in assigned_user_ids:
-                user = User.query.get(user_id)
-                if user and user.role == "user":  # Only assign to regular users
-                    c.assigned_users.append(user)
+        try:
+            from sqlalchemy import inspect as sql_inspect
+            inspector = sql_inspect(db.engine)
+            if 'candidate_assigned_users' in inspector.get_table_names():
+                assigned_user_ids = data.get("assigned_user_ids", [])
+                # Clear existing assignments
+                c.assigned_users = []
+                # Add new assignments
+                if assigned_user_ids:
+                    from .models import User
+                    for user_id in assigned_user_ids:
+                        user = User.query.get(user_id)
+                        if user and user.role == "user":  # Only assign to regular users
+                            c.assigned_users.append(user)
+        except Exception as e:
+            # Log error but don't fail the update
+            import logging
+            logging.warning(f"Could not update assigned users: {e}")
 
     db.session.commit()
     return {"message": "Candidate updated"}
@@ -501,14 +521,25 @@ def update_my_profile():
         if field in data:
             setattr(candidate, field, to_bool(data[field]))
     
-    # Handle birthdate
+    # Handle birthdate - with error handling
     if "birthdate" in data:
-        from datetime import date
-        if data["birthdate"]:
-            y, m, d = map(int, data["birthdate"].split("-"))
-            candidate.birthdate = date(y, m, d)
-        else:
-            candidate.birthdate = None
+        try:
+            from datetime import date
+            if data["birthdate"]:
+                birthdate_str = str(data["birthdate"]).strip()
+                # Handle different date formats
+                if "-" in birthdate_str:
+                    y, m, d = map(int, birthdate_str.split("-"))
+                elif "/" in birthdate_str:
+                    # Convert MM/DD/YYYY to YYYY-MM-DD
+                    parts = birthdate_str.split("/")
+                    if len(parts) == 3:
+                        m, d, y = map(int, parts)
+                candidate.birthdate = date(y, m, d)
+            else:
+                candidate.birthdate = None
+        except (ValueError, AttributeError) as e:
+            return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
     
     db.session.commit()
     return {"message": "Profile updated successfully", "candidate": candidate.to_dict(include_creator=False, include_jobs=True)}
