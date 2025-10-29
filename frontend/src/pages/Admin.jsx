@@ -130,6 +130,14 @@ function UsersTab() {
   const [viewingUser, setViewingUser] = useState(null);
   const [userCandidates, setUserCandidates] = useState([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    name: "",
+    email: "",
+    mobile: "",
+    role: ""
+  });
 
   const load = async () => { 
     setLoading(true);
@@ -211,6 +219,32 @@ function UsersTab() {
     }
   };
 
+  // Filter rows based on filter criteria
+  const filteredRows = rows.filter(row => {
+    if (filters.name && !row.name.toLowerCase().includes(filters.name.toLowerCase())) {
+      return false;
+    }
+    if (filters.email && !row.email.toLowerCase().includes(filters.email.toLowerCase())) {
+      return false;
+    }
+    if (filters.mobile && row.mobile && !row.mobile.includes(filters.mobile)) {
+      return false;
+    }
+    if (filters.role && row.role !== filters.role) {
+      return false;
+    }
+    return true;
+  });
+
+  const clearFilters = () => {
+    setFilters({
+      name: "",
+      email: "",
+      mobile: "",
+      role: ""
+    });
+  };
+
   if (loading) {
     return <LoadingSpinner message="Loading users..." />;
   }
@@ -218,7 +252,7 @@ function UsersTab() {
   return (
     <>
       {/* Stats Card */}
-      <Box sx={{ mb: 2, flexShrink: 0 }}>
+      <Box sx={{ mb: 2, flexShrink: 0, width: "100%" }}>
         <Paper 
           elevation={2} 
           sx={{ 
@@ -226,6 +260,7 @@ function UsersTab() {
             background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
             color: "white",
             borderRadius: 2,
+            minHeight: "80px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between"
@@ -233,10 +268,10 @@ function UsersTab() {
         >
           <Box>
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.25 }}>
-              {rows.length}
+              {filteredRows.length} {filteredRows.length !== rows.length && `/ ${rows.length}`}
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.8rem" }}>
-              Total Users in System
+              {filteredRows.length !== rows.length ? "Filtered Users" : "Total Users in System"}
             </Typography>
           </Box>
           <Box 
@@ -293,7 +328,74 @@ function UsersTab() {
           </Button>
         </Box>
 
-        {rows.length > 0 ? (
+        {/* Filters */}
+        <Box sx={{ 
+          px: 2, 
+          py: 1.5, 
+          bgcolor: "grey.50", 
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          flexShrink: 0
+        }}>
+          <Grid container spacing={1.5} alignItems="center">
+            <Grid item xs={12} sm={2.5}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Name"
+                value={filters.name}
+                onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+                placeholder="Filter by name"
+              />
+            </Grid>
+            <Grid item xs={12} sm={2.5}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Email"
+                value={filters.email}
+                onChange={(e) => setFilters({ ...filters, email: e.target.value })}
+                placeholder="Filter by email"
+              />
+            </Grid>
+            <Grid item xs={12} sm={2.5}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Mobile"
+                value={filters.mobile}
+                onChange={(e) => setFilters({ ...filters, mobile: e.target.value })}
+                placeholder="Filter by mobile"
+              />
+            </Grid>
+            <Grid item xs={12} sm={2.5}>
+              <Select
+                size="small"
+                fullWidth
+                value={filters.role}
+                onChange={(e) => setFilters({ ...filters, role: e.target.value })}
+                displayEmpty
+              >
+                <MenuItem value="">All Roles</MenuItem>
+                <MenuItem value="admin">Admin</MenuItem>
+                <MenuItem value="user">User</MenuItem>
+              </Select>
+            </Grid>
+            <Grid item xs={12} sm={2}>
+              <Button
+                size="small"
+                variant="outlined"
+                fullWidth
+                onClick={clearFilters}
+                sx={{ height: "40px" }}
+              >
+                Clear
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {filteredRows.length > 0 ? (
           <Box sx={{ flex: 1, overflow: "auto" }}>
       <Table size="small" stickyHeader>
         <TableHead>
@@ -307,7 +409,7 @@ function UsersTab() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map(r => (
+          {filteredRows.map(r => (
                 <TableRow 
                   key={r.id}
                   hover
@@ -408,11 +510,14 @@ function UsersTab() {
               <Typography variant="h3">👤</Typography>
             </Avatar>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              No Users Yet
+              {rows.length === 0 ? "No Users Yet" : "No Users Found"}
             </Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
-              Create your first user to get started
+              {rows.length === 0 
+                ? "Create your first user to get started" 
+                : "No users match your filter criteria. Try adjusting the filters."}
             </Typography>
+            {rows.length === 0 ? (
             <Button 
               variant="contained" 
               size="large"
@@ -421,6 +526,16 @@ function UsersTab() {
             >
               Create Your First User
             </Button>
+            ) : (
+              <Button 
+                variant="outlined" 
+                size="large"
+                onClick={clearFilters}
+                sx={{ fontWeight: 600 }}
+              >
+                Clear Filters
+              </Button>
+            )}
           </Box>
         )}
       </Paper>
@@ -645,6 +760,14 @@ function CandidatesTab() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    creator: ""
+  });
 
   const load = async () => {
     const d = await listAllCandidates();
@@ -920,6 +1043,36 @@ function CandidatesTab() {
     await load();
   };
 
+  // Filter rows based on filter criteria
+  const filteredRows = rows.filter(row => {
+    const fullName = `${row.first_name || ''} ${row.last_name || ''}`.toLowerCase();
+    if (filters.name && !fullName.includes(filters.name.toLowerCase())) {
+      return false;
+    }
+    if (filters.email && row.email && !row.email.toLowerCase().includes(filters.email.toLowerCase())) {
+      return false;
+    }
+    if (filters.phone && row.phone && !String(row.phone).includes(filters.phone)) {
+      return false;
+    }
+    if (filters.creator) {
+      const creatorEmail = row.created_by?.email?.toLowerCase() || '';
+      if (!creatorEmail.includes(filters.creator.toLowerCase())) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const clearFilters = () => {
+    setFilters({
+      name: "",
+      email: "",
+      phone: "",
+      creator: ""
+    });
+  };
+
   if (loading) {
     return <LoadingSpinner message="Loading candidates..." />;
   }
@@ -927,7 +1080,7 @@ function CandidatesTab() {
   return (
     <>
       {/* Stats Cards */}
-      <Box sx={{ mb: 2, flexShrink: 0 }}>
+      <Box sx={{ mb: 2, flexShrink: 0, width: "100%" }}>
         <Grid container spacing={1.5}>
           {/* Total Candidates Card */}
           <Grid item xs={12} sm={6}>
@@ -938,7 +1091,7 @@ function CandidatesTab() {
                 background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
                 color: "white",
                 borderRadius: 2,
-                height: "100%",
+                minHeight: "80px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between"
@@ -946,10 +1099,10 @@ function CandidatesTab() {
             >
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.25 }}>
-                  {rows.length}
+                  {filteredRows.length} {filteredRows.length !== rows.length && `/ ${rows.length}`}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.8rem" }}>
-                  Total Candidates
+                  {filteredRows.length !== rows.length ? "Filtered Candidates" : "Total Candidates"}
                 </Typography>
               </Box>
               <Box 
@@ -978,7 +1131,7 @@ function CandidatesTab() {
                 background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
                 color: "white",
                 borderRadius: 2,
-                height: "100%",
+                minHeight: "80px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between"
@@ -1056,7 +1209,71 @@ function CandidatesTab() {
           </Button>
         </Box>
 
-        {rows.length > 0 ? (
+        {/* Filters */}
+        <Box sx={{ 
+          px: 2, 
+          py: 1.5, 
+          bgcolor: "grey.50", 
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          flexShrink: 0
+        }}>
+          <Grid container spacing={1.5} alignItems="center">
+            <Grid item xs={12} sm={2.5}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Name"
+                value={filters.name}
+                onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+                placeholder="Filter by name"
+              />
+            </Grid>
+            <Grid item xs={12} sm={2.5}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Email"
+                value={filters.email}
+                onChange={(e) => setFilters({ ...filters, email: e.target.value })}
+                placeholder="Filter by email"
+              />
+            </Grid>
+            <Grid item xs={12} sm={2.5}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Phone"
+                value={filters.phone}
+                onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
+                placeholder="Filter by phone"
+              />
+            </Grid>
+            <Grid item xs={12} sm={2.5}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Creator"
+                value={filters.creator}
+                onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
+                placeholder="Filter by creator"
+              />
+            </Grid>
+            <Grid item xs={12} sm={2}>
+              <Button
+                size="small"
+                variant="outlined"
+                fullWidth
+                onClick={clearFilters}
+                sx={{ height: "40px" }}
+              >
+                Clear
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {filteredRows.length > 0 ? (
           <Box sx={{ flex: 1, overflow: "auto" }}>
       <Table size="small" stickyHeader>
         <TableHead>
@@ -1070,7 +1287,7 @@ function CandidatesTab() {
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map(r => (
+          {filteredRows.map(r => (
                 <TableRow 
                   key={r.id}
                   hover
@@ -1176,11 +1393,14 @@ function CandidatesTab() {
               <Typography variant="h3">👥</Typography>
             </Avatar>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              No Candidates Yet
+              {rows.length === 0 ? "No Candidates Yet" : "No Candidates Found"}
             </Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
-              Start by adding your first candidate to the system
+              {rows.length === 0 
+                ? "Start by adding your first candidate to the system" 
+                : "No candidates match your filter criteria. Try adjusting the filters."}
             </Typography>
+            {rows.length === 0 ? (
             <Button 
               variant="contained" 
               size="large"
@@ -1189,6 +1409,16 @@ function CandidatesTab() {
             >
               Add Your First Candidate
             </Button>
+            ) : (
+              <Button 
+                variant="outlined" 
+                size="large"
+                onClick={clearFilters}
+                sx={{ fontWeight: 600 }}
+              >
+                Clear Filters
+              </Button>
+            )}
           </Box>
         )}
       </Paper>
