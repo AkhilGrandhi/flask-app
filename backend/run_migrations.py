@@ -99,7 +99,37 @@ try:
         missing_tables = [t for t in critical_tables if t not in tables]
         if missing_tables:
             print(f"\n   ⚠ WARNING: Missing critical tables: {', '.join(missing_tables)}")
-            print("   → These tables may need to be created manually")
+            print("   → Attempting to create missing tables now...")
+            
+            # Try to create the candidate_assigned_users table if missing
+            if 'candidate_assigned_users' in missing_tables:
+                try:
+                    from sqlalchemy import text
+                    print("   → Creating candidate_assigned_users table...")
+                    create_table_sql = """
+                    CREATE TABLE IF NOT EXISTS candidate_assigned_users (
+                        candidate_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (candidate_id, user_id),
+                        FOREIGN KEY (candidate_id) REFERENCES candidate(id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE
+                    )
+                    """
+                    db.session.execute(text(create_table_sql))
+                    db.session.commit()
+                    print("   ✓ candidate_assigned_users table created!")
+                except Exception as create_error:
+                    print(f"   ⚠ Could not create table: {create_error}")
+            
+            # Re-check
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            missing_tables = [t for t in critical_tables if t not in tables]
+            if missing_tables:
+                print(f"   ⚠ Still missing: {', '.join(missing_tables)}")
+            else:
+                print(f"   ✓ All critical tables now exist!")
         else:
             print(f"\n   ✓ All critical tables exist")
         
