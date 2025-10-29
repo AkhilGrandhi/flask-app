@@ -164,15 +164,19 @@ class Candidate(db.Model):
                 "email": self.creator.email,
                 "name": self.creator.name,
             }
-            # Include all assigned users
-            d["assigned_users"] = [
-                {
-                    "id": u.id,
-                    "email": u.email,
-                    "name": u.name,
-                }
-                for u in self.assigned_users
-            ]
+            # Include all assigned users (if table exists - backward compatible)
+            try:
+                d["assigned_users"] = [
+                    {
+                        "id": u.id,
+                        "email": u.email,
+                        "name": u.name,
+                    }
+                    for u in self.assigned_users
+                ]
+            except Exception:
+                # If candidate_users table doesn't exist yet (migration not run)
+                d["assigned_users"] = []
 
         if include_jobs:
             d["jobs"] = [
