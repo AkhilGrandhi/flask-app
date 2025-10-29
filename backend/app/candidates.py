@@ -30,7 +30,7 @@ def owns_or_404(cand: Candidate, uid: int):
     is_creator = cand.created_by_user_id == uid
     # Check if user is assigned (backward compatible)
     try:
-        is_assigned = cand.assigned_users.filter_by(id=uid).first() is not None
+        is_assigned = any(u.id == uid for u in (cand.assigned_users or []))
     except Exception:
         # Table doesn't exist yet (migration not run)
         is_assigned = False
@@ -232,16 +232,26 @@ def create_candidate():
                 inspector = sql_inspect(db.engine)
                 if 'candidate_assigned_users' in inspector.get_table_names():
                     assigned_user_ids = data.get("assigned_user_ids", [])
+                    import logging
+                    logging.info(f"Creating candidate with assigned_user_ids: {assigned_user_ids}")
                     if assigned_user_ids:
                         from .models import User
                         for user_id in assigned_user_ids:
                             user = User.query.get(user_id)
                             if user and user.role == "user":  # Only assign to regular users
                                 c.assigned_users.append(user)
+                                logging.info(f"Assigned user {user.id} ({user.name}) to candidate")
+                            else:
+                                logging.warning(f"User {user_id} not found or not a regular user")
+                else:
+                    import logging
+                    logging.warning("candidate_assigned_users table does not exist")
             except Exception as e:
                 # Log error but don't fail the creation
                 import logging
-                logging.warning(f"Could not assign users during creation: {e}")
+                import traceback
+                logging.error(f"Could not assign users during creation: {e}")
+                logging.error(traceback.format_exc())
         
         db.session.commit()
         return {"message": "Candidate created", "id": c.id}, 201
@@ -369,6 +379,8 @@ def update_candidate(cand_id):
                 inspector = sql_inspect(db.engine)
                 if 'candidate_assigned_users' in inspector.get_table_names():
                     assigned_user_ids = data.get("assigned_user_ids", [])
+                    import logging
+                    logging.info(f"Updating candidate {cand_id} with assigned_user_ids: {assigned_user_ids}")
                     # Clear existing assignments
                     c.assigned_users = []
                     # Add new assignments
@@ -378,10 +390,18 @@ def update_candidate(cand_id):
                             user = User.query.get(user_id)
                             if user and user.role == "user":  # Only assign to regular users
                                 c.assigned_users.append(user)
+                                logging.info(f"Assigned user {user.id} ({user.name}) to candidate {cand_id}")
+                            else:
+                                logging.warning(f"User {user_id} not found or not a regular user")
+                else:
+                    import logging
+                    logging.warning("candidate_assigned_users table does not exist")
             except Exception as e:
                 # Log error but don't fail the update
                 import logging
-                logging.warning(f"Could not update assigned users: {e}")
+                import traceback
+                logging.error(f"Could not update assigned users: {e}")
+                logging.error(traceback.format_exc())
 
         db.session.commit()
         return {"message": "Candidate updated"}

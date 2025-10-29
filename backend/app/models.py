@@ -30,7 +30,7 @@ class User(db.Model):
     assigned_candidates = db.relationship(
         "Candidate",
         secondary=candidate_assigned_users,
-        backref=db.backref("assigned_users", lazy="dynamic"),
+        backref=db.backref("assigned_users", lazy="selectin"),
         lazy="dynamic"
     )
 
@@ -177,7 +177,7 @@ class Candidate(db.Model):
                             "email": u.email,
                             "name": u.name,
                         }
-                        for u in self.assigned_users.all()
+                        for u in (self.assigned_users or [])
                     ]
                 else:
                     d["assigned_users"] = []

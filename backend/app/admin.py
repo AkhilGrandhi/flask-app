@@ -169,6 +169,8 @@ def _update_candidate_fields(c, data, cand_id):
             inspector = inspect(db.engine)
             if 'candidate_assigned_users' in inspector.get_table_names():
                 assigned_user_ids = data.get("assigned_user_ids", [])
+                import logging
+                logging.info(f"Admin updating candidate {cand_id} with assigned_user_ids: {assigned_user_ids}")
                 # Clear existing assignments
                 c.assigned_users = []
                 # Add new assignments
@@ -177,11 +179,19 @@ def _update_candidate_fields(c, data, cand_id):
                         user = User.query.get(user_id)
                         if user and user.role == "user":  # Only assign to regular users
                             c.assigned_users.append(user)
+                            logging.info(f"Assigned user {user.id} ({user.name}) to candidate {cand_id}")
+                        else:
+                            logging.warning(f"User {user_id} not found or not a regular user")
+            else:
+                import logging
+                logging.warning("candidate_assigned_users table does not exist")
             # If table doesn't exist, silently skip (migration hasn't run yet)
         except Exception as e:
             # Log error but don't fail the update
             import logging
-            logging.warning(f"Could not update assigned users: {e}")
+            import traceback
+            logging.error(f"Could not update assigned users: {e}")
+            logging.error(traceback.format_exc())
     
     # Validate email if being updated
     if "email" in data:
