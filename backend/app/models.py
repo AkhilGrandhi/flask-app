@@ -4,6 +4,13 @@ from sqlalchemy.orm import relationship
 
 db = SQLAlchemy()
 
+# Association table for many-to-many relationship between Candidate and User
+candidate_users = db.Table('candidate_users',
+    db.Column('candidate_id', db.Integer, db.ForeignKey('candidate.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('created_at', db.DateTime, default=datetime.utcnow)
+)
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -16,6 +23,14 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     candidates = db.relationship("Candidate", backref="creator", lazy=True)
+    
+    # Many-to-many relationship with candidates (assigned users)
+    assigned_candidates = db.relationship(
+        "Candidate",
+        secondary=candidate_users,
+        backref=db.backref("assigned_users", lazy=True),
+        lazy=True
+    )
 
     def to_dict(self):
         return {
@@ -149,6 +164,15 @@ class Candidate(db.Model):
                 "email": self.creator.email,
                 "name": self.creator.name,
             }
+            # Include all assigned users
+            d["assigned_users"] = [
+                {
+                    "id": u.id,
+                    "email": u.email,
+                    "name": u.name,
+                }
+                for u in self.assigned_users
+            ]
 
         if include_jobs:
             d["jobs"] = [

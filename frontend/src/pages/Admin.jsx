@@ -819,7 +819,7 @@ function CandidatesTab() {
   const [rows, setRows] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [assignedUserId, setAssignedUserId] = useState("");
+  const [assignedUserIds, setAssignedUserIds] = useState([]);
   const [open, setOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [viewing, setViewing] = useState(null);
@@ -971,7 +971,7 @@ function CandidatesTab() {
       family_in_org: "No",
       subscription_type: "Gold"
     });
-    setAssignedUserId("");
+    setAssignedUserIds([]);
     setFieldErrors({});
     setErr("");
     setOpen(true);
@@ -982,8 +982,14 @@ function CandidatesTab() {
     // Ensure birthdate is YYYY-MM-DD for the date input (if present)
     const bd = r.birthdate ? r.birthdate.slice(0,10) : "";
     setForm({ ...r, birthdate: bd });
-    // Set the assigned user to the current creator
-    setAssignedUserId(r.created_by?.id || "");
+    // Set the assigned users from the assigned_users array, or fallback to creator
+    if (r.assigned_users && r.assigned_users.length > 0) {
+      setAssignedUserIds(r.assigned_users.map(u => u.id));
+    } else if (r.created_by?.id) {
+      setAssignedUserIds([r.created_by.id]);
+    } else {
+      setAssignedUserIds([]);
+    }
     setFieldErrors({});
     setErr("");
     setOpen(true);
@@ -996,8 +1002,8 @@ function CandidatesTab() {
       setFieldErrors({});
       
       // Validate assigned user is selected
-      if (!assignedUserId) {
-        setErr("Please select a user to assign this candidate to.");
+      if (!assignedUserIds || assignedUserIds.length === 0) {
+        setErr("Please select at least one user to assign this candidate to.");
         return;
       }
       
@@ -1071,7 +1077,10 @@ function CandidatesTab() {
       }
       
       // Add the assigned user ID to the payload (for both create and edit)
-      dataToSend.created_by_user_id = assignedUserId;
+      // For now, use the first user ID for backend compatibility
+      dataToSend.created_by_user_id = assignedUserIds[0];
+      // Store all assigned user IDs for future use
+      dataToSend.assigned_user_ids = assignedUserIds;
       
       if (editing) {
         await adminUpdateCandidate(editing.id, dataToSend);
@@ -1125,8 +1134,16 @@ function CandidatesTab() {
       return false;
     }
     if (filters.creator) {
+      // Search through all assigned users
+      const searchTerm = filters.creator.toLowerCase();
+      const hasMatchingUser = row.assigned_users?.some(user => 
+        user.name.toLowerCase().includes(searchTerm) || 
+        user.email.toLowerCase().includes(searchTerm)
+      );
+      // Fallback to creator if no assigned users
       const creatorEmail = row.created_by?.email?.toLowerCase() || '';
-      if (!creatorEmail.includes(filters.creator.toLowerCase())) {
+      const creatorName = row.created_by?.name?.toLowerCase() || '';
+      if (!hasMatchingUser && !creatorEmail.includes(searchTerm) && !creatorName.includes(searchTerm)) {
         return false;
       }
     }
@@ -1331,10 +1348,10 @@ function CandidatesTab() {
               <TextField
                 size="small"
                 fullWidth
-                label="Creator"
+                label="Assigned User"
                 value={filters.creator}
                 onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
-                placeholder="Filter by creator"
+                placeholder="Filter by assigned user"
                 id="candidate-filter-creator"
                 name="candidate-filter-creator"
                 autoComplete="off"
@@ -1363,7 +1380,7 @@ function CandidatesTab() {
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Name</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Phone</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Creator</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Assigned Users</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Actions</TableCell>
           </TableRow>
         </TableHead>
@@ -1412,7 +1429,31 @@ function CandidatesTab() {
                     {r.phone}
                   </TableCell>
                   <TableCell sx={{ color: "text.secondary" }}>
-                    {r.created_by?.email || "Unknown"}
+                    {r.assigned_users && r.assigned_users.length > 0 ? (
+                      <Box>
+                        {r.assigned_users.map((user, idx) => (
+                          <Box 
+                            key={user.id}
+                            component="span"
+                            sx={{ 
+                              display: "inline-block",
+                              fontSize: "0.85rem",
+                              bgcolor: "primary.lighter",
+                              color: "primary.main",
+                              px: 1,
+                              py: 0.25,
+                              borderRadius: 1,
+                              mr: 0.5,
+                              mb: 0.5
+                            }}
+                          >
+                            {user.name}
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      r.created_by?.email || "Unknown"
+                    )}
                   </TableCell>
               <TableCell align="right">
                     <Stack direction="row" spacing={0.5} justifyContent="flex-end">
@@ -1600,34 +1641,48 @@ function CandidatesTab() {
             </Alert>
           )}
           
-          {/* Assign User Dropdown - Show for both create and edit */}
+          {/* Assign Users - Show for both create and edit */}
           <Paper elevation={1} sx={{ p: 2.5, mb: 3, bgcolor: "white" }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5, color: "primary.main" }}>
-              Assign User (Creator) *
+              Assign Users (Creators) *
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {editing 
-                ? "Change the user who will be assigned as the creator of this candidate"
-                : "Select the user who will be assigned as the creator of this candidate"}
+                ? "Change the users who will be assigned as creators of this candidate"
+                : "Select one or more users who will be assigned as creators of this candidate"}
             </Typography>
             <Autocomplete
+              multiple
               fullWidth
               options={users.filter(u => u.role === "user")}
               getOptionLabel={(option) => `${option.name} (${option.email})`}
-              value={users.find(u => u.id === assignedUserId) || null}
+              value={users.filter(u => assignedUserIds.includes(u.id))}
               onChange={(event, newValue) => {
-                setAssignedUserId(newValue ? newValue.id : "");
+                setAssignedUserIds(newValue.map(user => user.id));
               }}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  placeholder="Search and select a user..."
+                  placeholder="Search and select users..."
                   required
                   sx={{ bgcolor: "white" }}
                 />
               )}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               noOptionsText="No users found"
+              limitTags={3}
+              sx={{
+                '& .MuiAutocomplete-tag': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiChip-deleteIcon': {
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    '&:hover': {
+                      color: 'white'
+                    }
+                  }
+                }
+              }}
             />
           </Paper>
           
@@ -1638,7 +1693,7 @@ function CandidatesTab() {
           <Button 
             variant="contained" 
             onClick={submit}
-            disabled={submitting || Object.keys(fieldErrors).length > 0 || !assignedUserId}
+            disabled={submitting || Object.keys(fieldErrors).length > 0 || assignedUserIds.length === 0}
             startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
             sx={{ px: 4 }}
           >

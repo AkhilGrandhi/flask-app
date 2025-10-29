@@ -24,7 +24,13 @@ def owns_or_404(cand: Candidate, uid: int):
     # Admins can access any candidate
     if is_admin():
         return
-    if not cand or cand.created_by_user_id != uid:
+    # Check if user is creator or is assigned to this candidate
+    if not cand:
+        abort(404)
+    # Check if user is creator or in assigned_users
+    is_creator = cand.created_by_user_id == uid
+    is_assigned = any(u.id == uid for u in cand.assigned_users)
+    if not (is_creator or is_assigned):
         abort(404)
 
 # Helper function to convert Yes/No strings to boolean
@@ -41,9 +47,22 @@ def to_bool(val):
 @jwt_required()
 def list_my_candidates():
     uid = current_user_id()
-    cs = Candidate.query.filter_by(created_by_user_id=uid)\
-                        .order_by(Candidate.id.desc()).all()
-    return {"candidates": [c.to_dict(include_jobs=True) for c in cs]}
+    from .models import User
+    user = User.query.get(uid)
+    if not user:
+        abort(404, description="User not found")
+    
+    # Get all candidates where user is either creator or assigned
+    # Combine candidates created by user and candidates assigned to user
+    created_candidates = Candidate.query.filter_by(created_by_user_id=uid).all()
+    assigned_candidates = user.assigned_candidates
+    
+    # Combine and remove duplicates
+    all_candidates = list({c.id: c for c in created_candidates + assigned_candidates}.values())
+    # Sort by ID descending
+    all_candidates.sort(key=lambda x: x.id, reverse=True)
+    
+    return {"candidates": [c.to_dict(include_jobs=True) for c in all_candidates]}
 
 @bp.post("")
 @jwt_required()
@@ -172,6 +191,18 @@ def create_candidate():
         c.birthdate = date(y, m, d)
 
     db.session.add(c)
+    db.session.flush()  # Flush to get the candidate ID before assigning users
+    
+    # Handle multiple assigned users
+    if is_admin() and "assigned_user_ids" in data:
+        assigned_user_ids = data.get("assigned_user_ids", [])
+        if assigned_user_ids:
+            from .models import User
+            for user_id in assigned_user_ids:
+                user = User.query.get(user_id)
+                if user:
+                    c.assigned_users.append(user)
+    
     db.session.commit()
     return {"message": "Candidate created", "id": c.id}, 201
 
@@ -263,6 +294,18 @@ def update_candidate(cand_id):
             c.birthdate = date(y, m, d)
         else:
             c.birthdate = None
+    
+    # Handle multiple assigned users (admin only)
+    if is_admin() and "assigned_user_ids" in data:
+        assigned_user_ids = data.get("assigned_user_ids", [])
+        # Clear existing assignments and add new ones
+        c.assigned_users.clear()
+        if assigned_user_ids:
+            from .models import User
+            for user_id in assigned_user_ids:
+                user = User.query.get(user_id)
+                if user:
+                    c.assigned_users.append(user)
 
     db.session.commit()
     return {"message": "Candidate updated"}

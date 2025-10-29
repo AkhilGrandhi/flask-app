@@ -395,9 +395,13 @@ def generate_resume():
 
     work_exp_str = extract_total_experience(candidate_info)
 
-    # OpenAI client
+    # Validate OpenAI API key
+    if not OPENAI_API_KEY:
+        return jsonify({"message": "OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."}), 500
+    
+    # OpenAI client with timeout
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = OpenAI(api_key=OPENAI_API_KEY, timeout=120.0)
     except Exception as e:
         return jsonify({"message": f"OpenAI client init error: {e}"}), 500
 

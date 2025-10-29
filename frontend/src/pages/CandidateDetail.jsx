@@ -18,7 +18,7 @@ export default function CandidateDetail() {
   const [err, setErr] = useState("");
   const [generating, setGenerating] = useState(false);
   const [jobProgress, setJobProgress] = useState({});  // Track progress for each job
-  const [useAsync, setUseAsync] = useState(true);  // Toggle between async and sync
+  const [useAsync, setUseAsync] = useState(false);  // Toggle between async and sync (default: sync for reliability)
   
   // View dialog state
   const [viewOpen, setViewOpen] = useState(false);
@@ -170,7 +170,7 @@ export default function CandidateDetail() {
         await load();
         
       } else {
-        // SYNC MODE (Legacy): Wait for generation to complete
+        // SYNC MODE: Wait for generation to complete (may take 30-60 seconds)
         const response = await addCandidateJob(id, { job_id: jobId, job_description: jobDesc });
         jobRowId = response.id;
         
