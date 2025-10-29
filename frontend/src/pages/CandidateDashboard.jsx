@@ -6,7 +6,7 @@ import {
   FormControl, InputLabel, Select, MenuItem, CircularProgress, Snackbar, Menu, IconButton, Tooltip
 } from "@mui/material";
 import {
-  PersonOutline, EmailOutlined, PhoneOutlined,
+  PersonOutline, PhoneOutlined,
   WorkOutlineOutlined, VisibilityOutlined, Download, WorkspacePremium, Add
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext";
@@ -272,7 +272,7 @@ ${job.resume_content}`;
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center", 
-            py: 1.25
+            py: 1
       }}>
             {/* Logo and Brand */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -391,22 +391,19 @@ ${job.resume_content}`;
       <Container maxWidth="lg" sx={{ flex: 1, py: 1.5, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
       {/* Generate Resume Section - Only for Silver Subscribers */}
       {candidate?.subscription_type === "Silver" && (
-        <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", mb: 1.2, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>
+        <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 2, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>
           <Box sx={{ 
-            px: 1.2,
-            py: 0.6, 
-            bgcolor: "#fafafa",
-            borderBottom: "1px solid",
-            borderColor: "divider",
+            px: 2,
+            py: 1, 
+            bgcolor: "success.main",
+            color: "white",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center"
           }}>
-            <Box>
-              <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '0.9rem', color: "#757575" }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
               🚀 Generate Resume
             </Typography>
-            </Box>
             <Button 
               variant="contained" 
               size="small"
@@ -415,15 +412,18 @@ ${job.resume_content}`;
               startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <Add />}
               sx={{ 
                 fontWeight: 600,
-                fontSize: "0.72rem",
+                fontSize: "0.75rem",
                 textTransform: "none",
-                bgcolor: "#757575",
-                py: 0.4,
-                px: 1.2,
-                "&:hover": { bgcolor: "#616161" },
+                bgcolor: "white",
+                color: "success.main",
+                px: 1.5,
+                height: 32,
+                "&:hover": { 
+                  bgcolor: "rgba(255,255,255,0.9)"
+                },
                 "&.Mui-disabled": {
-                  bgcolor: "#e0e0e0",
-                  color: "#9e9e9e"
+                  bgcolor: "rgba(255,255,255,0.6)",
+                  color: "rgba(0,0,0,0.4)"
                 }
               }}
             >
@@ -431,71 +431,62 @@ ${job.resume_content}`;
             </Button>
           </Box>
           
-          <Box sx={{ p: 1 }}>
+          <Box sx={{ p: 1.5 }}>
             {generateError && (
-              <Alert severity="error" sx={{ mb: 0.6, py: 0.2, fontSize: '0.8rem' }} onClose={() => setGenerateError("")}>
+              <Alert severity="error" sx={{ mb: 1.25 }} onClose={() => setGenerateError("")}>
                 {generateError}
               </Alert>
             )}
             
-            <Box sx={{ display: "flex", gap: 0.8, alignItems: "flex-start" }}>
-              <Box sx={{ width: "30%" }}>
+            <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
                 <TextField
                   label="Job ID"
+                placeholder="Enter Job ID"
                   value={jobId}
                   onChange={(e) => setJobId(e.target.value)}
-                  fullWidth
                   disabled={generating}
                   required
                   variant="outlined"
                   size="small"
+                sx={{ width: "25%" }}
                 />
-              </Box>
-              <Box sx={{ width: "70%" }}>
                 <TextField
                   label="Job Description"
+                placeholder="Enter Job Description"
                   value={jobDesc}
                   onChange={(e) => setJobDesc(e.target.value)}
-                  fullWidth
                   multiline
                   rows={1.5}
                   disabled={generating}
                   required
                   variant="outlined"
                   size="small"
+                sx={{ flex: 1 }}
                 />
-              </Box>
             </Box>
           </Box>
         </Paper>
       )}
 
       {/* Jobs Applied Section - Compact */}
-      <Paper elevation={0} sx={{ borderRadius: 3, overflow: "hidden", border: '1px solid', borderColor: 'divider', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
         <Box sx={{ 
-          px: 1.2,
-          py: 0.6, 
-          bgcolor: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderBottom: "2px solid",
-          borderColor: "primary.dark",
+          px: 2,
+          py: 1, 
+          bgcolor: "primary.main",
+          color: "white",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          flexShrink: 0,
-          gap: 2
+          gap: 2,
+          flexShrink: 0
         }}>
-          <Box>
-            <Typography variant="body1" sx={{ fontWeight: 700, mb: 0.1, color: 'white', fontSize: '1rem' }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
               💼 Jobs Applied
           </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.9)', fontSize: '0.75rem' }}>
-              Track your applications
-            </Typography>
-          </Box>
           
           {/* Filters */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, justifyContent: "flex-end" }}>
             <TextField
               type="date"
               size="small"
@@ -564,59 +555,16 @@ ${job.resume_content}`;
                   color: "primary.main",
                   fontSize: "0.7rem",
                   fontWeight: 600,
+                  minWidth: "auto",
+                  px: 1.5,
                   "&:hover": {
                     bgcolor: "rgba(255,255,255,0.9)"
                   }
                 }}
               >
-                Clear All
+                Clear
               </Button>
             )}
-            
-            <Box sx={{ 
-              bgcolor: 'white', 
-              px: 1.2, 
-              py: 0.5, 
-              borderRadius: 2,
-              boxShadow: 2
-            }}>
-              <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', textAlign: 'center', lineHeight: 1, fontSize: '1.75rem' }}>
-                {(() => {
-                  const filteredJobs = (candidate?.jobs || []).filter(j => {
-                    if (jobDateFilter) {
-                      const jobDate = new Date(j.created_at).toISOString().split('T')[0];
-                      if (jobDate !== jobDateFilter) return false;
-                    }
-                    if (jobIdFilter && !j.job_id.toLowerCase().includes(jobIdFilter.toLowerCase())) {
-                      return false;
-                    }
-                    if (jobDescFilter && !j.job_description.toLowerCase().includes(jobDescFilter.toLowerCase())) {
-                      return false;
-                    }
-                    return true;
-                  });
-                  return filteredJobs.length;
-                })()}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', fontWeight: 600, fontSize: '0.7rem' }}>
-                Application{(() => {
-                  const filteredJobs = (candidate?.jobs || []).filter(j => {
-                    if (jobDateFilter) {
-                      const jobDate = new Date(j.created_at).toISOString().split('T')[0];
-                      if (jobDate !== jobDateFilter) return false;
-                    }
-                    if (jobIdFilter && !j.job_id.toLowerCase().includes(jobIdFilter.toLowerCase())) {
-                      return false;
-                    }
-                    if (jobDescFilter && !j.job_description.toLowerCase().includes(jobDescFilter.toLowerCase())) {
-                      return false;
-                    }
-                    return true;
-                  });
-                  return filteredJobs.length;
-                })() !== 1 ? 's' : ''}
-              </Typography>
-            </Box>
           </Box>
         </Box>
 
@@ -635,16 +583,16 @@ ${job.resume_content}`;
             return true;
           });
           return filteredJobs.length > 0 ? (
-          <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
+          <Box sx={{ maxHeight: '372px', overflow: 'auto' }}>
           <Table size="small" stickyHeader>
             <TableHead>
-              <TableRow sx={{ bgcolor: "grey.100" }}>
-                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Job ID</TableCell>
-                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Job Description</TableCell>
-                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Resume Content</TableCell>
-                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }}>Applied Date</TableCell>
-                <TableCell sx={{ fontWeight: 700, py: 0.8, fontSize: '0.82rem', bgcolor: 'grey.100' }} align="center">Actions</TableCell>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Job ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Job Description</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Resume Content</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Applied Date</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -653,19 +601,23 @@ ${job.resume_content}`;
                   key={job.id} 
                   hover
                   sx={{ 
-                    "&:hover": { bgcolor: "rgba(102, 126, 234, 0.05)" },
-                    "& td": { py: 0.9 }
+                    "&:hover": { 
+                      bgcolor: "primary.lighter",
+                      cursor: "pointer"
+                    },
+                    transition: "all 0.2s",
+                    "& td": { py: 0.75 }
                   }}
                 >
-                  <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 700, color: "primary.main", fontSize: '0.85rem' }}>
+                  <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 500 }}>
                     <Tooltip title={job.job_id} arrow placement="top">
-                      <span>
+                      <span style={{ color: '#1976d2', fontWeight: 600 }}>
                         {job.job_id.length > 15 ? job.job_id.substring(0, 15) + '...' : job.job_id}
                       </span>
                     </Tooltip>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 350 }}>
-                    <Typography variant="body2" sx={{ fontSize: '0.825rem' }}>
+                    <Typography variant="body2">
                       {job.job_description.length > 100
                         ? job.job_description.substring(0, 100) + "..."
                         : job.job_description}
@@ -674,13 +626,13 @@ ${job.resume_content}`;
                   <TableCell sx={{ maxWidth: 250 }}>
                     <Stack direction="row" spacing={0.75} alignItems="center">
                       {job.resume_content ? (
-                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.825rem' }}>
+                        <Typography variant="body2" color="text.secondary">
                           {job.resume_content.length > 80
                             ? job.resume_content.substring(0, 80) + "..."
                             : job.resume_content}
                         </Typography>
                       ) : (
-                        <Typography variant="body2" color="text.secondary" fontStyle="italic" sx={{ fontSize: '0.825rem' }}>
+                        <Typography variant="body2" color="text.secondary" fontStyle="italic">
                           Not generated
                         </Typography>
                       )}
@@ -710,21 +662,22 @@ ${job.resume_content}`;
                       <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
                     )}
                   </TableCell>
-                  <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary", fontSize: '0.825rem' }}>
+                  <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary" }}>
                     {new Date(job.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell align="center">
-                    <Button
+                    <Tooltip title="View Details">
+                      <IconButton
                       size="small"
-                      variant="outlined"
+                        color="primary"
                       onClick={() => {
                         setSelectedJob(job);
                         setResumeOpen(true);
                       }}
-                      sx={{ textTransform: "none", fontWeight: 600, fontSize: '0.7rem', py: 0.3, px: 1 }}
                     >
-                      View Details
-                    </Button>
+                        <VisibilityOutlined fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -732,7 +685,11 @@ ${job.resume_content}`;
           </Table>
           </Box>
         ) : (
-          <Box sx={{ textAlign: "center", py: 8 }}>
+          <Box sx={{ 
+            textAlign: "center", 
+            py: 8,
+            px: 2
+          }}>
             <Avatar sx={{ 
               width: 80, 
               height: 80, 
@@ -740,14 +697,14 @@ ${job.resume_content}`;
               mb: 2,
               bgcolor: "primary.lighter"
             }}>
-              <WorkOutlineOutlined sx={{ fontSize: 40, color: "primary.main" }} />
+              <Typography variant="h3">💼</Typography>
             </Avatar>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              {(jobDateFilter || jobIdFilter || jobDescFilter) ? "No Applications Match Filters" : "No Jobs Applied Yet"}
+              {(jobDateFilter || jobIdFilter || jobDescFilter) ? "No Matching Applications" : "No Jobs Applied Yet"}
             </Typography>
-            <Typography color="text.secondary">
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
               {(jobDateFilter || jobIdFilter || jobDescFilter)
-                ? "No job applications match your filter criteria. Try adjusting or clearing the filters."
+                ? "Try adjusting your filters"
                 : "You haven't applied to any jobs yet. Check back later!"}
             </Typography>
           </Box>
@@ -1663,6 +1620,153 @@ ${job.resume_content}`;
 
     </Container>
 
+      {/* Enhanced Footer */}
+      <Box 
+        component="footer" 
+        sx={{ 
+          bgcolor: 'linear-gradient(to right, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderTop: '2px solid',
+          borderColor: 'primary.main',
+          py: 1.5,
+          mt: 'auto',
+          flexShrink: 0,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
+        }}
+      >
+        <Container maxWidth="lg">
+          <Stack 
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={{ xs: 1, md: 3 }}
+            alignItems="center"
+            justifyContent="space-between"
+          >
+            {/* Left: Logo & Copyright */}
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box sx={{ 
+                bgcolor: 'white', 
+                p: 0.5, 
+                borderRadius: 1, 
+                display: 'flex', 
+                alignItems: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
+                <img 
+                  src="/only_logo.png" 
+                  alt="Data Fyre" 
+                  style={{ height: "20px", width: "auto" }}
+                />
+              </Box>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  fontWeight: 600,
+                  color: 'white'
+                }}
+              >
+                © {new Date().getFullYear()} Data Fyre. All rights reserved.
+              </Typography>
+            </Stack>
+
+            {/* Center: Links */}
+            <Stack 
+              direction="row" 
+              spacing={2.5} 
+              alignItems="center"
+              sx={{ display: { xs: 'none', md: 'flex' } }}
+            >
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                About
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                Privacy
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                Terms
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                Help
+              </Typography>
+            </Stack>
+
+            {/* Right: Contact */}
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <Box sx={{ 
+                bgcolor: 'rgba(255,255,255,0.2)', 
+                p: 0.75, 
+                borderRadius: 1,
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: '0.85rem',
+                    color: 'white',
+                    fontWeight: 600
+                  }}
+                >
+                  📧 support@datafyre.com
+                </Typography>
+              </Box>
+            </Stack>
+          </Stack>
+        </Container>
+      </Box>
+
       {/* Toast Notification */}
       <Snackbar 
         open={toast.open} 
@@ -1679,66 +1783,6 @@ ${job.resume_content}`;
           {toast.message}
         </Alert>
       </Snackbar>
-
-      {/* Compact Footer */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          bgcolor: 'white',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          py: 1.2,
-          flexShrink: 0
-        }}
-      >
-        <Container maxWidth="lg">
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between', 
-            alignItems: { xs: 'center', md: 'center' },
-            gap: 1.2
-          }}>
-            {/* Logo & Copyright */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <img 
-                src="/only_logo.png" 
-                alt="Data Fyre Logo" 
-                style={{ height: "20px", width: "auto", objectFit: "contain" }}
-              />
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                © {new Date().getFullYear()} Data Fyre. All rights reserved.
-              </Typography>
-            </Box>
-
-            {/* Links */}
-            <Stack direction="row" spacing={1.8} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                About
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Help
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Privacy
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Terms
-              </Typography>
-            </Stack>
-
-            {/* Contact */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                <EmailOutlined sx={{ fontSize: 13, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  support@datafyre.com
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        </Container>
-      </Box>
     </Box>
   );
 }
