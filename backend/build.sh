@@ -25,23 +25,21 @@ if [ -d "migrations" ]; then
     MIGRATION_EXIT_CODE=$?
     set -e
     
-    if [ $MIGRATION_EXIT_CODE -eq 0 ]; then
+    # Check for any "already exists" errors even if exit code is 0
+    if grep -q "already exists" /tmp/migration_output.log; then
+        echo "⚠ Detected existing schema conflict - attempting to sync migration state..."
+        
+        # Run the Python fix script to sync the state
+        python fix_migration_conflict.py
+        
+        echo "✓ Migration state synchronized"
+    elif [ $MIGRATION_EXIT_CODE -eq 0 ]; then
         echo "✓ Database migrations completed successfully"
     else
-        # Check if it's a "column already exists" or "relation already exists" error
-        if grep -q "already exists" /tmp/migration_output.log; then
-            echo "⚠ Detected existing schema conflict - attempting to sync migration state..."
-            
-            # Run the Python fix script to sync the state
-            python fix_migration_conflict.py
-            
-            echo "✓ Migration state synchronized"
-        else
-            # It's a different error, fail the build
-            echo "✗ Migration failed with an unexpected error"
-            cat /tmp/migration_output.log
-            exit 1
-        fi
+        # It's a different error, fail the build
+        echo "✗ Migration failed with an unexpected error"
+        cat /tmp/migration_output.log
+        exit 1
     fi
 else
     echo "⚠ No migrations directory found"
