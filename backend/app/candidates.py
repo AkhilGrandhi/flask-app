@@ -30,11 +30,12 @@ def owns_or_404(cand: Candidate, uid: int):
     # Check if user is creator or in assigned_users
     is_creator = cand.created_by_user_id == uid
     # Check assigned users (backward compatible)
-    try:
-        is_assigned = any(u.id == uid for u in cand.assigned_users)
-    except Exception:
-        # If candidate_users table doesn't exist yet (migration not run)
-        is_assigned = False
+    is_assigned = False
+    if hasattr(cand, 'assigned_users'):
+        try:
+            is_assigned = any(u.id == uid for u in cand.assigned_users)
+        except Exception:
+            is_assigned = False
     if not (is_creator or is_assigned):
         abort(404)
 
@@ -62,10 +63,12 @@ def list_my_candidates():
     created_candidates = Candidate.query.filter_by(created_by_user_id=uid).all()
     
     # Get assigned candidates (backward compatible)
-    try:
-        assigned_candidates = user.assigned_candidates
-    except Exception:
-        # If candidate_users table doesn't exist yet (migration not run)
+    if hasattr(user, 'assigned_candidates'):
+        try:
+            assigned_candidates = user.assigned_candidates
+        except Exception:
+            assigned_candidates = []
+    else:
         assigned_candidates = []
     
     # Combine and remove duplicates
@@ -206,17 +209,18 @@ def create_candidate():
     
     # Handle multiple assigned users (backward compatible)
     if is_admin() and "assigned_user_ids" in data:
-        try:
-            assigned_user_ids = data.get("assigned_user_ids", [])
-            if assigned_user_ids:
-                from .models import User
-                for user_id in assigned_user_ids:
-                    user = User.query.get(user_id)
-                    if user:
-                        c.assigned_users.append(user)
-        except Exception:
-            # If candidate_users table doesn't exist yet (migration not run)
-            pass
+        if hasattr(c, 'assigned_users'):
+            try:
+                assigned_user_ids = data.get("assigned_user_ids", [])
+                if assigned_user_ids:
+                    from .models import User
+                    for user_id in assigned_user_ids:
+                        user = User.query.get(user_id)
+                        if user:
+                            c.assigned_users.append(user)
+            except Exception:
+                # If there's an error with the relationship
+                pass
     
     db.session.commit()
     return {"message": "Candidate created", "id": c.id}, 201
@@ -312,19 +316,20 @@ def update_candidate(cand_id):
     
     # Handle multiple assigned users (admin only, backward compatible)
     if is_admin() and "assigned_user_ids" in data:
-        try:
-            assigned_user_ids = data.get("assigned_user_ids", [])
-            # Clear existing assignments and add new ones
-            c.assigned_users.clear()
-            if assigned_user_ids:
-                from .models import User
-                for user_id in assigned_user_ids:
-                    user = User.query.get(user_id)
-                    if user:
-                        c.assigned_users.append(user)
-        except Exception:
-            # If candidate_users table doesn't exist yet (migration not run)
-            pass
+        if hasattr(c, 'assigned_users'):
+            try:
+                assigned_user_ids = data.get("assigned_user_ids", [])
+                # Clear existing assignments and add new ones
+                c.assigned_users.clear()
+                if assigned_user_ids:
+                    from .models import User
+                    for user_id in assigned_user_ids:
+                        user = User.query.get(user_id)
+                        if user:
+                            c.assigned_users.append(user)
+            except Exception:
+                # If there's an error with the relationship
+                pass
 
     db.session.commit()
     return {"message": "Candidate updated"}

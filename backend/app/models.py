@@ -1,15 +1,22 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.orm import relationship
+import os
 
 db = SQLAlchemy()
 
 # Association table for many-to-many relationship between Candidate and User
-candidate_users = db.Table('candidate_users',
-    db.Column('candidate_id', db.Integer, db.ForeignKey('candidate.id'), primary_key=True),
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
-    db.Column('created_at', db.DateTime, default=datetime.utcnow)
-)
+# Only define if the feature is enabled (to avoid errors if migration hasn't run yet)
+ENABLE_MULTI_USER_ASSIGNMENT = os.getenv('ENABLE_MULTI_USER_ASSIGNMENT', 'false').lower() == 'true'
+
+if ENABLE_MULTI_USER_ASSIGNMENT:
+    candidate_users = db.Table('candidate_users',
+        db.Column('candidate_id', db.Integer, db.ForeignKey('candidate.id'), primary_key=True),
+        db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+        db.Column('created_at', db.DateTime, default=datetime.utcnow)
+    )
+else:
+    candidate_users = None
 
 
 class User(db.Model):
@@ -23,14 +30,6 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     candidates = db.relationship("Candidate", backref="creator", lazy=True)
-    
-    # Many-to-many relationship with candidates (assigned users)
-    assigned_candidates = db.relationship(
-        "Candidate",
-        secondary=candidate_users,
-        backref=db.backref("assigned_users", lazy=True),
-        lazy=True
-    )
 
     def to_dict(self):
         return {
@@ -164,18 +163,22 @@ class Candidate(db.Model):
                 "email": self.creator.email,
                 "name": self.creator.name,
             }
-            # Include all assigned users (if table exists - backward compatible)
-            try:
-                d["assigned_users"] = [
-                    {
-                        "id": u.id,
-                        "email": u.email,
-                        "name": u.name,
-                    }
-                    for u in self.assigned_users
-                ]
-            except Exception:
-                # If candidate_users table doesn't exist yet (migration not run)
+            # Include all assigned users (if feature is enabled and table exists)
+            if hasattr(self, 'assigned_users'):
+                try:
+                    d["assigned_users"] = [
+                        {
+                            "id": u.id,
+                            "email": u.email,
+                            "name": u.name,
+                        }
+                        for u in self.assigned_users
+                    ]
+                except Exception:
+                    # If there's an error accessing the relationship
+                    d["assigned_users"] = []
+            else:
+                # Feature not enabled or table doesn't exist
                 d["assigned_users"] = []
 
         if include_jobs:
@@ -250,3 +253,13 @@ class ResumeGenerationJob(db.Model):
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
+
+
+# Conditionally add multi-user assignment relationships if feature is enabled
+if ENABLE_MULTI_USER_ASSIGNMENT and candidate_users is not None:
+    User.assigned_candidates = db.relationship(
+        "Candidate",
+        secondary=candidate_users,
+        backref=db.backref("assigned_users", lazy=True),
+        lazy=True
+    )
