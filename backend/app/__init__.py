@@ -12,10 +12,14 @@ from .models import db, User
 
 migrate = Migrate()
 jwt = JWTManager()
+
+# Get Redis URL from environment (fallback to memory for local dev)
+REDIS_URL = os.getenv("REDIS_URL", "memory://")
+
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://",  # Use Redis in production: "redis://localhost:6379"
+    storage_uri=REDIS_URL
 )
 
 def create_app():
