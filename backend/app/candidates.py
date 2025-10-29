@@ -24,18 +24,16 @@ def owns_or_404(cand: Candidate, uid: int):
     # Admins can access any candidate
     if is_admin():
         return
-    # Check if user is creator or is assigned to this candidate
+    # Check if user is creator OR assigned to this candidate
     if not cand:
         abort(404)
-    # Check if user is creator or in assigned_users
     is_creator = cand.created_by_user_id == uid
-    # Check assigned users (backward compatible)
-    is_assigned = False
-    if hasattr(cand, 'assigned_users'):
-        try:
-            is_assigned = any(u.id == uid for u in cand.assigned_users)
-        except Exception:
-            is_assigned = False
+    # Check if user is assigned (backward compatible)
+    try:
+        is_assigned = cand.assigned_users.filter_by(id=uid).first() is not None
+    except Exception:
+        # Table doesn't exist yet (migration not run)
+        is_assigned = False
     if not (is_creator or is_assigned):
         abort(404)
 
@@ -58,25 +56,23 @@ def list_my_candidates():
     if not user:
         abort(404, description="User not found")
     
-    # Get all candidates where user is either creator or assigned
-    # Combine candidates created by user and candidates assigned to user
+    # Get candidates created by user
     created_candidates = Candidate.query.filter_by(created_by_user_id=uid).all()
     
-    # Get assigned candidates (backward compatible)
-    if hasattr(user, 'assigned_candidates'):
-        try:
-            assigned_candidates = user.assigned_candidates
-        except Exception:
-            assigned_candidates = []
-    else:
+    # Get candidates assigned to user (backward compatible)
+    try:
+        assigned_candidates = user.assigned_candidates.all()
+    except Exception:
+        # Table doesn't exist yet (migration not run)
         assigned_candidates = []
     
-    # Combine and remove duplicates
-    all_candidates = list({c.id: c for c in created_candidates + assigned_candidates}.values())
-    # Sort by ID descending
-    all_candidates.sort(key=lambda x: x.id, reverse=True)
+    # Combine and remove duplicates (in case user is both creator and assigned)
+    all_candidates = {c.id: c for c in created_candidates + assigned_candidates}
     
-    return {"candidates": [c.to_dict(include_jobs=True) for c in all_candidates]}
+    # Sort by ID descending
+    sorted_candidates = sorted(all_candidates.values(), key=lambda x: x.id, reverse=True)
+    
+    return {"candidates": [c.to_dict(include_jobs=True) for c in sorted_candidates]}
 
 @bp.post("")
 @jwt_required()
@@ -205,22 +201,17 @@ def create_candidate():
         c.birthdate = date(y, m, d)
 
     db.session.add(c)
-    db.session.flush()  # Flush to get the candidate ID before assigning users
+    db.session.flush()  # Flush to get the candidate ID
     
-    # Handle multiple assigned users (backward compatible)
+    # Handle assigned users (admin only)
     if is_admin() and "assigned_user_ids" in data:
-        if hasattr(c, 'assigned_users'):
-            try:
-                assigned_user_ids = data.get("assigned_user_ids", [])
-                if assigned_user_ids:
-                    from .models import User
-                    for user_id in assigned_user_ids:
-                        user = User.query.get(user_id)
-                        if user:
-                            c.assigned_users.append(user)
-            except Exception:
-                # If there's an error with the relationship
-                pass
+        assigned_user_ids = data.get("assigned_user_ids", [])
+        if assigned_user_ids:
+            from .models import User
+            for user_id in assigned_user_ids:
+                user = User.query.get(user_id)
+                if user and user.role == "user":  # Only assign to regular users
+                    c.assigned_users.append(user)
     
     db.session.commit()
     return {"message": "Candidate created", "id": c.id}, 201
@@ -314,22 +305,18 @@ def update_candidate(cand_id):
         else:
             c.birthdate = None
     
-    # Handle multiple assigned users (admin only, backward compatible)
+    # Handle assigned users (admin only)
     if is_admin() and "assigned_user_ids" in data:
-        if hasattr(c, 'assigned_users'):
-            try:
-                assigned_user_ids = data.get("assigned_user_ids", [])
-                # Clear existing assignments and add new ones
-                c.assigned_users.clear()
-                if assigned_user_ids:
-                    from .models import User
-                    for user_id in assigned_user_ids:
-                        user = User.query.get(user_id)
-                        if user:
-                            c.assigned_users.append(user)
-            except Exception:
-                # If there's an error with the relationship
-                pass
+        assigned_user_ids = data.get("assigned_user_ids", [])
+        # Clear existing assignments
+        c.assigned_users = []
+        # Add new assignments
+        if assigned_user_ids:
+            from .models import User
+            for user_id in assigned_user_ids:
+                user = User.query.get(user_id)
+                if user and user.role == "user":  # Only assign to regular users
+                    c.assigned_users.append(user)
 
     db.session.commit()
     return {"message": "Candidate updated"}

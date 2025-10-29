@@ -140,22 +140,17 @@ def admin_update_candidate(cand_id):
                 return {"message": "Assigned user not found"}, 404
             c.created_by_user_id = new_creator_id
     
-    # Handle multiple assigned users (backward compatible)
+    # Handle assigned users (admin only)
     if "assigned_user_ids" in data:
-        if hasattr(c, 'assigned_users'):
-            try:
-                assigned_user_ids = data.get("assigned_user_ids", [])
-                if assigned_user_ids:
-                    # Clear existing assignments
-                    c.assigned_users.clear()
-                    # Add new assignments
-                    for user_id in assigned_user_ids:
-                        user = User.query.get(user_id)
-                        if user:
-                            c.assigned_users.append(user)
-            except Exception:
-                # If there's an error with the relationship
-                pass
+        assigned_user_ids = data.get("assigned_user_ids", [])
+        # Clear existing assignments
+        c.assigned_users = []
+        # Add new assignments
+        if assigned_user_ids:
+            for user_id in assigned_user_ids:
+                user = User.query.get(user_id)
+                if user and user.role == "user":  # Only assign to regular users
+                    c.assigned_users.append(user)
     
     # Validate email if being updated
     if "email" in data:
