@@ -4,7 +4,7 @@ import { useParams, Link as RouterLink } from "react-router-dom";
 import {
   Container, Box, Paper, Typography, Stack, Divider,
   TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Alert, Chip, Grid
+  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Alert, Chip, Grid, Tooltip
 } from "@mui/material";
 import { ArrowBack, Person, Email, Phone, Work, Add, Download } from "@mui/icons-material";
 import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume, generateResumeAsync, getJobStatus, downloadResumeAsync } from "../api";
@@ -19,6 +19,11 @@ export default function CandidateDetail() {
   const [generating, setGenerating] = useState(false);
   const [jobProgress, setJobProgress] = useState({});  // Track progress for each job
   const [useAsync, setUseAsync] = useState(false);  // Toggle between async and sync (default: sync for reliability)
+  
+  // Filter states for job applications
+  const [dateFilter, setDateFilter] = useState("");  // Filter by date
+  const [jobIdFilter, setJobIdFilter] = useState("");  // Filter by job ID
+  const [jobDescFilter, setJobDescFilter] = useState("");  // Filter by job description
   
   // View dialog state
   const [viewOpen, setViewOpen] = useState(false);
@@ -501,24 +506,147 @@ ${job.resume_content}`;
           color: "white",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center"
+          alignItems: "center",
+          gap: 2
         }}>
           <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.05rem" }}>
             📋 Job Applications
           </Typography>
-          <Chip 
-            label={`${(cand.jobs || []).length} Application${(cand.jobs || []).length !== 1 ? 's' : ''}`}
-            sx={{ 
-              fontWeight: 600,
-              bgcolor: "white",
-              color: "success.main",
-              fontSize: "0.75rem",
-              height: 24
-            }}
-          />
+          
+          {/* Filters */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <TextField
+              type="date"
+              size="small"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              placeholder="Date"
+              InputLabelProps={{ shrink: true }}
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={jobIdFilter}
+              onChange={(e) => setJobIdFilter(e.target.value)}
+              placeholder="Job ID"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={jobDescFilter}
+              onChange={(e) => setJobDescFilter(e.target.value)}
+              placeholder="Description"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            {(dateFilter || jobIdFilter || jobDescFilter) && (
+              <Button 
+                size="small" 
+                variant="contained"
+                onClick={() => {
+                  setDateFilter("");
+                  setJobIdFilter("");
+                  setJobDescFilter("");
+                }}
+                sx={{ 
+                  height: 32,
+                  bgcolor: "white",
+                  color: "success.main",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  "&:hover": {
+                    bgcolor: "rgba(255,255,255,0.9)"
+                  }
+                }}
+              >
+                Clear All
+              </Button>
+            )}
+            
+            <Chip 
+              label={`${(() => {
+                const filteredJobs = (cand.jobs || []).filter(j => {
+                  if (dateFilter) {
+                    const jobDate = new Date(j.created_at).toISOString().split('T')[0];
+                    if (jobDate !== dateFilter) return false;
+                  }
+                  if (jobIdFilter && !j.job_id.toLowerCase().includes(jobIdFilter.toLowerCase())) {
+                    return false;
+                  }
+                  if (jobDescFilter && !j.job_description.toLowerCase().includes(jobDescFilter.toLowerCase())) {
+                    return false;
+                  }
+                  return true;
+                });
+                return filteredJobs.length;
+              })()} Application${(() => {
+                const filteredJobs = (cand.jobs || []).filter(j => {
+                  if (dateFilter) {
+                    const jobDate = new Date(j.created_at).toISOString().split('T')[0];
+                    if (jobDate !== dateFilter) return false;
+                  }
+                  if (jobIdFilter && !j.job_id.toLowerCase().includes(jobIdFilter.toLowerCase())) {
+                    return false;
+                  }
+                  if (jobDescFilter && !j.job_description.toLowerCase().includes(jobDescFilter.toLowerCase())) {
+                    return false;
+                  }
+                  return true;
+                });
+                return filteredJobs.length;
+              })() !== 1 ? 's' : ''}`}
+              sx={{ 
+                fontWeight: 600,
+                bgcolor: "white",
+                color: "success.main",
+                fontSize: "0.75rem",
+                height: 24
+              }}
+            />
+          </Box>
         </Box>
         
-        {(cand.jobs && cand.jobs.length > 0) ? (
+        {(() => {
+          const filteredJobs = (cand.jobs || []).filter(j => {
+            if (dateFilter) {
+              const jobDate = new Date(j.created_at).toISOString().split('T')[0];
+              if (jobDate !== dateFilter) return false;
+            }
+            if (jobIdFilter && !j.job_id.toLowerCase().includes(jobIdFilter.toLowerCase())) {
+              return false;
+            }
+            if (jobDescFilter && !j.job_description.toLowerCase().includes(jobDescFilter.toLowerCase())) {
+              return false;
+            }
+            return true;
+          });
+          return filteredJobs.length > 0 ? (
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
@@ -530,7 +658,7 @@ ${job.resume_content}`;
               </TableRow>
             </TableHead>
             <TableBody>
-              {cand.jobs.map(j => (
+              {filteredJobs.map(j => (
                 <TableRow 
                   key={j.id}
                   hover
@@ -540,7 +668,11 @@ ${job.resume_content}`;
                   }}
                 >
                   <TableCell sx={{ whiteSpace:"nowrap", fontWeight: 600, color: "primary.main" }}>
-                    {j.job_id}
+                    <Tooltip title={j.job_id} arrow placement="top">
+                      <span>
+                        {j.job_id.length > 15 ? j.job_id.substring(0, 15) + '...' : j.job_id}
+                      </span>
+                    </Tooltip>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 400 }}>
                     <Typography variant="body2">
@@ -634,13 +766,16 @@ ${job.resume_content}`;
               <Work sx={{ fontSize: 40, color: "primary.main" }} />
             </Avatar>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              No Job Applications Yet
+              {(dateFilter || jobIdFilter || jobDescFilter) ? "No Applications Match Filters" : "No Job Applications Yet"}
             </Typography>
             <Typography color="text.secondary">
-              Add a job application above to generate a tailored resume
+              {(dateFilter || jobIdFilter || jobDescFilter)
+                ? "No job applications match your filter criteria. Try adjusting or clearing the filters."
+                : "Add a job application above to generate a tailored resume"}
             </Typography>
           </Box>
-        )}
+        );
+        })()}
       </Paper>
 
       {/* View Job Dialog */}

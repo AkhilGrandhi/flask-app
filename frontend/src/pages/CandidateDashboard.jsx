@@ -95,6 +95,11 @@ export default function CandidateDashboard() {
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
   
+  // Filter states for job applications
+  const [jobDateFilter, setJobDateFilter] = useState("");
+  const [jobIdFilter, setJobIdFilter] = useState("");
+  const [jobDescFilter, setJobDescFilter] = useState("");
+  
   // Profile menu state
   const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const profileMenuOpen = Boolean(profileMenuAnchor);
@@ -477,7 +482,8 @@ ${job.resume_content}`;
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          flexShrink: 0
+          flexShrink: 0,
+          gap: 2
         }}>
           <Box>
             <Typography variant="body1" sx={{ fontWeight: 700, mb: 0.1, color: 'white', fontSize: '1rem' }}>
@@ -487,23 +493,145 @@ ${job.resume_content}`;
               Track your applications
             </Typography>
           </Box>
-          <Box sx={{ 
-            bgcolor: 'white', 
-            px: 1.2, 
-            py: 0.5, 
-            borderRadius: 2,
-            boxShadow: 2
-          }}>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', textAlign: 'center', lineHeight: 1, fontSize: '1.75rem' }}>
-              {candidate?.jobs ? candidate.jobs.length : 0}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', fontWeight: 600, fontSize: '0.7rem' }}>
-              Application{(candidate?.jobs?.length || 0) !== 1 ? 's' : ''}
-            </Typography>
+          
+          {/* Filters */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <TextField
+              type="date"
+              size="small"
+              value={jobDateFilter}
+              onChange={(e) => setJobDateFilter(e.target.value)}
+              placeholder="Date"
+              InputLabelProps={{ shrink: true }}
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={jobIdFilter}
+              onChange={(e) => setJobIdFilter(e.target.value)}
+              placeholder="Job ID"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={jobDescFilter}
+              onChange={(e) => setJobDescFilter(e.target.value)}
+              placeholder="Description"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            {(jobDateFilter || jobIdFilter || jobDescFilter) && (
+              <Button 
+                size="small" 
+                variant="contained"
+                onClick={() => {
+                  setJobDateFilter("");
+                  setJobIdFilter("");
+                  setJobDescFilter("");
+                }}
+                sx={{ 
+                  height: 32,
+                  bgcolor: "white",
+                  color: "primary.main",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  "&:hover": {
+                    bgcolor: "rgba(255,255,255,0.9)"
+                  }
+                }}
+              >
+                Clear All
+              </Button>
+            )}
+            
+            <Box sx={{ 
+              bgcolor: 'white', 
+              px: 1.2, 
+              py: 0.5, 
+              borderRadius: 2,
+              boxShadow: 2
+            }}>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', textAlign: 'center', lineHeight: 1, fontSize: '1.75rem' }}>
+                {(() => {
+                  const filteredJobs = (candidate?.jobs || []).filter(j => {
+                    if (jobDateFilter) {
+                      const jobDate = new Date(j.created_at).toISOString().split('T')[0];
+                      if (jobDate !== jobDateFilter) return false;
+                    }
+                    if (jobIdFilter && !j.job_id.toLowerCase().includes(jobIdFilter.toLowerCase())) {
+                      return false;
+                    }
+                    if (jobDescFilter && !j.job_description.toLowerCase().includes(jobDescFilter.toLowerCase())) {
+                      return false;
+                    }
+                    return true;
+                  });
+                  return filteredJobs.length;
+                })()}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', fontWeight: 600, fontSize: '0.7rem' }}>
+                Application{(() => {
+                  const filteredJobs = (candidate?.jobs || []).filter(j => {
+                    if (jobDateFilter) {
+                      const jobDate = new Date(j.created_at).toISOString().split('T')[0];
+                      if (jobDate !== jobDateFilter) return false;
+                    }
+                    if (jobIdFilter && !j.job_id.toLowerCase().includes(jobIdFilter.toLowerCase())) {
+                      return false;
+                    }
+                    if (jobDescFilter && !j.job_description.toLowerCase().includes(jobDescFilter.toLowerCase())) {
+                      return false;
+                    }
+                    return true;
+                  });
+                  return filteredJobs.length;
+                })() !== 1 ? 's' : ''}
+              </Typography>
+            </Box>
           </Box>
         </Box>
 
-        {candidate?.jobs && candidate.jobs.length > 0 ? (
+        {(() => {
+          const filteredJobs = (candidate?.jobs || []).filter(j => {
+            if (jobDateFilter) {
+              const jobDate = new Date(j.created_at).toISOString().split('T')[0];
+              if (jobDate !== jobDateFilter) return false;
+            }
+            if (jobIdFilter && !j.job_id.toLowerCase().includes(jobIdFilter.toLowerCase())) {
+              return false;
+            }
+            if (jobDescFilter && !j.job_description.toLowerCase().includes(jobDescFilter.toLowerCase())) {
+              return false;
+            }
+            return true;
+          });
+          return filteredJobs.length > 0 ? (
           <Box sx={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           <Table size="small" stickyHeader>
             <TableHead>
@@ -517,7 +645,7 @@ ${job.resume_content}`;
               </TableRow>
             </TableHead>
             <TableBody>
-              {candidate.jobs.map((job) => (
+              {filteredJobs.map((job) => (
                 <TableRow 
                   key={job.id} 
                   hover
@@ -527,7 +655,11 @@ ${job.resume_content}`;
                   }}
                 >
                   <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 700, color: "primary.main", fontSize: '0.85rem' }}>
-                    {job.job_id}
+                    <Tooltip title={job.job_id} arrow placement="top">
+                      <span>
+                        {job.job_id.length > 15 ? job.job_id.substring(0, 15) + '...' : job.job_id}
+                      </span>
+                    </Tooltip>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 350 }}>
                     <Typography variant="body2" sx={{ fontSize: '0.825rem' }}>
@@ -608,13 +740,16 @@ ${job.resume_content}`;
               <WorkOutlineOutlined sx={{ fontSize: 40, color: "primary.main" }} />
             </Avatar>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              No Jobs Applied Yet
+              {(jobDateFilter || jobIdFilter || jobDescFilter) ? "No Applications Match Filters" : "No Jobs Applied Yet"}
             </Typography>
             <Typography color="text.secondary">
-              You haven't applied to any jobs yet. Check back later!
+              {(jobDateFilter || jobIdFilter || jobDescFilter)
+                ? "No job applications match your filter criteria. Try adjusting or clearing the filters."
+                : "You haven't applied to any jobs yet. Check back later!"}
             </Typography>
           </Box>
-        )}
+        );
+        })()}
       </Paper>
 
       {/* Edit Details Dialog */}

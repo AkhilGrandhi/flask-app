@@ -150,6 +150,7 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
               error={!!errors.email} 
               helperText={errors.email}
               variant="outlined"
+              autoComplete="off"
             />
           </Grid>
           <Grid item xs={12} sm={6}>
