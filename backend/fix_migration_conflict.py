@@ -152,14 +152,41 @@ try:
         else:
             print("   ✓ alembic_version table exists")
         
-        print("\n7. Stamping database with current migration state...")
-        from flask_migrate import stamp
+        print("\n7. Fixing migration version table...")
         try:
-            stamp(revision='head')
-            print("   ✓ Database stamped with migration version 'head'")
+            # First, check if alembic_version has any entries
+            result = db.session.execute(text("SELECT version_num FROM alembic_version")).fetchone()
+            if result:
+                current_version = result[0]
+                print(f"   Current migration version: {current_version}")
+                
+                # Check if this version exists in our migrations
+                from flask_migrate import stamp
+                try:
+                    # Try to stamp to head - this will fail if version is invalid
+                    stamp(revision='head')
+                    print("   ✓ Database stamped with migration version 'head'")
+                except Exception as stamp_error:
+                    print(f"   ⚠ Stamp failed: {stamp_error}")
+                    print("   → Clearing corrupted version and re-stamping...")
+                    
+                    # Clear the alembic_version table
+                    db.session.execute(text("DELETE FROM alembic_version"))
+                    db.session.commit()
+                    print("   ✓ Cleared corrupted migration version")
+                    
+                    # Stamp to head
+                    stamp(revision='head')
+                    print("   ✓ Database stamped with migration version 'head'")
+            else:
+                print("   No version found, stamping to head...")
+                from flask_migrate import stamp
+                stamp(revision='head')
+                print("   ✓ Database stamped with migration version 'head'")
+                
             print("   → Alembic now knows all migrations have been applied")
         except Exception as e:
-            print(f"   ⚠ Could not stamp migrations: {e}")
+            print(f"   ⚠ Could not fix migrations: {e}")
             print("   → You may need to manually run: flask db stamp head")
         
     print("\n" + "=" * 70)

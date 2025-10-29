@@ -1,10 +1,12 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.orm import relationship
+from sqlalchemy import inspect
 
 db = SQLAlchemy()
 
 # Association table for many-to-many relationship between Candidate and assigned Users
+# Define it but SQLAlchemy will handle it gracefully if it doesn't exist yet
 candidate_assigned_users = db.Table('candidate_assigned_users',
     db.Column('candidate_id', db.Integer, db.ForeignKey('candidate.id'), primary_key=True),
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
