@@ -1634,80 +1634,76 @@ function CandidatesTab() {
             </Alert>
           )}
           
-          {/* Assign User (Creator) - Show for both create and edit */}
-          <Paper elevation={1} sx={{ p: 2.5, mb: 3, bgcolor: "white" }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5, color: "primary.main" }}>
-              Assign User (Creator) *
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {editing 
-                ? "Change the user who will be assigned as creator of this candidate"
-                : "Select a user who will be assigned as creator of this candidate"}
-            </Typography>
-            <Autocomplete
-              fullWidth
-              options={users.filter(u => u.role === "user")}
-              getOptionLabel={(option) => `${option.name} (${option.email})`}
-              value={users.find(u => u.id === assignedUserId) || null}
-              onChange={(event, newValue) => {
-                setAssignedUserId(newValue ? newValue.id : "");
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Search and select a user..."
-                  required
-                  sx={{ bgcolor: "white" }}
-                />
-              )}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              noOptionsText="No users found"
-            />
-          </Paper>
+          {/* Assign User (Creator) and Additional Users - Side by side */}
+          <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+            {/* Assign User (Creator) */}
+            <Paper elevation={1} sx={{ p: 2, flex: 1, bgcolor: "white" }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: "primary.main" }}>
+                Assign User (Creator) *
+              </Typography>
+              <Autocomplete
+                size="small"
+                fullWidth
+                options={users.filter(u => u.role === "user")}
+                getOptionLabel={(option) => `${option.name} (${option.email})`}
+                value={users.find(u => u.id === assignedUserId) || null}
+                onChange={(event, newValue) => {
+                  setAssignedUserId(newValue ? newValue.id : "");
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select creator..."
+                    required
+                    sx={{ bgcolor: "white" }}
+                  />
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText="No users found"
+              />
+            </Paper>
 
-          {/* Assigned Users - Multiple users who can view/edit this candidate */}
-          <Paper elevation={1} sx={{ p: 2.5, mb: 3, bgcolor: "white" }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1.5, color: "info.main" }}>
-              Assign Additional Users (Optional)
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              {editing 
-                ? "Select additional users who can view and manage this candidate"
-                : "Select users who will have access to view and manage this candidate"}
-            </Typography>
-            <Autocomplete
-              multiple
-              fullWidth
-              options={users.filter(u => u.role === "user")}
-              getOptionLabel={(option) => `${option.name} (${option.email})`}
-              value={users.filter(u => assignedUserIds.includes(u.id))}
-              onChange={(event, newValue) => {
-                setAssignedUserIds(newValue.map(user => user.id));
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Search and select users..."
-                  sx={{ bgcolor: "white" }}
-                />
-              )}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              noOptionsText="No users found"
-              limitTags={3}
-              sx={{
-                '& .MuiAutocomplete-tag': {
-                  bgcolor: 'info.main',
-                  color: 'white',
-                  '& .MuiChip-deleteIcon': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&:hover': {
-                      color: 'white'
+            {/* Assigned Additional Users */}
+            <Paper elevation={1} sx={{ p: 2, flex: 1, bgcolor: "white" }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: "info.main" }}>
+                Assign Additional Users (Optional)
+              </Typography>
+              <Autocomplete
+                multiple
+                size="small"
+                fullWidth
+                options={users.filter(u => u.role === "user")}
+                getOptionLabel={(option) => `${option.name} (${option.email})`}
+                value={users.filter(u => assignedUserIds.includes(u.id))}
+                onChange={(event, newValue) => {
+                  setAssignedUserIds(newValue.map(user => user.id));
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select users..."
+                    sx={{ bgcolor: "white" }}
+                  />
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText="No users found"
+                limitTags={2}
+                sx={{
+                  '& .MuiAutocomplete-tag': {
+                    bgcolor: 'info.main',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    '& .MuiChip-deleteIcon': {
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      '&:hover': {
+                        color: 'white'
+                      }
                     }
                   }
-                }
-              }}
-            />
-          </Paper>
+                }}
+              />
+            </Paper>
+          </Box>
           
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>

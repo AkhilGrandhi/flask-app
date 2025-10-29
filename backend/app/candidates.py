@@ -92,10 +92,10 @@ def create_candidate():
                 return {"message": "Assigned user not found"}, 404
         
         # Validate required fields
-        required = ["first_name", "last_name", "email", "phone", "subscription_type", "password", "birthdate", "gender", 
+        required = ["first_name", "last_name", "email", "phone", "subscription_type", "password", "role", "ssn", "birthdate", "gender", 
                     "nationality", "citizenship_status", "visa_status", "work_authorization",
                     "address_line1", "city", "state", "postal_code", "country",
-                    "work_experience", "education", "ssn"]
+                    "work_experience", "education"]
         missing_fields = [f for f in required if not data.get(f)]
         if missing_fields:
             return {"message": f"Required fields missing: {', '.join(missing_fields)}"}, 400
@@ -157,6 +157,8 @@ def create_candidate():
             phone=data.get("phone"),
             subscription_type=data.get("subscription_type"),
             password=data.get("password"),
+            role=data.get("role"),
+            ssn=data.get("ssn"),
             gender=data.get("gender"),
             nationality=data.get("nationality"),
             citizenship_status=data.get("citizenship_status"),
@@ -190,7 +192,6 @@ def create_candidate():
             at_least_18=data.get("at_least_18"),
             needs_visa_sponsorship=data.get("needs_visa_sponsorship"),
             family_in_org=data.get("family_in_org"),
-            ssn=data.get("ssn"),
             availability=data.get("availability"),
             education=data.get("education"),
             certificates=data.get("certificates"),
@@ -321,7 +322,7 @@ def update_candidate(cand_id):
                 return {"message": "Password must be at least 6 characters"}, 400
 
         for field in [
-            "first_name", "last_name", "email", "phone", "subscription_type", "gender", "nationality",
+            "first_name", "last_name", "email", "phone", "subscription_type", "role", "ssn", "gender", "nationality",
             "citizenship_status", "visa_status", "f1_type", "work_authorization",
             "veteran_status", "race_ethnicity", "address_line1", "address_line2",
             "city", "state", "postal_code", "country", "personal_website",
@@ -330,7 +331,7 @@ def update_candidate(cand_id):
             "expected_wage", "contact_current_employer", "recent_degree",
             "authorized_work_us", "authorized_without_sponsorship",
             "referral_source", "at_least_18", "needs_visa_sponsorship",
-            "family_in_org", "ssn", "availability", "education", "certificates",
+            "family_in_org", "availability", "education", "certificates",
         ]:
             if field in data:
                 setattr(c, field, data[field])

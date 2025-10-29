@@ -54,6 +54,8 @@ class Candidate(db.Model):
     phone = db.Column(db.String(50))
     subscription_type = db.Column(db.String(50))  # Gold or Silver
     password = db.Column(db.String(255))  # Candidate password (minimum 6 characters)
+    role = db.Column(db.String(255))  # Role/Position
+    ssn = db.Column(db.String(10), unique=True, index=True)  # Social Security Number (unique)
     birthdate = db.Column(db.Date)
     gender = db.Column(db.String(50))
     nationality = db.Column(db.String(120))
@@ -78,7 +80,6 @@ class Candidate(db.Model):
     at_least_18 = db.Column(db.String(10))                   # are you at least 18?
     needs_visa_sponsorship = db.Column(db.String(120))       # require sponsorship now/future
     family_in_org = db.Column(db.String(255))                # family member employed with org
-    ssn = db.Column(db.String(10), unique=True, index=True)  # Social Security Number (unique)
     availability = db.Column(db.String(120))                 # availability to start
 
     # Address
@@ -123,6 +124,8 @@ class Candidate(db.Model):
             "first_name": self.first_name, "last_name": self.last_name,
             "email": self.email, "phone": self.phone,
             "subscription_type": self.subscription_type,
+            "role": self.role,
+            "ssn": self.ssn,
             "birthdate": self.birthdate.isoformat() if self.birthdate else None,
             "gender": self.gender, "nationality": self.nationality,
             "citizenship_status": self.citizenship_status,
@@ -154,7 +157,6 @@ class Candidate(db.Model):
             "at_least_18": self.at_least_18,
             "needs_visa_sponsorship": self.needs_visa_sponsorship,
             "family_in_org": self.family_in_org,
-            "ssn": self.ssn,
             "availability": self.availability,
 
             "created_at": self.created_at.isoformat(),
