@@ -502,6 +502,7 @@ ${job.resume_content}`;
               value={jobDateFilter}
               onChange={(e) => setJobDateFilter(e.target.value)}
               placeholder="Date"
+              autoComplete="off"
               InputLabelProps={{ shrink: true }}
               sx={{
                 bgcolor: "white",
@@ -519,6 +520,7 @@ ${job.resume_content}`;
               value={jobIdFilter}
               onChange={(e) => setJobIdFilter(e.target.value)}
               placeholder="Job ID"
+              autoComplete="off"
               sx={{
                 bgcolor: "white",
                 borderRadius: 1,
@@ -535,6 +537,7 @@ ${job.resume_content}`;
               value={jobDescFilter}
               onChange={(e) => setJobDescFilter(e.target.value)}
               placeholder="Description"
+              autoComplete="off"
               sx={{
                 bgcolor: "white",
                 borderRadius: 1,

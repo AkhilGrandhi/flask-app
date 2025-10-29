@@ -4,9 +4,9 @@ import { useParams, Link as RouterLink } from "react-router-dom";
 import {
   Container, Box, Paper, Typography, Stack, Divider,
   TextField, Button, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Alert, Chip, Grid, Tooltip
+  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Alert, Chip, Grid, Tooltip, IconButton
 } from "@mui/material";
-import { ArrowBack, Person, Email, Phone, Work, Add, Download } from "@mui/icons-material";
+import { ArrowBack, Person, Email, Phone, Work, Add, Download, Visibility as ViewIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume, generateResumeAsync, getJobStatus, downloadResumeAsync } from "../api";
 import { fullName } from "../utils/display";
 
@@ -312,28 +312,28 @@ ${job.resume_content}`;
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
+    <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
       {/* Header */}
       <Box sx={{ 
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center", 
-        mb: 3,
-        pb: 2,
-        borderBottom: "2px solid",
-        borderColor: "primary.main"
+        mb: 2,
+        pb: 1.5,
+        borderBottom: "1px solid",
+        borderColor: "divider"
       }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
             src="/only_logo.png" 
             alt="Data Fyre Logo" 
-            style={{ height: "60px", width: "auto", objectFit: "contain" }}
+            style={{ height: "40px", width: "auto", objectFit: "contain" }}
           />
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.2, fontSize: "1.25rem" }}>
               Candidate Job Applications
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
               Manage Job Applications and Generate Resumes
             </Typography>
           </Box>
@@ -342,72 +342,73 @@ ${job.resume_content}`;
           component={RouterLink} 
           to="/" 
           variant="outlined"
+          size="small"
           startIcon={<ArrowBack />}
-          sx={{ fontWeight: 600 }}
+          sx={{ fontWeight: 600, fontSize: "0.85rem" }}
         >
           Back to Dashboard
         </Button>
       </Box>
 
       {/* Candidate Info Card */}
-      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", mb: 2 }}>
-        <Box sx={{ p: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 1.5, border: "1px solid", borderColor: "divider" }}>
+        <Box sx={{ p: 1.5 }}>
+          <Grid container spacing={1.5}>
+            <Grid item xs={12} md={3}>
               <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Avatar sx={{ bgcolor: "primary.main", mr: 1.5, width: 40, height: 40 }}>
-                  <Person sx={{ fontSize: 20 }} />
+                <Avatar sx={{ bgcolor: "primary.main", mr: 1, width: 32, height: 32 }}>
+                  <Person sx={{ fontSize: 16 }} />
                 </Avatar>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.3 }}>
                     Full Name
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
                     {fullName({ first_name: cand.first_name, last_name: cand.last_name })}
                   </Typography>
                 </Box>
               </Box>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={3}>
               <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Avatar sx={{ bgcolor: "success.main", mr: 1.5, width: 40, height: 40 }}>
-                  <Email sx={{ fontSize: 20 }} />
+                <Avatar sx={{ bgcolor: "success.main", mr: 1, width: 32, height: 32 }}>
+                  <Email sx={{ fontSize: 16 }} />
                 </Avatar>
                 <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.3 }}>
                     Email Address
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.9rem", wordBreak: "break-word" }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem", wordBreak: "break-word" }}>
                     {cand.email || "-"}
                   </Typography>
                 </Box>
               </Box>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={3}>
               <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Avatar sx={{ bgcolor: "warning.main", mr: 1.5, width: 40, height: 40 }}>
-                  <Phone sx={{ fontSize: 20 }} />
+                <Avatar sx={{ bgcolor: "warning.main", mr: 1, width: 32, height: 32 }}>
+                  <Phone sx={{ fontSize: 16 }} />
                 </Avatar>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.3 }}>
                     Phone Number
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
                     {cand.phone || "-"}
                   </Typography>
                 </Box>
               </Box>
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={3}>
               <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Avatar sx={{ bgcolor: "info.main", mr: 1.5, width: 40, height: 40 }}>
-                  <Work sx={{ fontSize: 20 }} />
+                <Avatar sx={{ bgcolor: "info.main", mr: 1, width: 32, height: 32 }}>
+                  <Work sx={{ fontSize: 16 }} />
                 </Avatar>
                 <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.3 }}>
                     SSN Number
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.9rem" }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
                     {cand.ssn || "-"}
                   </Typography>
                 </Box>
@@ -418,55 +419,54 @@ ${job.resume_content}`;
       </Paper>
 
       {/* Add Job Section */}
-      <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden", mb: 2, border: "2px solid", borderColor: "primary.main" }}>
+      <Paper elevation={0} sx={{ borderRadius: 2, overflow: "hidden", mb: 1.5, border: "1px solid", borderColor: "divider" }}>
         <Box sx={{ 
-          px: 2.5,
-          py: 1.25, 
-          bgcolor: "primary.main",
-          color: "white",
+          px: 1.2,
+          py: 0.6, 
+          bgcolor: "#fafafa",
+          borderBottom: "1px solid",
+          borderColor: "divider",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center"
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.05rem" }}>
-            🚀 Generate Resume
-          </Typography>
+          <Box>
+            <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '0.9rem', color: "#757575" }}>
+              🚀 Generate Resume
+            </Typography>
+          </Box>
           <Button 
             variant="contained" 
             size="small"
             onClick={addJob} 
             disabled={generating || !jobId || !jobDesc}
-            startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <Add />}
+            startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <Add />}
             sx={{ 
               fontWeight: 600,
-              fontSize: "0.8rem",
+              fontSize: "0.72rem",
               textTransform: "none",
-              bgcolor: "white",
-              color: "primary.main",
-              px: 2,
-              py: 0.75,
-              borderRadius: 1.5,
-              boxShadow: 1,
-              "&:hover": {
-                bgcolor: "grey.100",
-                boxShadow: 2
-              },
-              "&:disabled": {
-                bgcolor: "grey.300",
-                color: "grey.600"
+              bgcolor: "#757575",
+              py: 0.4,
+              px: 1.2,
+              "&:hover": { bgcolor: "#616161" },
+              "&.Mui-disabled": {
+                bgcolor: "#e0e0e0",
+                color: "#9e9e9e"
               }
             }}
           >
             {generating ? "Generating..." : "Generate"}
           </Button>
         </Box>
-        <Box sx={{ p: 2.5 }}>
+        
+        <Box sx={{ p: 1 }}>
           {err && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 0.6, py: 0.2, fontSize: '0.8rem' }} onClose={() => setErr("")}>
               {err}
             </Alert>
           )}
-          <Box sx={{ display: "flex", gap: 2 }}>
+          
+          <Box sx={{ display: "flex", gap: 0.8, alignItems: "flex-start" }}>
             <Box sx={{ width: "30%" }}>
               <TextField
                 label="Job ID"
@@ -486,7 +486,7 @@ ${job.resume_content}`;
                 onChange={(e)=>setJobDesc(e.target.value)}
                 fullWidth
                 multiline
-                rows={2}
+                rows={1.5}
                 disabled={generating}
                 required
                 variant="outlined"
@@ -498,10 +498,10 @@ ${job.resume_content}`;
       </Paper>
 
       {/* Jobs Table */}
-      <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden", border: "2px solid", borderColor: "success.main" }}>
+      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid", borderColor: "success.main" }}>
         <Box sx={{ 
-          px: 2.5,
-          py: 1.25, 
+          px: 2,
+          py: 1, 
           bgcolor: "success.main",
           color: "white",
           display: "flex",
@@ -509,7 +509,7 @@ ${job.resume_content}`;
           alignItems: "center",
           gap: 2
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.05rem" }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
             📋 Job Applications
           </Typography>
           
@@ -521,6 +521,7 @@ ${job.resume_content}`;
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
               placeholder="Date"
+              autoComplete="off"
               InputLabelProps={{ shrink: true }}
               sx={{
                 bgcolor: "white",
@@ -538,6 +539,7 @@ ${job.resume_content}`;
               value={jobIdFilter}
               onChange={(e) => setJobIdFilter(e.target.value)}
               placeholder="Job ID"
+              autoComplete="off"
               sx={{
                 bgcolor: "white",
                 borderRadius: 1,
@@ -554,6 +556,7 @@ ${job.resume_content}`;
               value={jobDescFilter}
               onChange={(e) => setJobDescFilter(e.target.value)}
               placeholder="Description"
+              autoComplete="off"
               sx={{
                 bgcolor: "white",
                 borderRadius: 1,
@@ -647,14 +650,15 @@ ${job.resume_content}`;
             return true;
           });
           return filteredJobs.length > 0 ? (
-          <Table size="small">
+          <Box sx={{ maxHeight: 'calc(100vh - 420px)', overflow: 'auto' }}>
+          <Table size="small" stickyHeader>
             <TableHead>
-              <TableRow sx={{ bgcolor: "grey.100" }}>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job ID</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job Description</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Resume Status</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Created</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600, py: 1.25 }}>Actions</TableCell>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600, py: 0.8, fontSize: '0.85rem', bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Job ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 0.8, fontSize: '0.85rem', bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Job Description</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 0.8, fontSize: '0.85rem', bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Resume Status</TableCell>
+                <TableCell sx={{ fontWeight: 600, py: 0.8, fontSize: '0.85rem', bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Created</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, py: 0.8, fontSize: '0.85rem', bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -664,7 +668,7 @@ ${job.resume_content}`;
                   hover
                   sx={{ 
                     "&:hover": { bgcolor: "primary.lighter" },
-                    "& td": { py: 1.5 }
+                    "& td": { py: 1 }
                   }}
                 >
                   <TableCell sx={{ whiteSpace:"nowrap", fontWeight: 600, color: "primary.main" }}>
@@ -721,39 +725,42 @@ ${job.resume_content}`;
                   <TableCell sx={{ whiteSpace:"nowrap", color: "text.secondary" }}>
                     {new Date(j.created_at).toLocaleDateString()}
                   </TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <Button 
-                        size="small" 
-                        variant="outlined" 
-                        onClick={()=>handleViewJob(j)}
-                        sx={{ textTransform: "none", fontWeight: 500 }}
-                      >
-                        View
-                      </Button>
-                      <Button 
-                        size="small" 
-                        variant="contained"
-                        onClick={()=>handleEditJob(j)}
-                        sx={{ textTransform: "none", fontWeight: 500 }}
-                      >
-                        Edit
-                      </Button>
-                      <Button 
-                        size="small" 
-                        variant="outlined"
-                        color="error" 
-                        onClick={()=>removeJob(j.id)}
-                        sx={{ textTransform: "none", fontWeight: 500 }}
-                      >
-                        Delete
-                      </Button>
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={0.5} justifyContent="center">
+                      <Tooltip title="View Details">
+                        <IconButton 
+                          size="small" 
+                          color="primary"
+                          onClick={()=>handleViewJob(j)}
+                        >
+                          <ViewIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Edit">
+                        <IconButton 
+                          size="small" 
+                          color="primary"
+                          onClick={()=>handleEditJob(j)}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton 
+                          size="small" 
+                          color="error" 
+                          onClick={()=>removeJob(j.id)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </Stack>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </Box>
         ) : (
           <Box sx={{ textAlign: "center", py: 8 }}>
             <Avatar sx={{ 
@@ -945,6 +952,66 @@ ${job.resume_content}`;
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Footer */}
+      <Box 
+        component="footer" 
+        sx={{ 
+          bgcolor: 'white',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          py: 1.2,
+          mt: 2
+        }}
+      >
+        <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' },
+            justifyContent: 'space-between', 
+            alignItems: { xs: 'center', md: 'center' },
+            gap: 1.2
+          }}>
+            {/* Logo & Copyright */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+              <img 
+                src="/only_logo.png" 
+                alt="Data Fyre Logo" 
+                style={{ height: "20px", width: "auto", objectFit: "contain" }}
+              />
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                © {new Date().getFullYear()} Data Fyre. All rights reserved.
+              </Typography>
+            </Box>
+
+            {/* Links */}
+            <Stack direction="row" spacing={1.8} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                About
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Help
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Privacy
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Terms
+              </Typography>
+            </Stack>
+
+            {/* Contact */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                <Email sx={{ fontSize: 13, color: 'text.secondary' }} />
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                  support@datafyre.com
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </Container>
   );
 }

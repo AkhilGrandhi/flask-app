@@ -6,7 +6,7 @@ import {
   TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert, Autocomplete,
   Snackbar, CircularProgress
 } from "@mui/material";
-import { Visibility, VisibilityOff, RemoveRedEye, Edit, Delete } from "@mui/icons-material";
+import { Visibility, VisibilityOff, RemoveRedEye, Edit, Delete, Email } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
 
 import { useAuth } from "../AuthContext";
@@ -27,9 +27,38 @@ import { fullName, initials } from "../utils/display";
 export default function Admin() {
   const { user, logout } = useAuth();
   const [tab, setTab] = useState(0);
+  const [stats, setStats] = useState({ users: 0, candidates: 0, applications: 0 });
+
+  // Load stats for cards
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const [usersData, candidatesData] = await Promise.all([
+          listUsers(),
+          listAllCandidates()
+        ]);
+        
+        const jobIds = new Set();
+        (candidatesData.candidates || []).forEach(candidate => {
+          candidate.jobs?.forEach(job => {
+            if (job.job_id) jobIds.add(job.job_id);
+          });
+        });
+        
+        setStats({
+          users: usersData.users?.length || 0,
+          candidates: candidatesData.candidates?.length || 0,
+          applications: jobIds.size
+        });
+      } catch (e) {
+        console.error("Error loading stats:", e);
+      }
+    };
+    loadStats();
+  }, [tab]); // Reload when tab changes
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 2, mb: 2, height: "calc(100vh - 32px)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+    <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
       {/* Header Section */}
       <Box sx={{ 
         display: "flex", 
@@ -37,21 +66,21 @@ export default function Admin() {
         alignItems: "center", 
         mb: 2,
         pb: 1.5,
-        borderBottom: "2px solid",
-        borderColor: "primary.main",
+        borderBottom: "1px solid",
+        borderColor: "divider",
         flexShrink: 0
       }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
             src="/only_logo.png" 
             alt="Data Fyre Logo" 
-            style={{ height: "45px", width: "auto", objectFit: "contain" }}
+            style={{ height: "40px", width: "auto", objectFit: "contain" }}
           />
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.25 }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.2, fontSize: "1.25rem" }}>
               Admin Panel
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
               Manage users and candidates across the entire system
             </Typography>
           </Box>
@@ -59,7 +88,7 @@ export default function Admin() {
 
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Box sx={{ textAlign: "right", mr: 0.5 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
               Admin Dashboard
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>
@@ -67,21 +96,143 @@ export default function Admin() {
           </Typography>
           </Box>
           <Avatar sx={{ 
-            width: 40, 
-            height: 40, 
+            width: 36, 
+            height: 36, 
             bgcolor: "error.main",
-            fontSize: "1rem",
+            fontSize: "0.95rem",
             fontWeight: 600
           }}>
             {initials(user)}
           </Avatar>
-          <Button onClick={logout} variant="outlined" color="error" size="small">
+          <Button onClick={logout} variant="outlined" color="error" size="small" sx={{ fontSize: "0.8rem" }}>
             Logout
           </Button>
         </Stack>
       </Box>
 
-      <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
+      {/* Stats Cards */}
+      <Box sx={{ mb: 1.5 }}>
+        <Grid container spacing={1.5}>
+          {/* Total Users Card */}
+          <Grid item xs={12} sm={4}>
+            <Paper 
+              elevation={1} 
+              sx={{ 
+                p: 1.5, 
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                borderRadius: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.1, fontSize: "1.5rem" }}>
+                  {stats.users}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.9, fontSize: "0.75rem" }}>
+                  Total Users
+                </Typography>
+              </Box>
+              <Box 
+                sx={{ 
+                  width: 36, 
+                  height: 36, 
+                  borderRadius: "50%", 
+                  bgcolor: "rgba(255,255,255,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.2rem"
+                }}
+              >
+                👥
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Total Candidates Card */}
+          <Grid item xs={12} sm={4}>
+            <Paper 
+              elevation={1} 
+              sx={{ 
+                p: 1.5, 
+                background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+                color: "white",
+                borderRadius: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.1, fontSize: "1.5rem" }}>
+                  {stats.candidates}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.9, fontSize: "0.75rem" }}>
+                  Total Candidates
+                </Typography>
+              </Box>
+              <Box 
+                sx={{ 
+                  width: 36, 
+                  height: 36, 
+                  borderRadius: "50%", 
+                  bgcolor: "rgba(255,255,255,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.2rem"
+                }}
+              >
+                📋
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Total Applications Card */}
+          <Grid item xs={12} sm={4}>
+            <Paper 
+              elevation={1} 
+              sx={{ 
+                p: 1.5, 
+                background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+                color: "white",
+                borderRadius: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}
+            >
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.1, fontSize: "1.5rem" }}>
+                  {stats.applications}
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.9, fontSize: "0.75rem" }}>
+                  Total Applications
+                </Typography>
+              </Box>
+              <Box 
+                sx={{ 
+                  width: 36, 
+                  height: 36, 
+                  borderRadius: 2,
+                  bgcolor: "rgba(255,255,255,0.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.2rem"
+                }}
+              >
+                💼
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         <Tabs 
           value={tab} 
           onChange={(_,v)=>setTab(v)} 
@@ -108,10 +259,70 @@ export default function Admin() {
           <Tab label="👥 Users" />
           <Tab label="📋 Candidates" />
         </Tabs>
-        <Box sx={{ p: 2, pt: 1.5, flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <Box sx={{ p: 2, pt: 1.5, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {tab === 0 ? <UsersTab /> : <CandidatesTab />}
         </Box>
       </Paper>
+
+      {/* Footer */}
+      <Box 
+        component="footer" 
+        sx={{ 
+          bgcolor: 'white',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          py: 1.2,
+          mt: 2
+        }}
+      >
+        <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' },
+            justifyContent: 'space-between', 
+            alignItems: { xs: 'center', md: 'center' },
+            gap: 1.2
+          }}>
+            {/* Logo & Copyright */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+              <img 
+                src="/only_logo.png" 
+                alt="Data Fyre Logo" 
+                style={{ height: "20px", width: "auto", objectFit: "contain" }}
+              />
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                © {new Date().getFullYear()} Data Fyre. All rights reserved.
+              </Typography>
+            </Box>
+
+            {/* Links */}
+            <Stack direction="row" spacing={1.8} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                About
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Help
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Privacy
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Terms
+              </Typography>
+            </Stack>
+
+            {/* Contact */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                <Email sx={{ fontSize: 13, color: 'text.secondary' }} />
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                  support@datafyre.com
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </Container>
   );
 }
@@ -251,188 +462,170 @@ function UsersTab() {
 
   return (
     <>
-      {/* Stats Card */}
-      <Box sx={{ mb: 2, flexShrink: 0, width: "100%" }}>
-        <Paper 
-          elevation={2} 
-          sx={{ 
-            p: 1.5, 
-            background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-            color: "white",
-            borderRadius: 2,
-            minHeight: "80px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between"
-          }}
-        >
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.25 }}>
-              {filteredRows.length} {filteredRows.length !== rows.length && `/ ${rows.length}`}
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.8rem" }}>
-              {filteredRows.length !== rows.length ? "Filtered Users" : "Total Users in System"}
-            </Typography>
-          </Box>
-          <Box 
-            sx={{ 
-              width: 40, 
-              height: 40, 
-              borderRadius: "50%", 
-              bgcolor: "rgba(255,255,255,0.25)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "1.3rem"
-            }}
-          >
-            👤
-          </Box>
-        </Paper>
-      </Box>
-
       {/* Users Table */}
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
         <Box sx={{ 
           px: 2,
-          py: 1.25, 
-          bgcolor: "grey.50",
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          py: 1, 
+          bgcolor: "primary.main",
+          color: "white",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: 2,
           flexShrink: 0
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
-            All Users
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
+            👥 All Users
           </Typography>
-          <Button 
-            variant="contained" 
-            onClick={startCreate}
-            size="small"
-            sx={{ 
-              fontWeight: 600,
-              px: 2,
-              py: 0.5,
-              fontSize: "0.85rem",
-              boxShadow: 2,
-              "&:hover": {
-                transform: "translateY(-1px)",
-                boxShadow: 4
-              },
-              transition: "all 0.3s"
-            }}
-          >
-            Create User
-          </Button>
-        </Box>
-
-        {/* Filters */}
-        <Box 
-          component="form"
-          autoComplete="off"
-          sx={{ 
-            px: 2, 
-            py: 1.5, 
-            bgcolor: "grey.50", 
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            flexShrink: 0
-          }}
-          onSubmit={(e) => e.preventDefault()}
-        >
-          <Grid container spacing={1.5} alignItems="center">
-            <Grid item xs={12} sm={2.5}>
-              <TextField
-                size="small"
-                fullWidth
-                label="Name"
-                value={filters.name}
-                onChange={(e) => setFilters({ ...filters, name: e.target.value })}
-                placeholder="Filter by name"
-                id="filter-name-users"
-                name="filter-name-users"
-                autoComplete="off"
-                inputProps={{
-                  'data-form-type': 'other',
-                  'data-lpignore': 'true'
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={2.5}>
-              <TextField
-                size="small"
-                fullWidth
-                label="Email"
-                value={filters.email}
-                onChange={(e) => setFilters({ ...filters, email: e.target.value })}
-                placeholder="Filter by email"
-                id="filter-email-users"
-                name="filter-email-users"
-                autoComplete="off"
-                inputProps={{
-                  'data-form-type': 'other',
-                  'data-lpignore': 'true'
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={2.5}>
-              <TextField
-                size="small"
-                fullWidth
-                label="Mobile"
-                value={filters.mobile}
-                onChange={(e) => setFilters({ ...filters, mobile: e.target.value })}
-                placeholder="Filter by mobile"
-                id="filter-mobile-users"
-                name="filter-mobile-users"
-                autoComplete="off"
-                inputProps={{
-                  'data-form-type': 'other',
-                  'data-lpignore': 'true'
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={2.5}>
-              <Select
-                size="small"
-                fullWidth
-                value={filters.role}
-                onChange={(e) => setFilters({ ...filters, role: e.target.value })}
-                displayEmpty
-              >
-                <MenuItem value="">All Roles</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
-                <MenuItem value="user">User</MenuItem>
-              </Select>
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <Button
-                size="small"
-                variant="outlined"
-                fullWidth
+          
+          {/* Filters */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, justifyContent: "flex-end" }}>
+            <TextField
+              size="small"
+              value={filters.name}
+              onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+              placeholder="Name"
+              id="filter-name-users"
+              name="filter-name-users"
+              autoComplete="off"
+              inputProps={{
+                'data-form-type': 'other',
+                'data-lpignore': 'true'
+              }}
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={filters.email}
+              onChange={(e) => setFilters({ ...filters, email: e.target.value })}
+              placeholder="Email"
+              id="filter-email-users"
+              name="filter-email-users"
+              autoComplete="off"
+              inputProps={{
+                'data-form-type': 'other',
+                'data-lpignore': 'true'
+              }}
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={filters.mobile}
+              onChange={(e) => setFilters({ ...filters, mobile: e.target.value })}
+              placeholder="Mobile"
+              id="filter-mobile-users"
+              name="filter-mobile-users"
+              autoComplete="off"
+              inputProps={{
+                'data-form-type': 'other',
+                'data-lpignore': 'true'
+              }}
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <Select
+              size="small"
+              value={filters.role}
+              onChange={(e) => setFilters({ ...filters, role: e.target.value })}
+              displayEmpty
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 100,
+                height: 32,
+                fontSize: "0.8rem",
+                "& .MuiSelect-select": {
+                  py: 0.5
+                }
+              }}
+            >
+              <MenuItem value="">All Roles</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="user">User</MenuItem>
+            </Select>
+            
+            {(filters.name || filters.email || filters.mobile || filters.role) && (
+              <Button 
+                size="small" 
+                variant="contained"
                 onClick={clearFilters}
-                sx={{ height: "40px" }}
+                sx={{ 
+                  height: 32,
+                  bgcolor: "white",
+                  color: "primary.main",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  minWidth: "auto",
+                  px: 1.5,
+                  "&:hover": {
+                    bgcolor: "rgba(255,255,255,0.9)"
+                  }
+                }}
               >
                 Clear
               </Button>
-            </Grid>
-          </Grid>
+            )}
+            
+            <Button 
+              variant="contained" 
+              size="small"
+              onClick={startCreate}
+              sx={{ 
+                fontWeight: 600,
+                bgcolor: "white",
+                color: "primary.main",
+                fontSize: "0.75rem",
+                px: 1.5,
+                height: 32,
+                "&:hover": {
+                  bgcolor: "rgba(255,255,255,0.9)"
+                }
+              }}
+            >
+              Create User
+            </Button>
+          </Box>
         </Box>
 
         {filteredRows.length > 0 ? (
-          <Box sx={{ flex: 1, overflow: "auto" }}>
+          <Box sx={{ maxHeight: 'calc(100vh - 420px)', overflow: 'auto' }}>
       <Table size="small" stickyHeader>
         <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Mobile</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Role</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}># Candidates</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Mobile</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}># Candidates</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -1154,224 +1347,156 @@ function CandidatesTab() {
 
   return (
     <>
-      {/* Stats Cards */}
-      <Box sx={{ mb: 2, flexShrink: 0, width: "100%" }}>
-        <Grid container spacing={1.5}>
-          {/* Total Candidates Card */}
-          <Grid item xs={12} sm={6}>
-            <Paper 
-              elevation={2} 
-              sx={{ 
-                p: 1.5, 
-                background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                color: "white",
-                borderRadius: 2,
-                minHeight: "80px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between"
-              }}
-            >
-              <Box>
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.25 }}>
-                  {filteredRows.length} {filteredRows.length !== rows.length && `/ ${rows.length}`}
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.8rem" }}>
-                  {filteredRows.length !== rows.length ? "Filtered Candidates" : "Total Candidates"}
-                </Typography>
-              </Box>
-              <Box 
-                sx={{ 
-                  width: 40, 
-                  height: 40, 
-                  borderRadius: "50%", 
-                  bgcolor: "rgba(255,255,255,0.25)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.3rem"
-                }}
-              >
-                👥
-              </Box>
-            </Paper>
-          </Grid>
-
-          {/* Total Applications Card */}
-          <Grid item xs={12} sm={6}>
-            <Paper 
-              elevation={2} 
-              sx={{ 
-                p: 1.5, 
-                background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-                color: "white",
-                borderRadius: 2,
-                minHeight: "80px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between"
-              }}
-            >
-              <Box>
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.25 }}>
-                  {(() => {
-                    const jobIds = new Set();
-                    rows.forEach(candidate => {
-                      candidate.jobs?.forEach(job => {
-                        if (job.job_id) jobIds.add(job.job_id);
-                      });
-                    });
-                    return jobIds.size;
-                  })()}
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.8rem" }}>
-                  Total Applications
-                </Typography>
-              </Box>
-              <Box 
-                sx={{ 
-                  width: 40, 
-                  height: 40, 
-                  borderRadius: "50%", 
-                  bgcolor: "rgba(255,255,255,0.25)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.3rem"
-                }}
-              >
-                💼
-              </Box>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Box>
-
       {/* Candidates Table */}
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", flex: 1, display: "flex", flexDirection: "column" }}>
         <Box sx={{ 
           px: 2,
-          py: 1.25, 
-          bgcolor: "grey.50",
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          py: 1, 
+          bgcolor: "primary.main",
+          color: "white",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: 2,
           flexShrink: 0
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1rem" }}>
-            All Candidates
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
+            📋 All Candidates
           </Typography>
-          <Button 
-            variant="contained" 
-            onClick={startAdd}
-            size="small"
-            sx={{ 
-              fontWeight: 600,
-              px: 2,
-              py: 0.5,
-              fontSize: "0.85rem",
-              boxShadow: 2,
-              "&:hover": {
-                transform: "translateY(-1px)",
-                boxShadow: 4
-              },
-              transition: "all 0.3s"
-            }}
-          >
-            Add Candidate
-          </Button>
-        </Box>
-
-        {/* Filters */}
-        <Box sx={{ 
-          px: 2, 
-          py: 1.5, 
-          bgcolor: "grey.50", 
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          flexShrink: 0
-        }}>
-          <Grid container spacing={1.5} alignItems="center">
-            <Grid item xs={12} sm={2.5}>
-              <TextField
-                size="small"
-                fullWidth
-                label="Name"
-                value={filters.name}
-                onChange={(e) => setFilters({ ...filters, name: e.target.value })}
-                placeholder="Filter by name"
-                id="candidate-filter-name"
-                name="candidate-filter-name"
-                autoComplete="off"
-              />
-            </Grid>
-            <Grid item xs={12} sm={2.5}>
-              <TextField
-                size="small"
-                fullWidth
-                label="Email"
-                value={filters.email}
-                onChange={(e) => setFilters({ ...filters, email: e.target.value })}
-                placeholder="Filter by email"
-                id="candidate-filter-email"
-                name="candidate-filter-email"
-                autoComplete="off"
-              />
-            </Grid>
-            <Grid item xs={12} sm={2.5}>
-              <TextField
-                size="small"
-                fullWidth
-                label="Phone"
-                value={filters.phone}
-                onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
-                placeholder="Filter by phone"
-                id="candidate-filter-phone"
-                name="candidate-filter-phone"
-                autoComplete="off"
-              />
-            </Grid>
-            <Grid item xs={12} sm={2.5}>
-              <TextField
-                size="small"
-                fullWidth
-                label="Creator"
-                value={filters.creator}
-                onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
-                placeholder="Filter by creator"
-                id="candidate-filter-creator"
-                name="candidate-filter-creator"
-                autoComplete="off"
-              />
-            </Grid>
-            <Grid item xs={12} sm={2}>
-              <Button
-                size="small"
-                variant="outlined"
-                fullWidth
+          
+          {/* Filters */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, justifyContent: "flex-end" }}>
+            <TextField
+              size="small"
+              value={filters.name}
+              onChange={(e) => setFilters({ ...filters, name: e.target.value })}
+              placeholder="Name"
+              id="candidate-filter-name"
+              name="candidate-filter-name"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={filters.email}
+              onChange={(e) => setFilters({ ...filters, email: e.target.value })}
+              placeholder="Email"
+              id="candidate-filter-email"
+              name="candidate-filter-email"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={filters.phone}
+              onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
+              placeholder="Phone"
+              id="candidate-filter-phone"
+              name="candidate-filter-phone"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={filters.creator}
+              onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
+              placeholder="Creator"
+              id="candidate-filter-creator"
+              name="candidate-filter-creator"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            {(filters.name || filters.email || filters.phone || filters.creator) && (
+              <Button 
+                size="small" 
+                variant="contained"
                 onClick={clearFilters}
-                sx={{ height: "40px" }}
+                sx={{ 
+                  height: 32,
+                  bgcolor: "white",
+                  color: "primary.main",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  minWidth: "auto",
+                  px: 1.5,
+                  "&:hover": {
+                    bgcolor: "rgba(255,255,255,0.9)"
+                  }
+                }}
               >
                 Clear
               </Button>
-            </Grid>
-          </Grid>
+            )}
+            
+            <Button 
+              variant="contained" 
+              size="small"
+              onClick={startAdd}
+              sx={{ 
+                fontWeight: 600,
+                bgcolor: "white",
+                color: "primary.main",
+                fontSize: "0.75rem",
+                px: 1.5,
+                height: 32,
+                "&:hover": {
+                  bgcolor: "rgba(255,255,255,0.9)"
+                }
+              }}
+            >
+              Add Candidate
+            </Button>
+          </Box>
         </Box>
 
         {filteredRows.length > 0 ? (
-          <Box sx={{ flex: 1, overflow: "auto" }}>
+          <Box sx={{ maxHeight: 'calc(100vh - 420px)', overflow: 'auto' }}>
       <Table size="small" stickyHeader>
         <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Phone</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Creator</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Assigned Users</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Phone</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Creator</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Assigned Users</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100", position: 'sticky', top: 0, zIndex: 1 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
