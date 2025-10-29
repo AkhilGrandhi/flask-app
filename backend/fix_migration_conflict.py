@@ -56,6 +56,7 @@ try:
         
         print("\n5. Synchronizing schema for each table...")
         total_fixed = 0
+        tables_created = 0
         
         for table_name, model_info in model_tables.items():
             print(f"\n   [{table_name}]")
@@ -63,7 +64,17 @@ try:
             # Check if table exists in database
             if table_name not in existing_tables:
                 print(f"   ⚠ Table '{table_name}' missing from database")
-                print(f"   → Will be created by pending migrations")
+                
+                # Try to create the table
+                try:
+                    table_obj = model_info['table_obj']
+                    print(f"   → Creating table '{table_name}'...")
+                    table_obj.create(db.engine, checkfirst=True)
+                    print(f"   ✓ Table '{table_name}' created successfully")
+                    tables_created += 1
+                except Exception as create_error:
+                    print(f"   ⚠ Could not create table: {create_error}")
+                    print(f"   → Will retry with flask db upgrade")
                 continue
             
             # Get current columns from database
@@ -127,8 +138,8 @@ try:
             else:
                 print(f"   ✓ All columns present")
         
-        if total_fixed > 0:
-            print(f"\n   Summary: Added {total_fixed} missing column(s)")
+        if tables_created > 0 or total_fixed > 0:
+            print(f"\n   Summary: Created {tables_created} table(s), Added {total_fixed} missing column(s)")
         else:
             print(f"\n   Summary: Schema is already synchronized")
         
