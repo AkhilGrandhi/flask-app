@@ -1,6 +1,6 @@
 // Automatically detect the correct API URL based on environment
 const getApiUrl = () => {
-  // If explicitly set via environment variable, use it
+  // If explicitly set via environment variable, use it (highest priority)
   if (import.meta.env.VITE_API_URL) {
     console.log('Using VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
@@ -9,10 +9,32 @@ const getApiUrl = () => {
   // Check if we're on Render deployment
   const hostname = window.location.hostname;
   
-  // If on Render frontend, use the backend URL
+  // DEV Environment
   if (hostname.includes('flask-app-frontend-dev.onrender.com')) {
     const backendUrl = 'https://flask-app-backend-dev.onrender.com/api';
-    console.log('Detected Render deployment, using backend URL:', backendUrl);
+    console.log('🔵 Detected DEV environment, using backend URL:', backendUrl);
+    return backendUrl;
+  }
+  
+  // PROD Environment - Actual production URLs
+  if (hostname.includes('flask-app-frontend-ojud.onrender.com')) {
+    const backendUrl = 'https://flask-app-r5xw.onrender.com/api';
+    console.log('🟢 Detected PROD environment, using backend URL:', backendUrl);
+    return backendUrl;
+  }
+  
+  // Legacy PROD naming (if you rename services later)
+  if (hostname.includes('flask-app-frontend-prod.onrender.com')) {
+    const backendUrl = 'https://flask-app-backend-prod.onrender.com/api';
+    console.log('🟢 Detected PROD environment (alt), using backend URL:', backendUrl);
+    return backendUrl;
+  }
+  
+  // Generic Render frontend detection (fallback for other naming patterns)
+  if (hostname.includes('onrender.com') && hostname.includes('frontend')) {
+    // Extract the backend URL by replacing 'frontend' with 'backend'
+    const backendUrl = `https://${hostname.replace('frontend', 'backend')}/api`;
+    console.log('⚪ Detected Render deployment, inferred backend URL:', backendUrl);
     return backendUrl;
   }
   
