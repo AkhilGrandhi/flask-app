@@ -56,17 +56,37 @@ def create_app():
         allowed_origins = [frontend_url] if frontend_url else []
     
     # Log CORS configuration for debugging
+    print(f"🔐 CORS Configuration:")
+    print(f"   - Environment: {'Development' if is_dev else 'Production'}")
+    print(f"   - Frontend URL: {frontend_url}")
+    print(f"   - Allowed Origins: {allowed_origins}")
     app.logger.info(f"CORS configured with origins: {allowed_origins}")
     
+    # Enhanced CORS configuration with better preflight handling
     CORS(app, 
          resources={r"/api/*": {
              "origins": allowed_origins,
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-             "allow_headers": ["Content-Type", "Authorization"],
-             "expose_headers": ["Content-Type"],
+             "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+             "expose_headers": ["Content-Type", "Authorization"],
              "supports_credentials": True,
-             "max_age": 3600
+             "max_age": 3600,
+             "send_wildcard": False,
+             "always_send": True
          }})
+    
+    # Add explicit OPTIONS handler for all API routes
+    @app.before_request
+    def handle_preflight():
+        from flask import request, make_response
+        if request.method == "OPTIONS":
+            response = make_response()
+            response.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin", frontend_url)
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Max-Age"] = "3600"
+            return response, 204
 
     # Blueprints
     from .auth import bp as auth_bp
@@ -88,6 +108,44 @@ def create_app():
     @app.get("/api/healthz")
     def health():
         return {"status": "ok"}
+    
+    @app.get("/")
+    def root():
+        """Root endpoint to verify backend is running"""
+        return {"message": "Flask App Backend API", "status": "running", "version": "1.0"}
+    
+    @app.get("/healthz")
+    def health_root():
+        """Health check at root level"""
+        return {"status": "ok"}
+    
+    # Error handlers
+    @app.errorhandler(404)
+    def not_found(e):
+        """Handle 404 errors with proper CORS headers"""
+        from flask import request, jsonify
+        response = jsonify({"error": "Not Found", "message": f"The requested URL {request.path} was not found on the server."})
+        response.status_code = 404
+        # Add CORS headers
+        origin = request.headers.get("Origin", frontend_url)
+        if origin in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+    
+    @app.errorhandler(500)
+    def internal_error(e):
+        """Handle 500 errors with proper CORS headers"""
+        from flask import request, jsonify
+        app.logger.error(f"Internal Server Error: {str(e)}")
+        response = jsonify({"error": "Internal Server Error", "message": "An internal error occurred."})
+        response.status_code = 500
+        # Add CORS headers
+        origin = request.headers.get("Origin", frontend_url)
+        if origin in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
 
     # One-time dev bootstrap: seed admin user
     with app.app_context():

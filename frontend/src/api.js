@@ -2,27 +2,33 @@
 const getApiUrl = () => {
   // If explicitly set via environment variable, use it
   if (import.meta.env.VITE_API_URL) {
+    console.log('Using VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
   
   // Check if we're on Render deployment
   const hostname = window.location.hostname;
   
-  // If on Render frontend, use the known backend URL
+  // If on Render frontend, use the backend URL
   if (hostname.includes('flask-app-frontend-dev.onrender.com')) {
-    return 'https://flask-app-dev-70xj.onrender.com/api';
+    const backendUrl = 'https://flask-app-backend-dev.onrender.com/api';
+    console.log('Detected Render deployment, using backend URL:', backendUrl);
+    return backendUrl;
   }
   
   // For local development or other deployments
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('Using local development proxy: /api');
     return '/api'; // Vite dev server will proxy this
   }
   
   // Default fallback
+  console.log('Using default fallback: /api');
   return '/api';
 };
 
 const API = getApiUrl();
+console.log('API Base URL configured as:', API);
 
 function getCookie(name) {
   return document.cookie.split("; ").find(c => c.startsWith(name + "="))?.split("=")[1];
