@@ -16,7 +16,14 @@ def require_admin():
 def list_users():
     require_admin()
     users = User.query.order_by(User.id.asc()).all()
-    return {"users": [u.to_dict() for u in users]}
+    users_data = []
+    for u in users:
+        user_dict = u.to_dict()
+        # Count candidates created by this user
+        candidate_count = Candidate.query.filter_by(created_by_user_id=u.id).count()
+        user_dict['candidate_count'] = candidate_count
+        users_data.append(user_dict)
+    return {"users": users_data}
 
 @bp.post("/users")
 @jwt_required()

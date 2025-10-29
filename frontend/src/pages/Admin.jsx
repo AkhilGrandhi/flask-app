@@ -405,6 +405,7 @@ function UsersTab() {
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Email</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Mobile</TableCell>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Role</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}># Candidates</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: "grey.100" }}>Actions</TableCell>
           </TableRow>
         </TableHead>
@@ -449,6 +450,26 @@ function UsersTab() {
                       }}
                     >
                       {r.role}
+                    </Box>
+                  </TableCell>
+                  <TableCell>
+                    <Box 
+                      component="span" 
+                      sx={{ 
+                        px: 1.5, 
+                        py: 0.5, 
+                        borderRadius: 1, 
+                        bgcolor: "info.light",
+                        color: "white",
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minWidth: "30px"
+                      }}
+                    >
+                      {r.candidate_count || 0}
                     </Box>
                   </TableCell>
               <TableCell align="right">
