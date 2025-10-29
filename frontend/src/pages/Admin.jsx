@@ -6,7 +6,7 @@ import {
   TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert, Autocomplete,
   Snackbar, CircularProgress
 } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { Visibility, VisibilityOff, RemoveRedEye, Edit, Delete } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
 
 import { useAuth } from "../AuthContext";
@@ -329,14 +329,19 @@ function UsersTab() {
         </Box>
 
         {/* Filters */}
-        <Box sx={{ 
-          px: 2, 
-          py: 1.5, 
-          bgcolor: "grey.50", 
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          flexShrink: 0
-        }}>
+        <Box 
+          component="form"
+          autoComplete="off"
+          sx={{ 
+            px: 2, 
+            py: 1.5, 
+            bgcolor: "grey.50", 
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            flexShrink: 0
+          }}
+          onSubmit={(e) => e.preventDefault()}
+        >
           <Grid container spacing={1.5} alignItems="center">
             <Grid item xs={12} sm={2.5}>
               <TextField
@@ -346,6 +351,13 @@ function UsersTab() {
                 value={filters.name}
                 onChange={(e) => setFilters({ ...filters, name: e.target.value })}
                 placeholder="Filter by name"
+                id="filter-name-users"
+                name="filter-name-users"
+                autoComplete="off"
+                inputProps={{
+                  'data-form-type': 'other',
+                  'data-lpignore': 'true'
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={2.5}>
@@ -356,6 +368,13 @@ function UsersTab() {
                 value={filters.email}
                 onChange={(e) => setFilters({ ...filters, email: e.target.value })}
                 placeholder="Filter by email"
+                id="filter-email-users"
+                name="filter-email-users"
+                autoComplete="off"
+                inputProps={{
+                  'data-form-type': 'other',
+                  'data-lpignore': 'true'
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={2.5}>
@@ -366,6 +385,13 @@ function UsersTab() {
                 value={filters.mobile}
                 onChange={(e) => setFilters({ ...filters, mobile: e.target.value })}
                 placeholder="Filter by mobile"
+                id="filter-mobile-users"
+                name="filter-mobile-users"
+                autoComplete="off"
+                inputProps={{
+                  'data-form-type': 'other',
+                  'data-lpignore': 'true'
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={2.5}>
@@ -473,41 +499,46 @@ function UsersTab() {
                     </Box>
                   </TableCell>
               <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <Button 
-                        size="small" 
-                        variant="outlined"
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                      <IconButton 
+                        size="small"
                         onClick={()=>viewUserCandidates(r)}
                         sx={{ 
-                          textTransform: "none",
-                          fontWeight: 500
+                          color: "primary.main",
+                          "&:hover": {
+                            bgcolor: "primary.lighter"
+                          }
                         }}
+                        title="View Candidates"
                       >
-                        View
-                      </Button>
-                      <Button 
-                        size="small" 
-                        variant="contained"
+                        <RemoveRedEye fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small"
                         onClick={()=>startEdit(r)}
                         sx={{ 
-                          textTransform: "none",
-                          fontWeight: 500
+                          color: "info.main",
+                          "&:hover": {
+                            bgcolor: "info.lighter"
+                          }
                         }}
+                        title="Edit User"
                       >
-                        Edit
-                      </Button>
-                      <Button 
-                        size="small" 
-                        variant="outlined"
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small"
                         color="error" 
                         onClick={()=>remove(r.id)}
                         sx={{ 
-                          textTransform: "none",
-                          fontWeight: 500
+                          "&:hover": {
+                            bgcolor: "error.lighter"
+                          }
                         }}
+                        title="Delete User"
                       >
-                        Delete
-                      </Button>
+                        <Delete fontSize="small" />
+                      </IconButton>
                     </Stack>
               </TableCell>
             </TableRow>
@@ -569,14 +600,20 @@ function UsersTab() {
             label="Name" 
             value={form.name} 
             onChange={e=>setForm(s=>({...s, name:e.target.value}))} 
-            required 
+            required
+            id="user-form-name"
+            name="user-form-name"
+            autoComplete="name"
           />
           <TextField 
             label="Email" 
             type="email"
             value={form.email} 
             onChange={e=>setForm(s=>({...s, email:e.target.value}))} 
-            required 
+            required
+            id="user-form-email"
+            name="user-form-email"
+            autoComplete="email"
           />
           <TextField 
             label="Mobile" 
@@ -584,7 +621,10 @@ function UsersTab() {
             value={form.mobile} 
             onChange={e=>setForm(s=>({...s, mobile:e.target.value}))} 
             helperText="Numbers only"
-            required 
+            required
+            id="user-form-mobile"
+            name="user-form-mobile"
+            autoComplete="tel"
           />
           <TextField 
             label="Password" 
@@ -594,6 +634,9 @@ function UsersTab() {
             placeholder={editing ? "(leave blank to keep)" : ""} 
             helperText="Minimum 6 characters"
             required={!editing}
+            id="user-form-password"
+            name="user-form-password"
+            autoComplete={editing ? "new-password" : "new-password"}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -607,7 +650,12 @@ function UsersTab() {
               )
             }}
           />
-          <Select value={form.role} onChange={e=>setForm(s=>({...s, role:e.target.value}))}>
+          <Select 
+            value={form.role} 
+            onChange={e=>setForm(s=>({...s, role:e.target.value}))}
+            id="user-form-role"
+            name="user-form-role"
+          >
             <MenuItem value="user">user</MenuItem>
             <MenuItem value="admin">admin</MenuItem>
           </Select>
@@ -1248,6 +1296,9 @@ function CandidatesTab() {
                 value={filters.name}
                 onChange={(e) => setFilters({ ...filters, name: e.target.value })}
                 placeholder="Filter by name"
+                id="candidate-filter-name"
+                name="candidate-filter-name"
+                autoComplete="off"
               />
             </Grid>
             <Grid item xs={12} sm={2.5}>
@@ -1258,6 +1309,9 @@ function CandidatesTab() {
                 value={filters.email}
                 onChange={(e) => setFilters({ ...filters, email: e.target.value })}
                 placeholder="Filter by email"
+                id="candidate-filter-email"
+                name="candidate-filter-email"
+                autoComplete="off"
               />
             </Grid>
             <Grid item xs={12} sm={2.5}>
@@ -1268,6 +1322,9 @@ function CandidatesTab() {
                 value={filters.phone}
                 onChange={(e) => setFilters({ ...filters, phone: e.target.value })}
                 placeholder="Filter by phone"
+                id="candidate-filter-phone"
+                name="candidate-filter-phone"
+                autoComplete="off"
               />
             </Grid>
             <Grid item xs={12} sm={2.5}>
@@ -1278,6 +1335,9 @@ function CandidatesTab() {
                 value={filters.creator}
                 onChange={(e) => setFilters({ ...filters, creator: e.target.value })}
                 placeholder="Filter by creator"
+                id="candidate-filter-creator"
+                name="candidate-filter-creator"
+                autoComplete="off"
               />
             </Grid>
             <Grid item xs={12} sm={2}>
@@ -1355,42 +1415,47 @@ function CandidatesTab() {
                     {r.created_by?.email || "Unknown"}
                   </TableCell>
               <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <Button 
+                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                      <IconButton 
                         component={RouterLink}
                         to={`/candidates/${r.id}`}
-                        size="small" 
-                        variant="outlined" 
+                        size="small"
                         sx={{ 
-                          textTransform: "none",
-                          fontWeight: 500
+                          color: "primary.main",
+                          "&:hover": {
+                            bgcolor: "primary.lighter"
+                          }
                         }}
+                        title="View Candidate"
                       >
-                        View
-                      </Button>
-                      <Button 
-                        size="small" 
-                        variant="contained"
+                        <RemoveRedEye fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small"
                         onClick={()=>startEdit(r)}
                         sx={{ 
-                          textTransform: "none",
-                          fontWeight: 500
+                          color: "info.main",
+                          "&:hover": {
+                            bgcolor: "info.lighter"
+                          }
                         }}
+                        title="Edit Candidate"
                       >
-                        Edit
-                      </Button>
-                      <Button 
-                        size="small" 
-                        variant="outlined"
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small"
                         color="error" 
                         onClick={()=>remove(r.id)}
                         sx={{ 
-                          textTransform: "none",
-                          fontWeight: 500
+                          "&:hover": {
+                            bgcolor: "error.lighter"
+                          }
                         }}
+                        title="Delete Candidate"
                       >
-                        Delete
-                      </Button>
+                        <Delete fontSize="small" />
+                      </IconButton>
                     </Stack>
               </TableCell>
             </TableRow>
