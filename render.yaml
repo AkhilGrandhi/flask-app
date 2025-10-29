@@ -49,6 +49,8 @@ services:
         generateValue: true
       - key: FLASK_ENV
         value: production
+      - key: FRONTEND_URL
+        value: https://flask-app-frontend-dev.onrender.com
       - key: OPENAI_API_KEY
         sync: false
 
