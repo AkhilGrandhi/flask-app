@@ -230,11 +230,33 @@ async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
 }
 
 // ============================================================
+// TOKEN MANAGEMENT (localStorage)
+// ============================================================
+const TOKEN_KEY = 'jwt_token';
+
+export function setToken(token) {
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+    console.log('🔐 Token stored in localStorage');
+  }
+}
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  console.log('🔓 Token removed from localStorage');
+}
+
+// ============================================================
 // MAIN API FUNCTION
 // - Intelligent caching for GET requests
 // - Request queue for rate limiting
 // - Automatic retry with exponential backoff
 // - Cache invalidation for mutations
+// - Authorization header for iOS/Safari compatibility
 // ============================================================
 export async function api(path, { method="GET", body } = {}) {
   // Check cache for GET requests (only cache reads, not writes)
@@ -248,11 +270,19 @@ export async function api(path, { method="GET", body } = {}) {
   // Use request queue to prevent overwhelming the server
   const requestPromise = requestQueue.add(async () => {
     const headers = { "Content-Type": "application/json" };
-    // If you enable CSRF later: if (method !== "GET") { const csrf = getCookie("csrf_access_token"); if (csrf) headers["X-CSRF-TOKEN"] = csrf; }
+    
+    // Add Authorization header with JWT token (works on iOS/Safari)
+    const token = getToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+    
     console.log(`🌐 API Call: ${method} ${API}${path}`);
     
     const res = await fetchWithRetry(`${API}${path}`, {
-      method, headers, credentials: "include",
+      method, 
+      headers, 
+      credentials: "include", // Still include for cookie fallback
       body: body ? JSON.stringify(body) : undefined
     });
     
@@ -260,6 +290,11 @@ export async function api(path, { method="GET", body } = {}) {
     const data = await res.json().catch(() => ({}));
     
     if (!res.ok) {
+      // Clear token on 401 (unauthorized)
+      if (res.status === 401) {
+        clearToken();
+      }
+      
       // Provide user-friendly error messages
       let errorMessage = data.message || res.statusText;
       
@@ -303,6 +338,7 @@ export async function api(path, { method="GET", body } = {}) {
         intelligentCache.invalidateByTag('jobs');
       }
       if (path.includes('/auth/logout')) {
+        clearToken(); // Clear token from localStorage
         intelligentCache.clearAll(); // Clear all cache on logout
       }
     });
@@ -316,11 +352,27 @@ export async function api(path, { method="GET", body } = {}) {
 // ============================================================
 
 // Auth
-export const loginAdmin = (email, password) => api("/auth/login-admin", { method:"POST", body:{email, password} });
-export const loginUser  = (mobile, password) => api("/auth/login-user",  { method:"POST", body:{mobile, password} });
-export const loginCandidate = (phone, password) => api("/auth/login-candidate", { method:"POST", body:{phone, password} });
-export const meApi      = () => api("/auth/me");
-export const logoutApi  = () => api("/auth/logout", { method:"POST" });
+export const loginAdmin = async (email, password) => {
+  const data = await api("/auth/login-admin", { method:"POST", body:{email, password} });
+  if (data.access_token) setToken(data.access_token);
+  return data;
+};
+export const loginUser = async (mobile, password) => {
+  const data = await api("/auth/login-user", { method:"POST", body:{mobile, password} });
+  if (data.access_token) setToken(data.access_token);
+  return data;
+};
+export const loginCandidate = async (phone, password) => {
+  const data = await api("/auth/login-candidate", { method:"POST", body:{phone, password} });
+  if (data.access_token) setToken(data.access_token);
+  return data;
+};
+export const meApi = () => api("/auth/me");
+export const logoutApi = async () => {
+  const data = await api("/auth/logout", { method:"POST" });
+  clearToken(); // Ensure token is cleared on logout
+  return data;
+};
 
 // Admin users
 export const listUsers = () => api("/admin/users");
@@ -353,9 +405,15 @@ export const deleteCandidateJob = (id, jobRowId)    => api(`/candidates/${id}/jo
 
 // Resume generation (sync - legacy)
 export const generateResume = async (job_desc, candidate_info, file_type = "word", candidate_id = null, job_row_id = null) => {
+  const headers = { "Content-Type": "application/json" };
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  
   const res = await fetch(`${API}/resume/generate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     credentials: "include",
     body: JSON.stringify({ job_desc, candidate_info, file_type, candidate_id, job_row_id })
   });
@@ -374,8 +432,15 @@ export const getJobStatus = (jobId) =>
   api(`/resume-async/job-status/${jobId}`);
 
 export const downloadResumeAsync = async (jobId) => {
+  const headers = {};
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  
   const res = await fetch(`${API}/resume-async/download/${jobId}`, {
     method: "GET",
+    headers,
     credentials: "include"
   });
   if (!res.ok) {

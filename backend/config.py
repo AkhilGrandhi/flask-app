@@ -37,13 +37,14 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL") or "postgresql://postgres:admin@localhost:5432/flask_app_db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Web UI uses cookies; Extension uses headers
-    JWT_TOKEN_LOCATION = ["cookies", "headers"]
-    JWT_HEADER_NAME = "Authorization"  # default; can be omitted
-    JWT_HEADER_TYPE = "Bearer"         # default; can be omitted
+    # PRIORITY: Headers for universal compatibility (works on iOS/Safari)
+    # FALLBACK: Cookies for backward compatibility
+    JWT_TOKEN_LOCATION = ["headers", "cookies"]
+    JWT_HEADER_NAME = "Authorization"
+    JWT_HEADER_TYPE = "Bearer"
 
-    # Cookies (web only)
-    # Use secure cookies in production (HTTPS), regular in development
+    # Cookies (backward compatibility only)
+    # Note: Cookies don't work reliably on iOS Safari/Chrome due to third-party cookie blocking
     is_development = os.getenv("FLASK_ENV") == "development"
     
     # Auto-detect localhost for development
@@ -55,8 +56,7 @@ class Config:
             is_development = True
     
     JWT_COOKIE_SECURE = not is_development  # True in production, False in dev
-    # SameSite=None required for cross-origin cookies (frontend and backend on different domains)
-    JWT_COOKIE_SAMESITE = "Lax" if is_development else "None"  # Lax in dev, None in production
+    JWT_COOKIE_SAMESITE = "Lax" if is_development else "None"
     JWT_COOKIE_CSRF_PROTECT = False
 
     # (optional) make tokens last longer while testing

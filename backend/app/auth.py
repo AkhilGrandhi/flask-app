@@ -22,7 +22,9 @@ def login_admin():
 
     token = create_access_token(identity=str(user.id),
                                 additional_claims={"role": user.role, "email": user.email, "mobile": user.mobile, "name":user.name})
-    resp = jsonify({"message": "Logged in", "role": user.role})
+    # Return token in body for iOS/Safari compatibility (localStorage)
+    resp = jsonify({"message": "Logged in", "role": user.role, "access_token": token})
+    # Also set cookie for backward compatibility
     set_access_cookies(resp, token)
     return resp, 200
 
@@ -39,7 +41,9 @@ def login_user():
 
     token = create_access_token(identity=str(user.id),
                                 additional_claims={"role": user.role, "email": user.email, "mobile": user.mobile, "name":user.name})
-    resp = jsonify({"message": "Logged in", "role": user.role})
+    # Return token in body for iOS/Safari compatibility (localStorage)
+    resp = jsonify({"message": "Logged in", "role": user.role, "access_token": token})
+    # Also set cookie for backward compatibility
     set_access_cookies(resp, token)
     return resp, 200
 
@@ -65,12 +69,16 @@ def login_candidate():
             "phone": candidate.phone
         }
     )
-    resp = jsonify({"message": "Logged in", "role": "candidate"})
+    # Return token in body for iOS/Safari compatibility (localStorage)
+    resp = jsonify({"message": "Logged in", "role": "candidate", "access_token": token})
+    # Also set cookie for backward compatibility
     set_access_cookies(resp, token)
     return resp, 200
 
 @bp.post("/logout")
 def logout():
+    # Note: Client should remove token from localStorage
+    # We still unset cookies for backward compatibility
     resp = jsonify({"message": "Logged out"})
     unset_jwt_cookies(resp)
     return resp, 200
