@@ -56,22 +56,102 @@ function getCookie(name) {
   return document.cookie.split("; ").find(c => c.startsWith(name + "="))?.split("=")[1];
 }
 
-export async function api(path, { method="GET", body } = {}) {
-  const headers = { "Content-Type": "application/json" };
-  // If you enable CSRF later: if (method !== "GET") { const csrf = getCookie("csrf_access_token"); if (csrf) headers["X-CSRF-TOKEN"] = csrf; }
-  console.log(`API Call: ${method} ${API}${path}`);
-  const res = await fetch(`${API}${path}`, {
-    method, headers, credentials: "include",
-    body: body ? JSON.stringify(body) : undefined
-  });
-  console.log(`API Response: ${res.status} ${res.statusText}`);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    console.error(`API Error: ${data.message || res.statusText}`, data);
-    throw new Error(data.message || res.statusText);
+// Request queue to prevent too many simultaneous requests
+class RequestQueue {
+  constructor(maxConcurrent = 3, minDelay = 200) {
+    this.queue = [];
+    this.active = 0;
+    this.maxConcurrent = maxConcurrent;
+    this.minDelay = minDelay;
+    this.lastRequestTime = 0;
   }
-  console.log(`API Data:`, data);
-  return data;
+
+  async add(fn) {
+    // Wait if we're at max concurrent requests
+    while (this.active >= this.maxConcurrent) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Ensure minimum delay between requests
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    if (timeSinceLastRequest < this.minDelay) {
+      await new Promise(resolve => setTimeout(resolve, this.minDelay - timeSinceLastRequest));
+    }
+
+    this.active++;
+    this.lastRequestTime = Date.now();
+
+    try {
+      return await fn();
+    } finally {
+      this.active--;
+    }
+  }
+}
+
+const requestQueue = new RequestQueue(3, 200); // Max 3 concurrent, 200ms between requests
+
+// Retry logic with exponential backoff for rate limiting
+async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
+  try {
+    const res = await fetch(url, options);
+    
+    // If rate limited (429), retry with exponential backoff
+    if (res.status === 429 && retries > 0) {
+      console.warn(`Rate limited (429). Retrying in ${backoff}ms... (${retries} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, backoff));
+      return fetchWithRetry(url, options, retries - 1, backoff * 2);
+    }
+    
+    return res;
+  } catch (error) {
+    // Network error - retry if retries available
+    if (retries > 0) {
+      console.warn(`Network error. Retrying in ${backoff}ms... (${retries} retries left)`);
+      await new Promise(resolve => setTimeout(resolve, backoff));
+      return fetchWithRetry(url, options, retries - 1, backoff * 2);
+    }
+    throw error;
+  }
+}
+
+export async function api(path, { method="GET", body } = {}) {
+  // Use request queue to prevent overwhelming the server
+  return requestQueue.add(async () => {
+    const headers = { "Content-Type": "application/json" };
+    // If you enable CSRF later: if (method !== "GET") { const csrf = getCookie("csrf_access_token"); if (csrf) headers["X-CSRF-TOKEN"] = csrf; }
+    console.log(`API Call: ${method} ${API}${path}`);
+    
+    const res = await fetchWithRetry(`${API}${path}`, {
+      method, headers, credentials: "include",
+      body: body ? JSON.stringify(body) : undefined
+    });
+    
+    console.log(`API Response: ${res.status}`);
+    const data = await res.json().catch(() => ({}));
+    
+    if (!res.ok) {
+      // Provide user-friendly error messages
+      let errorMessage = data.message || res.statusText;
+      
+      if (res.status === 429) {
+        errorMessage = "Too many requests. Please wait a moment and try again.";
+      } else if (res.status === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (res.status === 404) {
+        errorMessage = "Resource not found.";
+      } else if (res.status === 403) {
+        errorMessage = "Access denied.";
+      }
+      
+      console.error(`API Error:`, data);
+      throw new Error(errorMessage);
+    }
+    
+    console.log(`API Data:`, data);
+    return data;
+  });
 }
 
 // Auth

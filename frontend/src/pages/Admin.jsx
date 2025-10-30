@@ -29,33 +29,34 @@ export default function Admin() {
   const [tab, setTab] = useState(0);
   const [stats, setStats] = useState({ users: 0, candidates: 0, applications: 0 });
 
-  // Load stats for cards
+  // Load stats for cards - only once on mount
+  const loadStats = async () => {
+    try {
+      const [usersData, candidatesData] = await Promise.all([
+        listUsers(),
+        listAllCandidates()
+      ]);
+      
+      const jobIds = new Set();
+      (candidatesData.candidates || []).forEach(candidate => {
+        candidate.jobs?.forEach(job => {
+          if (job.job_id) jobIds.add(job.job_id);
+        });
+      });
+      
+      setStats({
+        users: usersData.users?.length || 0,
+        candidates: candidatesData.candidates?.length || 0,
+        applications: jobIds.size
+      });
+    } catch (e) {
+      console.error("Error loading stats:", e);
+    }
+  };
+
   useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const [usersData, candidatesData] = await Promise.all([
-          listUsers(),
-          listAllCandidates()
-        ]);
-        
-        const jobIds = new Set();
-        (candidatesData.candidates || []).forEach(candidate => {
-          candidate.jobs?.forEach(job => {
-            if (job.job_id) jobIds.add(job.job_id);
-          });
-        });
-        
-        setStats({
-          users: usersData.users?.length || 0,
-          candidates: candidatesData.candidates?.length || 0,
-          applications: jobIds.size
-        });
-      } catch (e) {
-        console.error("Error loading stats:", e);
-      }
-    };
     loadStats();
-  }, [tab]); // Reload when tab changes
+  }, []); // Only load once on mount, not on tab change
 
   return (
     <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
@@ -260,7 +261,7 @@ export default function Admin() {
           <Tab label="📋 Candidates" />
         </Tabs>
         <Box sx={{ p: 2, pt: 1.5, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          {tab === 0 ? <UsersTab /> : <CandidatesTab />}
+          {tab === 0 ? <UsersTab refreshStats={loadStats} /> : <CandidatesTab refreshStats={loadStats} />}
         </Box>
       </Paper>
 
@@ -327,7 +328,7 @@ export default function Admin() {
   );
 }
 
-function UsersTab() {
+function UsersTab({ refreshStats }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -404,6 +405,7 @@ function UsersTab() {
         severity: 'success' 
       });
       await load();
+      refreshStats(); // Update stats in parent
     } catch (e) { 
       setErr(e.message);
       setToast({ 
@@ -418,7 +420,9 @@ function UsersTab() {
 
   const remove = async (id) => {
     if (!confirm("Delete this user?")) return;
-    await deleteUser(id); await load();
+    await deleteUser(id); 
+    await load();
+    refreshStats(); // Update stats in parent
   };
 
   const viewUserCandidates = async (user) => {
@@ -1024,7 +1028,7 @@ function UsersTab() {
   );
 }
 
-function CandidatesTab() {
+function CandidatesTab({ refreshStats }) {
   const [rows, setRows] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1050,13 +1054,21 @@ function CandidatesTab() {
   });
 
   const load = async () => {
-    const d = await listAllCandidates();
-    setRows(d.candidates);
+    try {
+      const d = await listAllCandidates();
+      setRows(d.candidates);
+    } catch (e) {
+      console.error("Error loading candidates:", e);
+    }
   };
   
   const loadUsers = async () => {
-    const d = await listUsers();
-    setUsers(d.users);
+    try {
+      const d = await listUsers();
+      setUsers(d.users);
+    } catch (e) {
+      console.error("Error loading users:", e);
+    }
   };
   
   useEffect(()=>{ 
@@ -1064,6 +1076,8 @@ function CandidatesTab() {
       setLoading(true);
       try {
         await Promise.all([load(), loadUsers()]);
+      } catch (e) {
+        console.error("Error loading data:", e);
       } finally {
         setLoading(false);
       }
@@ -1303,6 +1317,7 @@ function CandidatesTab() {
         severity: 'success' 
       });
       await load();
+      refreshStats(); // Update stats in parent
     } catch (e) {
       setErr(e.message);
       setToast({ 
@@ -1324,8 +1339,18 @@ function CandidatesTab() {
 
   const remove = async (id) => {
     if (!confirm("Delete this candidate?")) return;
-    await adminDeleteCandidate(id);
-    await load();
+    try {
+      await adminDeleteCandidate(id);
+      await load();
+      refreshStats(); // Update stats in parent
+    } catch (e) {
+      console.error("Error deleting candidate:", e);
+      setToast({ 
+        open: true, 
+        message: `Failed to delete candidate: ${e.message}`, 
+        severity: 'error' 
+      });
+    }
   };
 
   // Filter rows based on filter criteria
