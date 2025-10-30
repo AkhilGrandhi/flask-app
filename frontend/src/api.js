@@ -56,20 +56,23 @@ function getCookie(name) {
   return document.cookie.split("; ").find(c => c.startsWith(name + "="))?.split("=")[1];
 }
 
-// Request queue to prevent too many simultaneous requests
+// ============================================================
+// PRODUCTION-GRADE REQUEST QUEUE
+// Handles up to 50 concurrent users efficiently
+// ============================================================
 class RequestQueue {
-  constructor(maxConcurrent = 3, minDelay = 200) {
+  constructor(maxConcurrent = 10, minDelay = 100) {
     this.queue = [];
     this.active = 0;
-    this.maxConcurrent = maxConcurrent;
-    this.minDelay = minDelay;
+    this.maxConcurrent = maxConcurrent; // Increased for production (10 concurrent requests)
+    this.minDelay = minDelay; // Reduced to 100ms for better responsiveness
     this.lastRequestTime = 0;
   }
 
   async add(fn) {
     // Wait if we're at max concurrent requests
     while (this.active >= this.maxConcurrent) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
 
     // Ensure minimum delay between requests
@@ -90,16 +93,126 @@ class RequestQueue {
   }
 }
 
-const requestQueue = new RequestQueue(3, 200); // Max 3 concurrent, 200ms between requests
+const requestQueue = new RequestQueue(10, 100); // Production-optimized settings
 
-// Retry logic with exponential backoff for rate limiting
+// ============================================================
+// INTELLIGENT CACHING SYSTEM
+// - Caches GET requests with configurable TTL
+// - Supports cache tags for smart invalidation
+// - Prevents duplicate concurrent requests (deduplication)
+// ============================================================
+class IntelligentCache {
+  constructor() {
+    this.cache = new Map();
+    this.pendingRequests = new Map(); // For request deduplication
+    this.cacheTags = new Map(); // Map paths to tags (e.g., 'users', 'candidates')
+  }
+
+  // Cache configuration per endpoint
+  getCacheConfig(path) {
+    // Admin data - cache for 30 seconds (changes less frequently)
+    if (path.includes('/admin/users')) return { ttl: 30000, tag: 'users' };
+    if (path.includes('/admin/candidates')) return { ttl: 30000, tag: 'candidates' };
+    
+    // User data - cache for 20 seconds
+    if (path.includes('/candidates/me')) return { ttl: 20000, tag: 'candidate-profile' };
+    if (path.startsWith('/candidates') && !path.includes('/jobs')) return { ttl: 20000, tag: 'candidates' };
+    
+    // Job applications - cache for 15 seconds
+    if (path.includes('/jobs')) return { ttl: 15000, tag: 'jobs' };
+    
+    // Auth checks - cache for 60 seconds
+    if (path === '/auth/me') return { ttl: 60000, tag: 'auth' };
+    
+    // Default: cache for 10 seconds
+    return { ttl: 10000, tag: 'default' };
+  }
+
+  key(path, method) {
+    return `${method}:${path}`;
+  }
+
+  get(path, method = 'GET') {
+    const k = this.key(path, method);
+    const cached = this.cache.get(k);
+    if (cached && Date.now() - cached.timestamp < cached.ttl) {
+      console.log(`✅ Cache HIT: ${method} ${path}`);
+      return cached.promise;
+    }
+    
+    // Check if there's a pending request for the same endpoint (deduplication)
+    const pending = this.pendingRequests.get(k);
+    if (pending) {
+      console.log(`🔄 Request DEDUPLICATED: ${method} ${path}`);
+      return pending;
+    }
+    
+    return null;
+  }
+
+  set(path, method, promise) {
+    const k = this.key(path, method);
+    const config = this.getCacheConfig(path);
+    
+    // Store in pending requests for deduplication
+    this.pendingRequests.set(k, promise);
+    
+    // Once resolved, move to cache and remove from pending
+    promise.then(() => {
+      this.pendingRequests.delete(k);
+      this.cache.set(k, { 
+        promise, 
+        timestamp: Date.now(), 
+        ttl: config.ttl,
+        tag: config.tag 
+      });
+      
+      // Store tag mapping
+      if (!this.cacheTags.has(config.tag)) {
+        this.cacheTags.set(config.tag, new Set());
+      }
+      this.cacheTags.get(config.tag).add(k);
+      
+      // Auto cleanup after TTL
+      setTimeout(() => this.cache.delete(k), config.ttl);
+    }).catch(() => {
+      // On error, remove from pending
+      this.pendingRequests.delete(k);
+    });
+  }
+
+  // Invalidate cache by tag (e.g., invalidate all 'users' cache when a user is created/updated/deleted)
+  invalidateByTag(tag) {
+    const keys = this.cacheTags.get(tag);
+    if (keys) {
+      console.log(`🗑️ Cache invalidated for tag: ${tag} (${keys.size} entries)`);
+      keys.forEach(key => this.cache.delete(key));
+      this.cacheTags.delete(tag);
+    }
+  }
+
+  // Clear all cache
+  clearAll() {
+    console.log('🗑️ All cache cleared');
+    this.cache.clear();
+    this.pendingRequests.clear();
+    this.cacheTags.clear();
+  }
+}
+
+const intelligentCache = new IntelligentCache();
+
+// ============================================================
+// RETRY LOGIC WITH EXPONENTIAL BACKOFF
+// Handles 429 (rate limiting) and network errors gracefully
+// ============================================================
 async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
   try {
     const res = await fetch(url, options);
     
     // If rate limited (429), retry with exponential backoff
     if (res.status === 429 && retries > 0) {
-      console.warn(`Rate limited (429). Retrying in ${backoff}ms... (${retries} retries left)`);
+      console.warn(`⚠️ Rate limited (429). Retrying in ${backoff}ms... (${retries} retries left)`);
       await new Promise(resolve => setTimeout(resolve, backoff));
       return fetchWithRetry(url, options, retries - 1, backoff * 2);
     }
@@ -108,7 +221,7 @@ async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
   } catch (error) {
     // Network error - retry if retries available
     if (retries > 0) {
-      console.warn(`Network error. Retrying in ${backoff}ms... (${retries} retries left)`);
+      console.warn(`⚠️ Network error. Retrying in ${backoff}ms... (${retries} retries left)`);
       await new Promise(resolve => setTimeout(resolve, backoff));
       return fetchWithRetry(url, options, retries - 1, backoff * 2);
     }
@@ -116,19 +229,34 @@ async function fetchWithRetry(url, options, retries = 3, backoff = 1000) {
   }
 }
 
+// ============================================================
+// MAIN API FUNCTION
+// - Intelligent caching for GET requests
+// - Request queue for rate limiting
+// - Automatic retry with exponential backoff
+// - Cache invalidation for mutations
+// ============================================================
 export async function api(path, { method="GET", body } = {}) {
+  // Check cache for GET requests (only cache reads, not writes)
+  if (method === "GET") {
+    const cached = intelligentCache.get(path, method);
+    if (cached) {
+      return cached; // Return cached promise (or deduplicated request)
+    }
+  }
+  
   // Use request queue to prevent overwhelming the server
-  return requestQueue.add(async () => {
+  const requestPromise = requestQueue.add(async () => {
     const headers = { "Content-Type": "application/json" };
     // If you enable CSRF later: if (method !== "GET") { const csrf = getCookie("csrf_access_token"); if (csrf) headers["X-CSRF-TOKEN"] = csrf; }
-    console.log(`API Call: ${method} ${API}${path}`);
+    console.log(`🌐 API Call: ${method} ${API}${path}`);
     
     const res = await fetchWithRetry(`${API}${path}`, {
       method, headers, credentials: "include",
       body: body ? JSON.stringify(body) : undefined
     });
     
-    console.log(`API Response: ${res.status}`);
+    console.log(`📡 API Response: ${res.status} ${method} ${path}`);
     const data = await res.json().catch(() => ({}));
     
     if (!res.ok) {
@@ -143,16 +271,49 @@ export async function api(path, { method="GET", body } = {}) {
         errorMessage = "Resource not found.";
       } else if (res.status === 403) {
         errorMessage = "Access denied.";
+      } else if (res.status === 401) {
+        errorMessage = "Unauthorized. Please login again.";
       }
       
-      console.error(`API Error:`, data);
+      console.error(`❌ API Error:`, data);
       throw new Error(errorMessage);
     }
     
-    console.log(`API Data:`, data);
+    console.log(`✅ API Data received:`, Object.keys(data).length, 'keys');
     return data;
   });
+  
+  // Cache GET requests
+  if (method === "GET") {
+    intelligentCache.set(path, method, requestPromise);
+  }
+  
+  // Invalidate related cache on mutations (POST/PUT/DELETE)
+  if (method !== "GET") {
+    requestPromise.then(() => {
+      // Invalidate cache based on the endpoint
+      if (path.includes('/admin/users') || path.includes('/users')) {
+        intelligentCache.invalidateByTag('users');
+      }
+      if (path.includes('/admin/candidates') || path.includes('/candidates')) {
+        intelligentCache.invalidateByTag('candidates');
+        intelligentCache.invalidateByTag('candidate-profile');
+      }
+      if (path.includes('/jobs')) {
+        intelligentCache.invalidateByTag('jobs');
+      }
+      if (path.includes('/auth/logout')) {
+        intelligentCache.clearAll(); // Clear all cache on logout
+      }
+    });
+  }
+  
+  return requestPromise;
 }
+
+// ============================================================
+// API ENDPOINTS
+// ============================================================
 
 // Auth
 export const loginAdmin = (email, password) => api("/auth/login-admin", { method:"POST", body:{email, password} });
@@ -230,3 +391,5 @@ export const getMyJobs = () =>
 export const cancelJob = (jobId) => 
   api(`/resume-async/job/${jobId}`, { method: "DELETE" });
 
+// Export cache for manual control if needed (e.g., force refresh button)
+export const apiCache = intelligentCache;

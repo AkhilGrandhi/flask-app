@@ -12,9 +12,17 @@ from .models import db, User
 
 migrate = Migrate()
 jwt = JWTManager()
+
+# ============================================================
+# PRODUCTION-GRADE RATE LIMITING
+# Optimized for 50 concurrent users
+# ============================================================
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
+    # Production limits: allow burst traffic while preventing abuse
+    # 10,000 per day = ~7 requests/min sustained
+    # 2,000 per hour = ~33 requests/min burst capacity
+    default_limits=["10000 per day", "2000 per hour"],
     storage_uri="memory://",  # In-memory rate limiting (works without Redis)
 )
 
