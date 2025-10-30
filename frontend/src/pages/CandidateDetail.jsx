@@ -406,10 +406,10 @@ ${job.resume_content}`;
                 </Avatar>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem", textTransform: "uppercase", letterSpacing: 0.3 }}>
-                    SSN Number
+                    Job Role
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.8rem" }}>
-                    {cand.ssn || "-"}
+                    {cand.role || "-"}
                   </Typography>
                 </Box>
               </Box>
