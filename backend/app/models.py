@@ -206,7 +206,7 @@ class Candidate(db.Model):
 class CandidateJob(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     candidate_id = db.Column(db.Integer, db.ForeignKey("candidate.id"), nullable=False, index=True)
-    job_id = db.Column(db.String(120), nullable=False)
+    job_id = db.Column(db.Text, nullable=False)
     job_description = db.Column(db.Text, nullable=False)
 
     # NEW: what we generate + where we saved the .docx

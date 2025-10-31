@@ -438,31 +438,42 @@ ${job.resume_content}`;
               </Alert>
             )}
             
-            <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
-                <TextField
-                  label="Job ID"
-                placeholder="Enter Job ID"
-                  value={jobId}
-                  onChange={(e) => setJobId(e.target.value)}
-                  disabled={generating}
-                  required
-                  variant="outlined"
-                  size="small"
-                sx={{ width: "25%" }}
-                />
-                <TextField
-                  label="Job Description"
-                placeholder="Enter Job Description"
-                  value={jobDesc}
-                  onChange={(e) => setJobDesc(e.target.value)}
-                  multiline
-                  rows={1.5}
-                  disabled={generating}
-                  required
-                  variant="outlined"
-                  size="small"
-                sx={{ flex: 1 }}
-                />
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1.5,
+                alignItems: "stretch",
+                flexDirection: { xs: "column", sm: "row" }
+              }}
+            >
+              <TextField
+                label="Job ID"
+                placeholder="Enter or paste the Job ID"
+                value={jobId}
+                onChange={(e) => setJobId(e.target.value)}
+                disabled={generating}
+                required
+                variant="outlined"
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                maxRows={4}
+              />
+              <TextField
+                label="Job Description"
+                placeholder="Paste the Job Description"
+                value={jobDesc}
+                onChange={(e) => setJobDesc(e.target.value)}
+                disabled={generating}
+                required
+                variant="outlined"
+                size="small"
+                fullWidth
+                multiline
+                minRows={2}
+                maxRows={6}
+              />
             </Box>
           </Box>
         </Paper>

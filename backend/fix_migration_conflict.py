@@ -16,10 +16,31 @@ Safe to run multiple times - idempotent operation.
 
 import sys
 import os
+import re
 
 print("=" * 70)
 print("Universal Migration Conflict Resolver")
 print("=" * 70)
+
+
+def normalize_type(type_str: str) -> str:
+    """Normalize type strings so they can be compared reliably."""
+    if not type_str:
+        return ""
+    normalized = type_str.upper()
+    normalized = normalized.replace("CHARACTER VARYING", "VARCHAR")
+    normalized = normalized.replace("TIMESTAMP WITHOUT TIME ZONE", "TIMESTAMP")
+    normalized = normalized.replace("DOUBLE PRECISION", "FLOAT8")
+    normalized = re.sub(r"\s+", "", normalized)
+    return normalized
+
+
+def compile_type(col_type, dialect) -> str:
+    """Safely compile a SQLAlchemy column type for comparison/output."""
+    try:
+        return col_type.compile(dialect)
+    except Exception:
+        return str(col_type)
 
 try:
     from app import create_app
@@ -57,6 +78,8 @@ try:
         print("\n5. Synchronizing schema for each table...")
         total_fixed = 0
         tables_created = 0
+        columns_altered = 0
+        nullability_altered = 0
         
         for table_name, model_info in model_tables.items():
             print(f"\n   [{table_name}]")
@@ -137,9 +160,92 @@ try:
                         db.session.rollback()
             else:
                 print(f"   ✓ All columns present")
+
+            # Compare column definitions for type/nullable differences
+            dialect = db.engine.dialect
+            type_mismatches = []
+            nullability_mismatches = []
+            for col_name, col_obj in model_columns.items():
+                if col_name not in db_columns:
+                    continue
+
+                if col_obj.primary_key:
+                    # Avoid altering primary key definitions automatically
+                    continue
+
+                db_col = db_columns[col_name]
+                current_type = compile_type(db_col["type"], dialect)
+                target_type = compile_type(col_obj.type, dialect)
+
+                if normalize_type(current_type) != normalize_type(target_type):
+                    type_mismatches.append((col_name, current_type, target_type))
+
+                model_nullable = True
+                if col_obj.nullable is not None:
+                    model_nullable = col_obj.nullable
+                elif col_obj.primary_key:
+                    model_nullable = False
+
+                db_nullable = db_col.get("nullable", True)
+                if bool(db_nullable) != bool(model_nullable):
+                    nullability_mismatches.append((col_name, db_nullable, model_nullable))
+
+            if type_mismatches:
+                print(f"   ⚠ Found {len(type_mismatches)} column type difference(s)")
+            for col_name, current_type, target_type in type_mismatches:
+                try:
+                    print(f"   → Altering '{col_name}' type: {current_type} → {target_type}")
+                    alter_sql = f'ALTER TABLE "{table_name}" ALTER COLUMN "{col_name}" TYPE {target_type}'
+                    if dialect.name == "postgresql":
+                        alter_sql += f' USING "{col_name}"::{target_type}'
+                    db.session.execute(text(alter_sql))
+                    db.session.commit()
+                    print(f"   ✓ Updated type for '{col_name}'")
+                    columns_altered += 1
+                except Exception as e:
+                    print(f"   ⚠ Could not alter type for '{col_name}': {e}")
+                    db.session.rollback()
+
+            if nullability_mismatches:
+                print(f"   ⚠ Found {len(nullability_mismatches)} nullability difference(s)")
+            for col_name, db_nullable, model_nullable in nullability_mismatches:
+                try:
+                    if not model_nullable and db_nullable:
+                        # Ensure column has no NULL values before enforcing NOT NULL
+                        null_count_sql = text(f'SELECT COUNT(*) FROM "{table_name}" WHERE "{col_name}" IS NULL')
+                        null_count = db.session.execute(null_count_sql).scalar()
+                        if null_count and null_count > 0:
+                            print(f"   ⚠ Cannot set NOT NULL on '{col_name}' — {null_count} NULL value(s) present")
+                            continue
+                        sql = f'ALTER TABLE "{table_name}" ALTER COLUMN "{col_name}" SET NOT NULL'
+                        action = "SET NOT NULL"
+                    elif model_nullable and not db_nullable:
+                        sql = f'ALTER TABLE "{table_name}" ALTER COLUMN "{col_name}" DROP NOT NULL'
+                        action = "DROP NOT NULL"
+                    else:
+                        continue
+
+                    print(f"   → Altering '{col_name}' nullability: {action}")
+                    db.session.execute(text(sql))
+                    db.session.commit()
+                    print(f"   ✓ Updated nullability for '{col_name}'")
+                    nullability_altered += 1
+                except Exception as e:
+                    print(f"   ⚠ Could not update nullability for '{col_name}': {e}")
+                    db.session.rollback()
+
+            extra_columns = [col for col in db_columns.keys() if col not in model_columns]
+            if extra_columns:
+                print(f"   ℹ Extra column(s) in database not defined in models (left untouched): {', '.join(extra_columns)}")
         
-        if tables_created > 0 or total_fixed > 0:
-            print(f"\n   Summary: Created {tables_created} table(s), Added {total_fixed} missing column(s)")
+        if tables_created > 0 or total_fixed > 0 or columns_altered > 0 or nullability_altered > 0:
+            print(
+                "\n   Summary: "
+                f"Created {tables_created} table(s), "
+                f"Added {total_fixed} missing column(s), "
+                f"Updated {columns_altered} column type(s), "
+                f"Adjusted {nullability_altered} nullability constraint(s)"
+            )
         else:
             print(f"\n   Summary: Schema is already synchronized")
         
@@ -206,6 +312,7 @@ try:
     print("\nWhat happened:")
     print("• Database schema has been synchronized with your models")
     print("• Missing columns have been added (if any)")
+    print("• Column types and nullability now match the SQLAlchemy models")
     print("• Migration state has been updated")
     print("• Your deployment can now proceed")
     print("\nYour application is ready to use! 🚀")

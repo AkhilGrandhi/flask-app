@@ -466,33 +466,42 @@ ${job.resume_content}`;
             </Alert>
           )}
           
-          <Box sx={{ display: "flex", gap: 0.8, alignItems: "flex-start" }}>
-            <Box sx={{ width: "30%" }}>
-              <TextField
-                label="Job ID"
-                value={jobId}
-                onChange={(e)=>setJobId(e.target.value)}
-                fullWidth
-                disabled={generating}
-                required
-                variant="outlined"
-                size="small"
-              />
-            </Box>
-            <Box sx={{ width: "70%" }}>
-              <TextField
-                label="Job Description"
-                value={jobDesc}
-                onChange={(e)=>setJobDesc(e.target.value)}
-                fullWidth
-                multiline
-                rows={1.5}
-                disabled={generating}
-                required
-                variant="outlined"
-                size="small"
-              />
-            </Box>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 0.8,
+              alignItems: "stretch",
+              flexDirection: { xs: "column", sm: "row" }
+            }}
+          >
+            <TextField
+              label="Job ID"
+              value={jobId}
+              onChange={(e)=>setJobId(e.target.value)}
+              fullWidth
+              multiline
+              minRows={2}
+              maxRows={4}
+              disabled={generating}
+              required
+              variant="outlined"
+              size="small"
+              placeholder="Enter or paste the Job ID"
+            />
+            <TextField
+              label="Job Description"
+              value={jobDesc}
+              onChange={(e)=>setJobDesc(e.target.value)}
+              fullWidth
+              multiline
+              minRows={2}
+              maxRows={6}
+              disabled={generating}
+              required
+              variant="outlined"
+              size="small"
+              placeholder="Paste the Job Description"
+            />
           </Box>
         </Box>
       </Paper>
