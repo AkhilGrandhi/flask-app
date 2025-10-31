@@ -4,7 +4,7 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert, Autocomplete,
-  Snackbar, CircularProgress
+  Snackbar, CircularProgress, Tooltip
 } from "@mui/material";
 import { Visibility, VisibilityOff, RemoveRedEye, Edit, Delete, Email } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
@@ -28,6 +28,7 @@ export default function Admin() {
   const { user, logout } = useAuth();
   const [tab, setTab] = useState(0);
   const [stats, setStats] = useState({ users: 0, candidates: 0, applications: 0 });
+  const [pendingCandidateAction, setPendingCandidateAction] = useState(null);
 
   // Load stats for cards - only once on mount
   const loadStats = async () => {
@@ -57,6 +58,12 @@ export default function Admin() {
   useEffect(() => {
     loadStats();
   }, []); // Only load once on mount, not on tab change
+
+  const handleCandidateActionFromUsers = (action) => {
+    if (!action) return;
+    setTab(1);
+    setPendingCandidateAction({ ...action, timestamp: Date.now() });
+  };
 
   return (
     <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
@@ -261,7 +268,18 @@ export default function Admin() {
           <Tab label="📋 Candidates" />
         </Tabs>
         <Box sx={{ p: 2, pt: 1.5, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          {tab === 0 ? <UsersTab refreshStats={loadStats} /> : <CandidatesTab refreshStats={loadStats} />}
+          {tab === 0 ? (
+            <UsersTab 
+              refreshStats={loadStats} 
+              onCandidateAction={handleCandidateActionFromUsers}
+            />
+          ) : (
+            <CandidatesTab 
+              refreshStats={loadStats} 
+              externalAction={pendingCandidateAction}
+              onExternalActionHandled={() => setPendingCandidateAction(null)}
+            />
+          )}
         </Box>
       </Paper>
 
@@ -328,7 +346,7 @@ export default function Admin() {
   );
 }
 
-function UsersTab({ refreshStats }) {
+function UsersTab({ refreshStats, onCandidateAction = () => {} }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -342,6 +360,12 @@ function UsersTab({ refreshStats }) {
   const [viewingUser, setViewingUser] = useState(null);
   const [userCandidates, setUserCandidates] = useState([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
+  
+  const triggerCandidateAction = (candidate, type) => {
+    if (!candidate?.id) return;
+    setViewOpen(false);
+    onCandidateAction({ type, candidateId: candidate.id });
+  };
   
   // Filter states
   const [filters, setFilters] = useState({
@@ -961,18 +985,37 @@ function UsersTab({ refreshStats }) {
                         </Box>
                       </TableCell>
                       <TableCell align="right">
-                        <Button 
-                          component={RouterLink}
-                          to={`/candidates/${c.id}`}
-                          size="small" 
-                          variant="contained"
-                          sx={{ 
-                            textTransform: "none",
-                            fontWeight: 500
-                          }}
-                        >
-                          View Details
-                        </Button>
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                          <Tooltip title="View Candidate">
+                            <IconButton
+                              component={RouterLink}
+                              to={`/candidates/${c.id}`}
+                              size="small"
+                              sx={{
+                                color: "primary.main",
+                                "&:hover": {
+                                  bgcolor: "primary.lighter"
+                                }
+                              }}
+                            >
+                              <RemoveRedEye fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Edit Candidate">
+                            <IconButton
+                              size="small"
+                              onClick={() => triggerCandidateAction(c, "edit")}
+                              sx={{
+                                color: "info.main",
+                                "&:hover": {
+                                  bgcolor: "info.lighter"
+                                }
+                              }}
+                            >
+                              <Edit fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1028,7 +1071,7 @@ function UsersTab({ refreshStats }) {
   );
 }
 
-function CandidatesTab({ refreshStats }) {
+function CandidatesTab({ refreshStats, externalAction, onExternalActionHandled = () => {} }) {
   const [rows, setRows] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1216,6 +1259,30 @@ function CandidatesTab({ refreshStats }) {
     setErr("");
     setOpen(true);
   };
+
+  useEffect(() => {
+    if (!externalAction || loading) return;
+
+    const candidate = rows.find(c => c.id === externalAction.candidateId);
+
+    if (!candidate) {
+      setToast({
+        open: true,
+        message: "Unable to locate candidate for requested action.",
+        severity: 'error'
+      });
+      onExternalActionHandled();
+      return;
+    }
+
+    if (externalAction.type === "edit") {
+      startEdit(candidate);
+    } else if (externalAction.type === "view") {
+      startView(candidate);
+    }
+
+    onExternalActionHandled();
+  }, [externalAction, loading, rows, onExternalActionHandled, startEdit, startView]);
 
   const submit = async () => {
     try {
