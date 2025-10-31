@@ -15,8 +15,26 @@ def require_admin():
 @jwt_required()
 def list_users():
     require_admin()
-    users = User.query.order_by(User.id.asc()).all()
-    return {"users": [u.to_dict() for u in users]}
+    try:
+        users = User.query.order_by(User.id.asc()).all()
+        users_data = []
+        for u in users:
+            user_dict = u.to_dict()
+            try:
+                # Count candidates created by this user
+                candidate_count = Candidate.query.filter_by(created_by_user_id=u.id).count()
+                user_dict['candidate_count'] = candidate_count
+            except Exception as e:
+                # If counting fails, just set to 0
+                import logging
+                logging.warning(f"Could not count candidates for user {u.id}: {e}")
+                user_dict['candidate_count'] = 0
+            users_data.append(user_dict)
+        return {"users": users_data}
+    except Exception as e:
+        import logging
+        logging.error(f"Error listing users: {e}")
+        return {"message": f"Failed to list users: {str(e)}"}, 500
 
 @bp.post("/users")
 @jwt_required()
@@ -99,6 +117,16 @@ def delete_user(user_id):
     db.session.delete(u); db.session.commit()
     return {"message":"User deleted"}
 
+@bp.get("/users/<int:user_id>/candidates")
+@jwt_required()
+def get_user_candidates(user_id):
+    require_admin()
+    # Verify user exists
+    u = User.query.get_or_404(user_id)
+    # Get all candidates created by this user
+    candidates = Candidate.query.filter_by(created_by_user_id=user_id).order_by(Candidate.id.desc()).all()
+    return {"user": u.to_dict(), "candidates": [c.to_dict(include_jobs=True) for c in candidates]}
+
 # ---- Candidates (admin view) ----
 @bp.get("/candidates")
 @jwt_required()
@@ -114,6 +142,16 @@ def admin_update_candidate(cand_id):
     c = Candidate.query.get_or_404(cand_id)
     data = request.get_json() or {}
     
+    try:
+        return _update_candidate_fields(c, data, cand_id)
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        logging.error(f"Error updating candidate {cand_id}: {e}")
+        return {"message": f"Failed to update candidate: {str(e)}"}, 500
+
+def _update_candidate_fields(c, data, cand_id):
+    
     # Validate and update creator if provided
     if "created_by_user_id" in data:
         new_creator_id = data.get("created_by_user_id")
@@ -122,6 +160,38 @@ def admin_update_candidate(cand_id):
             if not creator_user:
                 return {"message": "Assigned user not found"}, 404
             c.created_by_user_id = new_creator_id
+    
+    # Handle assigned users (admin only) - with defensive check for table existence
+    if "assigned_user_ids" in data:
+        try:
+            # Check if the association table exists before trying to modify relationships
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            if 'candidate_assigned_users' in inspector.get_table_names():
+                assigned_user_ids = data.get("assigned_user_ids", [])
+                import logging
+                logging.info(f"Admin updating candidate {cand_id} with assigned_user_ids: {assigned_user_ids}")
+                # Clear existing assignments
+                c.assigned_users = []
+                # Add new assignments
+                if assigned_user_ids:
+                    for user_id in assigned_user_ids:
+                        user = User.query.get(user_id)
+                        if user and user.role == "user":  # Only assign to regular users
+                            c.assigned_users.append(user)
+                            logging.info(f"Assigned user {user.id} ({user.name}) to candidate {cand_id}")
+                        else:
+                            logging.warning(f"User {user_id} not found or not a regular user")
+            else:
+                import logging
+                logging.warning("candidate_assigned_users table does not exist")
+            # If table doesn't exist, silently skip (migration hasn't run yet)
+        except Exception as e:
+            # Log error but don't fail the update
+            import logging
+            import traceback
+            logging.error(f"Could not update assigned users: {e}")
+            logging.error(traceback.format_exc())
     
     # Validate email if being updated
     if "email" in data:
@@ -180,10 +250,34 @@ def admin_update_candidate(cand_id):
     
     for field in ["willing_relocate","willing_travel","disability_status","military_experience"]:
         if field in data: setattr(c, field, to_bool(data[field]))
-    # birthdate (YYYY-MM-DD)
+    
+    # birthdate (YYYY-MM-DD) - with error handling
     if "birthdate" in data and data["birthdate"]:
-        from datetime import date
-        y,m,d = map(int, data["birthdate"].split("-")); c.birthdate = date(y,m,d)
+        try:
+            from datetime import date
+            birthdate_str = str(data["birthdate"]).strip()
+            if birthdate_str:
+                y, m, d = None, None, None  # Initialize variables
+                # Handle different date formats
+                if "-" in birthdate_str:
+                    y, m, d = map(int, birthdate_str.split("-"))
+                elif "/" in birthdate_str:
+                    # Convert MM/DD/YYYY to YYYY-MM-DD
+                    parts = birthdate_str.split("/")
+                    if len(parts) == 3:
+                        m, d, y = map(int, parts)
+                    else:
+                        return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                else:
+                    return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                
+                if y is None or m is None or d is None:
+                    return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                    
+                c.birthdate = date(y, m, d)
+        except (ValueError, AttributeError) as e:
+            return {"message": f"Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+    
     db.session.commit()
     return {"message":"Candidate updated"}
 

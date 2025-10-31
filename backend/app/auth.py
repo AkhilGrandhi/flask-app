@@ -5,11 +5,13 @@ from flask_jwt_extended import (
     jwt_required, get_jwt, get_jwt_identity
 )
 from .models import db, User, Candidate
+from . import limiter
 
 bp = Blueprint("auth", __name__)
 
 # Admin login (email + password)
 @bp.post("/login-admin")
+@limiter.limit("5 per minute")  # Stricter rate limit for login
 def login_admin():
     data = request.get_json() or {}
     email = (data.get("email") or "").lower().strip()
@@ -20,12 +22,15 @@ def login_admin():
 
     token = create_access_token(identity=str(user.id),
                                 additional_claims={"role": user.role, "email": user.email, "mobile": user.mobile, "name":user.name})
-    resp = jsonify({"message": "Logged in", "role": user.role})
+    # Return token in body for iOS/Safari compatibility (localStorage)
+    resp = jsonify({"message": "Logged in", "role": user.role, "access_token": token})
+    # Also set cookie for backward compatibility
     set_access_cookies(resp, token)
     return resp, 200
 
 # User login (mobile + password)
 @bp.post("/login-user")
+@limiter.limit("5 per minute")  # Stricter rate limit for login
 def login_user():
     data = request.get_json() or {}
     mobile = (data.get("mobile") or "").strip()
@@ -36,12 +41,15 @@ def login_user():
 
     token = create_access_token(identity=str(user.id),
                                 additional_claims={"role": user.role, "email": user.email, "mobile": user.mobile, "name":user.name})
-    resp = jsonify({"message": "Logged in", "role": user.role})
+    # Return token in body for iOS/Safari compatibility (localStorage)
+    resp = jsonify({"message": "Logged in", "role": user.role, "access_token": token})
+    # Also set cookie for backward compatibility
     set_access_cookies(resp, token)
     return resp, 200
 
 # Candidate login (phone + password)
 @bp.post("/login-candidate")
+@limiter.limit("5 per minute")  # Stricter rate limit for login
 def login_candidate():
     data = request.get_json() or {}
     phone = (data.get("phone") or "").strip()
@@ -61,12 +69,16 @@ def login_candidate():
             "phone": candidate.phone
         }
     )
-    resp = jsonify({"message": "Logged in", "role": "candidate"})
+    # Return token in body for iOS/Safari compatibility (localStorage)
+    resp = jsonify({"message": "Logged in", "role": "candidate", "access_token": token})
+    # Also set cookie for backward compatibility
     set_access_cookies(resp, token)
     return resp, 200
 
 @bp.post("/logout")
 def logout():
+    # Note: Client should remove token from localStorage
+    # We still unset cookies for backward compatibility
     resp = jsonify({"message": "Logged out"})
     unset_jwt_cookies(resp)
     return resp, 200
@@ -103,6 +115,7 @@ def me():
 
 #chrom extension code
 @bp.post("/token-admin")
+@limiter.limit("5 per minute")  # Stricter rate limit for token generation
 def token_admin():
     data = request.get_json() or {}
     email = (data.get("email") or "").lower().strip()
@@ -118,6 +131,7 @@ def token_admin():
     return {"access_token": token, "role": user.role}
 
 @bp.post("/token-user")
+@limiter.limit("5 per minute")  # Stricter rate limit for token generation
 def token_user():
     data = request.get_json() or {}
     mobile = (data.get("mobile") or "").strip()

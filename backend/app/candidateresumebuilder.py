@@ -5,7 +5,7 @@ from io import BytesIO
 import os
 import re
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
 # ------- Word (python-docx) -------
@@ -21,7 +21,7 @@ import subprocess
 import platform
 
 # ------- Database imports -------
-from app.models import db, CandidateJob
+from app.models import db, CandidateJob, Candidate
 
 bp = Blueprint("resume", __name__)
 
@@ -395,9 +395,42 @@ def generate_resume():
 
     work_exp_str = extract_total_experience(candidate_info)
 
-    # OpenAI client
+    # Daily limit: Silver subscribers can generate up to 50 resumes per UTC day
+    candidate_record = None
+    if candidate_id is not None:
+        try:
+            candidate_id = int(candidate_id)
+        except (TypeError, ValueError):
+            return jsonify({"message": "Invalid candidate_id"}), 400
+
+        candidate_record = Candidate.query.get(candidate_id)
+        if not candidate_record:
+            return jsonify({"message": "Candidate not found"}), 404
+
+        if (candidate_record.subscription_type or "").lower() == "silver":
+            start_of_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            next_day = start_of_day + timedelta(days=1)
+            generated_today = (
+                CandidateJob.query
+                .filter(
+                    CandidateJob.candidate_id == candidate_id,
+                    CandidateJob.resume_content.isnot(None),
+                    CandidateJob.created_at >= start_of_day,
+                    CandidateJob.created_at < next_day,
+                )
+                .count()
+            )
+
+            if generated_today >= 50:
+                return jsonify({"message": "Your daily resume limit has been exceeded. Please try again tomorrow."}), 429
+
+    # Validate OpenAI API key
+    if not OPENAI_API_KEY:
+        return jsonify({"message": "OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."}), 500
+    
+    # OpenAI client with timeout
     try:
-        client = OpenAI(api_key=OPENAI_API_KEY)
+        client = OpenAI(api_key=OPENAI_API_KEY, timeout=120.0)
     except Exception as e:
         return jsonify({"message": f"OpenAI client init error: {e}"}), 500
 

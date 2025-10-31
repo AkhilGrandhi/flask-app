@@ -123,6 +123,13 @@ const router = createBrowserRouter([
   }
 ]);
 
+// Handle 404 redirects from static hosting
+if (window.location.pathname === '/' && sessionStorage.getItem('redirectPath')) {
+  const redirectPath = sessionStorage.getItem('redirectPath');
+  sessionStorage.removeItem('redirectPath');
+  window.history.replaceState(null, '', redirectPath);
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>

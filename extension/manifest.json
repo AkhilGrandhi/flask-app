@@ -19,17 +19,16 @@
   },
   "host_permissions": [
     "https://flask-app-r5xw.onrender.com/*",
-    "http://localhost:5000/*",
-    "http://127.0.0.1:5000/*",
-    "http://*/*",
-    "https://*/*",
     "file://*/*"
   ],
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*", "file://*/*"],
+      "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 }

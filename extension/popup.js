@@ -1,10 +1,23 @@
-const $user   = document.getElementById("userSelect");
-const $cand   = document.getElementById("candidateSelect");
-const $btn    = document.getElementById("autofillBtn");
+// DOM Elements
+const $loginForm = document.getElementById("loginForm");
+const $mainForm = document.getElementById("mainForm");
+const $mobileInput = document.getElementById("mobileInput");
+const $passwordInput = document.getElementById("passwordInput");
+const $loginBtn = document.getElementById("loginBtn");
+const $logoutBtn = document.getElementById("logoutBtn");
+const $userName = document.getElementById("userName");
+const $userMobile = document.getElementById("userMobile");
+const $cand = document.getElementById("candidateSelect");
+const $btn = document.getElementById("autofillBtn");
 const $status = document.getElementById("status");
 
-const state = { users: [], candidates: [] };
+const state = { 
+  user: null, 
+  token: null, 
+  candidates: [] 
+};
 
+// ========== Status & UI Helpers ==========
 function setStatus(msg, type = "normal") { 
   if ($status) {
     $status.textContent = msg;
@@ -21,30 +34,66 @@ function setStatus(msg, type = "normal") {
   console.log("[popup] status:", msg); 
 }
 
+function showLoginForm() {
+  $loginForm.style.display = "block";
+  $mainForm.style.display = "none";
+}
+
+function showMainForm() {
+  $loginForm.style.display = "none";
+  $mainForm.style.display = "block";
+}
+
+// ========== Storage ==========
+async function getStoredAuth() {
+  const data = await chrome.storage.sync.get(["authToken", "authUser"]);
+  return {
+    token: data.authToken || null,
+    user: data.authUser || null
+  };
+}
+
+async function saveAuth(token, user) {
+  await chrome.storage.sync.set({ 
+    authToken: token,
+    authUser: user
+  });
+  console.log("[popup] saved auth for user:", user);
+}
+
+async function clearAuth() {
+  await chrome.storage.sync.remove(["authToken", "authUser"]);
+  console.log("[popup] cleared auth");
+}
+
 async function getStoredBase() {
   const { backendBase } = await chrome.storage.sync.get(["backendBase"]);
   return backendBase || "";
 }
+
 async function saveBase(base) {
   await chrome.storage.sync.set({ backendBase: base.replace(/\/+$/, "") });
   console.log("[popup] saved backendBase:", base);
 }
-function withTimeout(promise, ms = 2500) {
-  const ac = new AbortController();
-  const t = setTimeout(() => ac.abort(), ms);
-  return promise.finally(() => clearTimeout(t));
-}
+
+// ========== Backend Detection ==========
 async function checkBase(base) {
-  const url = `${base.replace(/\/+$/, "")}/api/public/users`;
+  const url = `${base.replace(/\/+$/, "")}/api/healthz`;
+  const ac = new AbortController();
+  const timeout = setTimeout(() => ac.abort(), 2500);
+  
   try {
-    const res = await withTimeout(fetch(url, { signal: new AbortController().signal }), 2500);
+    const res = await fetch(url, { signal: ac.signal });
+    clearTimeout(timeout);
     if (!res.ok) return false;
     const data = await res.json().catch(() => ({}));
-    return data && typeof data === "object" && "users" in data;
+    return data && typeof data === "object" && "status" in data;
   } catch {
+    clearTimeout(timeout);
     return false;
   }
 }
+
 async function getActiveTabOrigin() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -54,102 +103,193 @@ async function getActiveTabOrigin() {
     return null;
   }
 }
+
 async function candidateBases() {
-  const s = new Set(["http://localhost:5000","http://127.0.0.1:5000","http://0.0.0.0:5000"]);
-  const origin = await getActiveTabOrigin();
-  if (origin) {
-    const u = new URL(origin);
-    s.add(`${u.protocol}//${u.hostname}:5000`);
-    s.add(`${u.protocol}//${u.host}`);
-    s.add(`${u.protocol}//${u.hostname}:8000`);
-  }
+  const s = new Set([
+    // Production URL
+    "https://flask-app-r5xw.onrender.com"
+    
+    // Local development URLs (uncomment for local testing)
+    // "http://localhost:5000",
+    // "http://127.0.0.1:5000",
+    // "http://0.0.0.0:5000"
+  ]);
+  
+  // Uncomment below for dynamic origin detection (useful for development)
+  // const origin = await getActiveTabOrigin();
+  // if (origin) {
+  //   const u = new URL(origin);
+  //   s.add(`${u.protocol}//${u.hostname}:5000`);
+  //   s.add(`${u.protocol}//${u.host}`);
+  //   s.add(`${u.protocol}//${u.hostname}:8000`);
+  // }
+  
   return Array.from(s);
 }
+
 async function autoDetectBase() {
   setStatus("🔍 Detecting API...", "loading");
   for (const base of await candidateBases()) {
-    if (await checkBase(base)) { await saveBase(base); return base; }
+    if (await checkBase(base)) { 
+      await saveBase(base); 
+      return base; 
+    }
   }
   return "";
 }
-// --- add POST support in api() ---
+
+// ========== API Calls ==========
 async function api(path, opts = {}) {
   let base = await getStoredBase();
   if (!base) base = await autoDetectBase();
-  if (!base) throw new Error("Could not detect API. Check connection to https://flask-app-r5xw.onrender.com");
+  if (!base) throw new Error("Could not detect API. Check connection to backend.");
+  
   const url = `${base.replace(/\/+$/, "")}${path}`;
-  const { method = "GET", body } = opts;
-  console.log("[popup] fetch", method, url, body || "");
+  const { method = "GET", body, useAuth = true } = opts;  // Changed default to true
+  
+  const headers = { "Content-Type": "application/json" };
+  
+  // Add JWT token if useAuth is true (now default for all calls except login)
+  if (useAuth && state.token) {
+    headers["Authorization"] = `Bearer ${state.token}`;
+  }
+  
+  console.log("[popup] fetch", method, url, useAuth ? "(authenticated)" : "");
+  
   const res = await fetch(url, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: body ? JSON.stringify(body) : undefined
   });
+  
   const text = await res.text();
   let data = {};
   try { data = JSON.parse(text); } catch {}
+  
   if (!res.ok) throw new Error(data.message || res.statusText);
   return data;
 }
-// async function api(path) {
-//   let base = await getStoredBase();
-//   if (!base) base = await autoDetectBase();
-//   if (!base) throw new Error("Could not detect API. Set backendBase or run Flask on :5000.");
-//   const url = `${base.replace(/\/+$/, "")}${path}`;
-//   console.log("[popup] GET", url);
-//   const res = await fetch(url);
-//   const text = await res.text();
-//   console.log("[popup] →", res.status, text);
-//   const data = (() => { try { return JSON.parse(text); } catch { return {}; } })();
-//   if (!res.ok) throw new Error(data.message || res.statusText);
-//   return data;
-// }
 
-async function loadUsersAndCandidates() {
-  setStatus("📥 Loading users & candidates...", "loading");
-  const usersRes = await api("/api/public/users");
-  const candsRes = await api("/api/public/candidates");
-  state.users = usersRes.users || [];
-  state.candidates = candsRes.candidates || [];
+// ========== Authentication ==========
+async function login(mobile, password) {
+  setStatus("🔐 Logging in...", "loading");
+  
+  try {
+    // Use token-user endpoint to get JWT (no auth needed for login)
+    const response = await api("/api/auth/token-user", {
+      method: "POST",
+      body: { mobile, password },
+      useAuth: false  // Don't send token for login request
+    });
+    
+    if (!response.access_token) {
+      throw new Error("No token received");
+    }
+    
+    state.token = response.access_token;
+    
+    // Now get full user info with ID using the token
+    const meResponse = await api("/api/auth/me", {
+      method: "GET",
+      useAuth: true
+    });
+    
+    // Extract user data (API returns {user: {...}})
+    const userData = meResponse.user || meResponse;
+    
+    // Store user info including ID
+    const user = {
+      id: userData.id,
+      mobile: userData.mobile || mobile,
+      role: userData.role || response.role || "user",
+      name: userData.name || mobile,
+      email: userData.email || ""
+    };
+    
+    state.user = user;
+    await saveAuth(response.access_token, user);
+    
+    // Update UI
+    $userName.textContent = user.name || "User";
+    $userMobile.textContent = user.mobile;
+    
+    showMainForm();
+    await loadCandidates();
+    setStatus("✅ Logged in successfully!", "success");
+    
+  } catch (error) {
+    console.error("[popup] login error:", error);
+    setStatus(`❌ Login failed: ${error.message}`, "error");
+    throw error;
+  }
+}
 
-  // Users (filter out admins - only show regular users)
-  $user.innerHTML = "";
-  const regularUsers = state.users.filter(u => u.role !== "admin");
-  regularUsers.forEach(u => {
-    const opt = document.createElement("option");
-    opt.value = u.id;
-    opt.textContent = `${u.name || u.email || ("User#" + u.id)} (#${u.id})`;
-    $user.appendChild(opt);
-  });
+async function logout() {
+  state.token = null;
+  state.user = null;
+  state.candidates = [];
+  await clearAuth();
+  
+  $mobileInput.value = "";
+  $passwordInput.value = "";
+  $cand.innerHTML = '<option value="">Loading candidates...</option>';
+  
+  showLoginForm();
+  setStatus("👋 Logged out", "normal");
+}
 
-  // Candidates filtered by user
-  const renderCandidates = () => {
-    const uid = Number($user.value);
+// ========== Load Candidates (for logged-in user only) ==========
+async function loadCandidates() {
+  setStatus("📥 Loading your candidates...", "loading");
+  
+  try {
+    // Fetch all candidates from public endpoint
+    const candsRes = await api("/api/public/candidates");
+    const allCandidates = candsRes.candidates || [];
+    
+    console.log("[popup] Total candidates:", allCandidates.length);
+    console.log("[popup] Current user ID:", state.user.id);
+    
+    // Filter to show only current user's candidates by creator ID
+    const userCandidates = allCandidates.filter(c => {
+      const creatorId = c.created_by?.id || c.created_by_user_id || null;
+      console.log(`[popup] Candidate ${c.id}: creator_id=${creatorId}, match=${creatorId === state.user.id}`);
+      return creatorId === state.user.id;
+    });
+    
+    state.candidates = userCandidates;
+    
+    console.log("[popup] Filtered candidates for user:", userCandidates.length);
+    
+    // Populate dropdown
     $cand.innerHTML = "";
-    const list = (state.candidates || []).filter(c => (c.created_by?.id ?? c.created_by_user_id ?? null) === uid);
-    if (!list.length) {
-      const o = document.createElement("option"); o.value = ""; o.textContent = "No candidates for this user"; $cand.appendChild(o);
+    if (userCandidates.length === 0) {
+      const o = document.createElement("option");
+      o.value = "";
+      o.textContent = "No candidates found for your account";
+      $cand.appendChild(o);
     } else {
-      list.forEach(c => {
+      userCandidates.forEach(c => {
         const o = document.createElement("option");
         o.value = c.id;
         o.textContent = `${c.first_name} ${c.last_name} (#${c.id})`;
         $cand.appendChild(o);
       });
     }
-  };
-
-  $user.onchange = renderCandidates;
-  if ($user.value) renderCandidates();
-  setStatus("✅ Ready to autofill!", "success");
+    
+    setStatus(`✅ Loaded ${userCandidates.length} candidate(s)`, "success");
+  } catch (error) {
+    console.error("[popup] load candidates error:", error);
+    setStatus(`❌ Failed to load candidates: ${error.message}`, "error");
+  }
 }
 
+// ========== Form Collection & Autofill ==========
 async function getActiveTabId() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab?.id;
 }
 
-// Prefer your richer content.js collector; fallback to SCAN_FIELDS
 async function collectFormFromPage(tabId) {
   try {
     return await chrome.tabs.sendMessage(tabId, { action: "collectFormData" });
@@ -160,45 +300,80 @@ async function collectFormFromPage(tabId) {
     } catch (e2) {
       console.log("[popup] SCAN_FIELDS failed; injecting content.js then retrying…", e2.message);
       await chrome.scripting.executeScript({ target: { tabId }, files: ["content.js"] });
-      try { return await chrome.tabs.sendMessage(tabId, { action: "collectFormData" }); }
-      catch { return await chrome.tabs.sendMessage(tabId, { type: "SCAN_FIELDS" }); }
+      try { 
+        return await chrome.tabs.sendMessage(tabId, { action: "collectFormData" }); 
+      } catch { 
+        return await chrome.tabs.sendMessage(tabId, { type: "SCAN_FIELDS" }); 
+      }
     }
   }
 }
 
+// ========== Event Listeners ==========
+$loginBtn.addEventListener("click", async () => {
+  const mobile = $mobileInput.value.trim();
+  const password = $passwordInput.value;
+  
+  if (!mobile || !password) {
+    setStatus("⚠️ Please enter mobile and password", "error");
+    return;
+  }
+  
+  try {
+    await login(mobile, password);
+  } catch (error) {
+    // Error already handled in login()
+  }
+});
 
+// Allow Enter key to submit login
+$passwordInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    $loginBtn.click();
+  }
+});
 
-// --- replace the Autofill click handler with this version ---
+$mobileInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") {
+    $passwordInput.focus();
+  }
+});
+
+$logoutBtn.addEventListener("click", logout);
+
 $btn.addEventListener("click", async () => {
   try {
     setStatus("📋 Collecting candidate & form...", "loading");
     const cid = Number($cand.value);
-    if (!cid) { setStatus("⚠️ Please select a candidate", "error"); return; }
+    if (!cid) { 
+      setStatus("⚠️ Please select a candidate", "error"); 
+      return; 
+    }
 
-    // 1) full candidate (optional for debugging; server also accepts candidate_id)
+    // 1) Full candidate data
     const { candidate } = await api(`/api/public/candidates/${cid}`);
 
-    // 2) current page form schema (OBJECT with keys = field names/ids)
+    // 2) Current page form schema
     const tabId = await getActiveTabId();
-    if (!tabId) { setStatus("⚠️ No active tab found", "error"); return; }
-    const formSchema = await collectFormFromPage(tabId); // your content.js returns an object
-
-    // Normalize: your collector returns the object directly; if it returns {fields: [...]}, keep that too
+    if (!tabId) { 
+      setStatus("⚠️ No active tab found", "error"); 
+      return; 
+    }
+    const formSchema = await collectFormFromPage(tabId);
     const formObj = Array.isArray(formSchema?.fields) ? formSchema.fields : formSchema;
 
-    // 3) Ask backend → GPT to map
+    // 3) AI mapping
     setStatus("🤖 Mapping with AI...", "loading");
     const mapped = await api("/api/ai/map-fields", {
       method: "POST",
       body: { candidate_id: cid, form: formObj }
-      // (or body: { candidate, form: formObj } to send full candidate)
     });
 
-    // 4) Print mapping JSON in popup
+    // 4) Display mapping
     const $mapJson = document.getElementById("mapJson");
     if ($mapJson) $mapJson.textContent = JSON.stringify(mapped.mapping || {}, null, 2);
 
-    // 5) Ask the content script to fill the page
+    // 5) Fill the form
     const fillRes = await chrome.tabs.sendMessage(tabId, {
       action: "autofillForm",
       data: mapped.mapping || {}
@@ -213,7 +388,70 @@ $btn.addEventListener("click", async () => {
   }
 });
 
+// ========== Initialization ==========
 (async function init() {
-  try { await loadUsersAndCandidates(); }
-  catch (e) { console.error("[popup] init error:", e); setStatus(`❌ ${e.message}`, "error"); }
+  try {
+    setStatus("🔄 Initializing...", "loading");
+    
+    // Check if user is already logged in
+    const auth = await getStoredAuth();
+    
+    if (auth.token && auth.user && auth.user.id) {
+      // User has saved credentials with ID
+      state.token = auth.token;
+      state.user = auth.user;
+      
+      console.log("[popup] Auto-login with user:", auth.user);
+      
+      $userName.textContent = auth.user.name || "User";
+      $userMobile.textContent = auth.user.mobile || "";
+      
+      showMainForm();
+      await loadCandidates();
+    } else if (auth.token && !auth.user?.id) {
+      // Old session without user ID, need to re-fetch user info
+      console.log("[popup] Old session detected, fetching user info...");
+      state.token = auth.token;
+      
+      try {
+        const meResponse = await api("/api/auth/me", {
+          method: "GET",
+          useAuth: true
+        });
+        
+        // Extract user data (API returns {user: {...}})
+        const userData = meResponse.user || meResponse;
+        
+        const user = {
+          id: userData.id,
+          mobile: userData.mobile,
+          role: userData.role,
+          name: userData.name,
+          email: userData.email || ""
+        };
+        
+        state.user = user;
+        await saveAuth(auth.token, user);
+        
+        $userName.textContent = user.name || "User";
+        $userMobile.textContent = user.mobile;
+        
+        showMainForm();
+        await loadCandidates();
+      } catch (e) {
+        console.error("[popup] Failed to fetch user info, clearing session:", e);
+        await clearAuth();
+        showLoginForm();
+        setStatus("👋 Please login to continue", "normal");
+      }
+    } else {
+      // No saved credentials, show login
+      showLoginForm();
+      setStatus("👋 Please login to continue", "normal");
+    }
+  } catch (e) { 
+    console.error("[popup] init error:", e); 
+    setStatus(`❌ ${e.message}`, "error");
+    showLoginForm();
+  }
 })();

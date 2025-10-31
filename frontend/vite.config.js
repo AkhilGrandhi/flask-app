@@ -25,5 +25,7 @@ export default defineConfig({
         }
       }
     }
-  }
+  },
+  // Ensure public folder files are copied (including _redirects)
+  publicDir: 'public'
 })

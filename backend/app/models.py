@@ -1,8 +1,17 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.orm import relationship
+from sqlalchemy import inspect
 
 db = SQLAlchemy()
+
+# Association table for many-to-many relationship between Candidate and assigned Users
+# Define it but SQLAlchemy will handle it gracefully if it doesn't exist yet
+candidate_assigned_users = db.Table('candidate_assigned_users',
+    db.Column('candidate_id', db.Integer, db.ForeignKey('candidate.id'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('assigned_at', db.DateTime, default=datetime.utcnow)
+)
 
 
 class User(db.Model):
@@ -16,6 +25,14 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     candidates = db.relationship("Candidate", backref="creator", lazy=True)
+    
+    # Many-to-many relationship: Users assigned to candidates
+    assigned_candidates = db.relationship(
+        "Candidate",
+        secondary=candidate_assigned_users,
+        backref=db.backref("assigned_users", lazy="selectin"),
+        lazy="dynamic"
+    )
 
     def to_dict(self):
         return {
@@ -37,6 +54,8 @@ class Candidate(db.Model):
     phone = db.Column(db.String(50))
     subscription_type = db.Column(db.String(50))  # Gold or Silver
     password = db.Column(db.String(255))  # Candidate password (minimum 6 characters)
+    role = db.Column(db.String(255))  # Role/Position
+    ssn = db.Column(db.String(10), unique=True, index=True)  # Social Security Number (unique)
     birthdate = db.Column(db.Date)
     gender = db.Column(db.String(50))
     nationality = db.Column(db.String(120))
@@ -61,7 +80,6 @@ class Candidate(db.Model):
     at_least_18 = db.Column(db.String(10))                   # are you at least 18?
     needs_visa_sponsorship = db.Column(db.String(120))       # require sponsorship now/future
     family_in_org = db.Column(db.String(255))                # family member employed with org
-    ssn = db.Column(db.String(10), unique=True, index=True)  # Social Security Number (unique)
     availability = db.Column(db.String(120))                 # availability to start
 
     # Address
@@ -106,6 +124,8 @@ class Candidate(db.Model):
             "first_name": self.first_name, "last_name": self.last_name,
             "email": self.email, "phone": self.phone,
             "subscription_type": self.subscription_type,
+            "role": self.role,
+            "ssn": self.ssn,
             "birthdate": self.birthdate.isoformat() if self.birthdate else None,
             "gender": self.gender, "nationality": self.nationality,
             "citizenship_status": self.citizenship_status,
@@ -137,7 +157,6 @@ class Candidate(db.Model):
             "at_least_18": self.at_least_18,
             "needs_visa_sponsorship": self.needs_visa_sponsorship,
             "family_in_org": self.family_in_org,
-            "ssn": self.ssn,
             "availability": self.availability,
 
             "created_at": self.created_at.isoformat(),
@@ -149,6 +168,24 @@ class Candidate(db.Model):
                 "email": self.creator.email,
                 "name": self.creator.name,
             }
+            # Include assigned users (backward compatible - handle if table doesn't exist)
+            try:
+                # Check if the association table exists before querying
+                inspector_obj = inspect(db.engine)
+                if 'candidate_assigned_users' in inspector_obj.get_table_names():
+                    d["assigned_users"] = [
+                        {
+                            "id": u.id,
+                            "email": u.email,
+                            "name": u.name,
+                        }
+                        for u in (self.assigned_users or [])
+                    ]
+                else:
+                    d["assigned_users"] = []
+            except Exception as e:
+                # Table doesn't exist yet (migration not run) or other error
+                d["assigned_users"] = []
 
         if include_jobs:
             d["jobs"] = [
@@ -169,7 +206,7 @@ class Candidate(db.Model):
 class CandidateJob(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     candidate_id = db.Column(db.Integer, db.ForeignKey("candidate.id"), nullable=False, index=True)
-    job_id = db.Column(db.String(120), nullable=False)
+    job_id = db.Column(db.Text, nullable=False)
     job_description = db.Column(db.Text, nullable=False)
 
     # NEW: what we generate + where we saved the .docx
@@ -177,3 +214,48 @@ class CandidateJob(db.Model):
     docx_path = db.Column(db.String(512))
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+
+# --- NEW: Async Job Tracking for Resume Generation ---
+class ResumeGenerationJob(db.Model):
+    """Track async resume generation jobs"""
+    __tablename__ = 'resume_generation_job'
+    
+    id = db.Column(db.String(255), primary_key=True)  # Celery task ID
+    candidate_id = db.Column(db.Integer, db.ForeignKey("candidate.id"), nullable=False, index=True)
+    job_row_id = db.Column(db.Integer, db.ForeignKey("candidate_job.id"), nullable=True, index=True)
+    
+    # Job details
+    status = db.Column(db.String(50), default='PENDING', index=True)  # PENDING, PROCESSING, SUCCESS, FAILURE
+    progress = db.Column(db.Integer, default=0)  # 0-100
+    
+    # Input parameters
+    file_type = db.Column(db.String(20), default='word')  # word or pdf
+    
+    # Results
+    result_url = db.Column(db.String(512))  # URL to download the resume (if stored)
+    error_message = db.Column(db.Text)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    started_at = db.Column(db.DateTime)
+    completed_at = db.Column(db.DateTime)
+    
+    # Relationships
+    candidate = relationship("Candidate", backref="resume_jobs", lazy=True)
+    candidate_job = relationship("CandidateJob", backref="generation_jobs", lazy=True)
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "candidate_id": self.candidate_id,
+            "job_row_id": self.job_row_id,
+            "status": self.status,
+            "progress": self.progress,
+            "file_type": self.file_type,
+            "result_url": self.result_url,
+            "error_message": self.error_message,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+        }

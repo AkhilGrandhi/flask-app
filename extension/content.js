@@ -1,38 +1,6 @@
 /***********************
- * FORM COLLECTION (your original)
+ * FORM COLLECTION
  ***********************/
-function fillForm(data) {
-  // kept for compatibility if something still calls it;
-  // but the new filler below is used by the message handler.
-  Object.keys(data).forEach(key => {
-    const value = data[key];
-    const elements = document.querySelectorAll(`[name='${key}'], #${key}`);
-    elements.forEach(el => {
-      if (!el) return;
-
-      if (el.tagName.toLowerCase() === "textarea" ||
-          (el.tagName.toLowerCase() === "input" &&
-           el.type !== "checkbox" && el.type !== "radio" && el.type !== "file")) {
-        el.value = value;
-
-      } else if (el.tagName.toLowerCase() === "select") {
-        el.value = value;
-
-      } else if (el.type === "radio") {
-        const radios = document.querySelectorAll(`input[type="radio"][name='${key}']`);
-        radios.forEach(r => r.checked = (r.value === value));
-
-      } else if (el.type === "checkbox") {
-        if (Array.isArray(value)) {
-          el.checked = value.includes(el.value);
-        } else {
-          el.checked = (el.value === value || value === true);
-        }
-      }
-    });
-  });
-}
-
 function getFormData() {
   let data = {};
   document.querySelectorAll("input, textarea, select").forEach(el => {

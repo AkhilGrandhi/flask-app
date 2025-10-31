@@ -16,10 +16,31 @@ Safe to run multiple times - idempotent operation.
 
 import sys
 import os
+import re
 
 print("=" * 70)
 print("Universal Migration Conflict Resolver")
 print("=" * 70)
+
+
+def normalize_type(type_str: str) -> str:
+    """Normalize type strings so they can be compared reliably."""
+    if not type_str:
+        return ""
+    normalized = type_str.upper()
+    normalized = normalized.replace("CHARACTER VARYING", "VARCHAR")
+    normalized = normalized.replace("TIMESTAMP WITHOUT TIME ZONE", "TIMESTAMP")
+    normalized = normalized.replace("DOUBLE PRECISION", "FLOAT8")
+    normalized = re.sub(r"\s+", "", normalized)
+    return normalized
+
+
+def compile_type(col_type, dialect) -> str:
+    """Safely compile a SQLAlchemy column type for comparison/output."""
+    try:
+        return col_type.compile(dialect)
+    except Exception:
+        return str(col_type)
 
 try:
     from app import create_app
@@ -56,6 +77,9 @@ try:
         
         print("\n5. Synchronizing schema for each table...")
         total_fixed = 0
+        tables_created = 0
+        columns_altered = 0
+        nullability_altered = 0
         
         for table_name, model_info in model_tables.items():
             print(f"\n   [{table_name}]")
@@ -63,7 +87,17 @@ try:
             # Check if table exists in database
             if table_name not in existing_tables:
                 print(f"   ⚠ Table '{table_name}' missing from database")
-                print(f"   → Will be created by pending migrations")
+                
+                # Try to create the table
+                try:
+                    table_obj = model_info['table_obj']
+                    print(f"   → Creating table '{table_name}'...")
+                    table_obj.create(db.engine, checkfirst=True)
+                    print(f"   ✓ Table '{table_name}' created successfully")
+                    tables_created += 1
+                except Exception as create_error:
+                    print(f"   ⚠ Could not create table: {create_error}")
+                    print(f"   → Will retry with flask db upgrade")
                 continue
             
             # Get current columns from database
@@ -126,9 +160,92 @@ try:
                         db.session.rollback()
             else:
                 print(f"   ✓ All columns present")
+
+            # Compare column definitions for type/nullable differences
+            dialect = db.engine.dialect
+            type_mismatches = []
+            nullability_mismatches = []
+            for col_name, col_obj in model_columns.items():
+                if col_name not in db_columns:
+                    continue
+
+                if col_obj.primary_key:
+                    # Avoid altering primary key definitions automatically
+                    continue
+
+                db_col = db_columns[col_name]
+                current_type = compile_type(db_col["type"], dialect)
+                target_type = compile_type(col_obj.type, dialect)
+
+                if normalize_type(current_type) != normalize_type(target_type):
+                    type_mismatches.append((col_name, current_type, target_type))
+
+                model_nullable = True
+                if col_obj.nullable is not None:
+                    model_nullable = col_obj.nullable
+                elif col_obj.primary_key:
+                    model_nullable = False
+
+                db_nullable = db_col.get("nullable", True)
+                if bool(db_nullable) != bool(model_nullable):
+                    nullability_mismatches.append((col_name, db_nullable, model_nullable))
+
+            if type_mismatches:
+                print(f"   ⚠ Found {len(type_mismatches)} column type difference(s)")
+            for col_name, current_type, target_type in type_mismatches:
+                try:
+                    print(f"   → Altering '{col_name}' type: {current_type} → {target_type}")
+                    alter_sql = f'ALTER TABLE "{table_name}" ALTER COLUMN "{col_name}" TYPE {target_type}'
+                    if dialect.name == "postgresql":
+                        alter_sql += f' USING "{col_name}"::{target_type}'
+                    db.session.execute(text(alter_sql))
+                    db.session.commit()
+                    print(f"   ✓ Updated type for '{col_name}'")
+                    columns_altered += 1
+                except Exception as e:
+                    print(f"   ⚠ Could not alter type for '{col_name}': {e}")
+                    db.session.rollback()
+
+            if nullability_mismatches:
+                print(f"   ⚠ Found {len(nullability_mismatches)} nullability difference(s)")
+            for col_name, db_nullable, model_nullable in nullability_mismatches:
+                try:
+                    if not model_nullable and db_nullable:
+                        # Ensure column has no NULL values before enforcing NOT NULL
+                        null_count_sql = text(f'SELECT COUNT(*) FROM "{table_name}" WHERE "{col_name}" IS NULL')
+                        null_count = db.session.execute(null_count_sql).scalar()
+                        if null_count and null_count > 0:
+                            print(f"   ⚠ Cannot set NOT NULL on '{col_name}' — {null_count} NULL value(s) present")
+                            continue
+                        sql = f'ALTER TABLE "{table_name}" ALTER COLUMN "{col_name}" SET NOT NULL'
+                        action = "SET NOT NULL"
+                    elif model_nullable and not db_nullable:
+                        sql = f'ALTER TABLE "{table_name}" ALTER COLUMN "{col_name}" DROP NOT NULL'
+                        action = "DROP NOT NULL"
+                    else:
+                        continue
+
+                    print(f"   → Altering '{col_name}' nullability: {action}")
+                    db.session.execute(text(sql))
+                    db.session.commit()
+                    print(f"   ✓ Updated nullability for '{col_name}'")
+                    nullability_altered += 1
+                except Exception as e:
+                    print(f"   ⚠ Could not update nullability for '{col_name}': {e}")
+                    db.session.rollback()
+
+            extra_columns = [col for col in db_columns.keys() if col not in model_columns]
+            if extra_columns:
+                print(f"   ℹ Extra column(s) in database not defined in models (left untouched): {', '.join(extra_columns)}")
         
-        if total_fixed > 0:
-            print(f"\n   Summary: Added {total_fixed} missing column(s)")
+        if tables_created > 0 or total_fixed > 0 or columns_altered > 0 or nullability_altered > 0:
+            print(
+                "\n   Summary: "
+                f"Created {tables_created} table(s), "
+                f"Added {total_fixed} missing column(s), "
+                f"Updated {columns_altered} column type(s), "
+                f"Adjusted {nullability_altered} nullability constraint(s)"
+            )
         else:
             print(f"\n   Summary: Schema is already synchronized")
         
@@ -152,14 +269,41 @@ try:
         else:
             print("   ✓ alembic_version table exists")
         
-        print("\n7. Stamping database with current migration state...")
-        from flask_migrate import stamp
+        print("\n7. Fixing migration version table...")
         try:
-            stamp(revision='head')
-            print("   ✓ Database stamped with migration version 'head'")
+            # First, check if alembic_version has any entries
+            result = db.session.execute(text("SELECT version_num FROM alembic_version")).fetchone()
+            if result:
+                current_version = result[0]
+                print(f"   Current migration version: {current_version}")
+                
+                # Check if this version exists in our migrations
+                from flask_migrate import stamp
+                try:
+                    # Try to stamp to head - this will fail if version is invalid
+                    stamp(revision='head')
+                    print("   ✓ Database stamped with migration version 'head'")
+                except Exception as stamp_error:
+                    print(f"   ⚠ Stamp failed: {stamp_error}")
+                    print("   → Clearing corrupted version and re-stamping...")
+                    
+                    # Clear the alembic_version table
+                    db.session.execute(text("DELETE FROM alembic_version"))
+                    db.session.commit()
+                    print("   ✓ Cleared corrupted migration version")
+                    
+                    # Stamp to head
+                    stamp(revision='head')
+                    print("   ✓ Database stamped with migration version 'head'")
+            else:
+                print("   No version found, stamping to head...")
+                from flask_migrate import stamp
+                stamp(revision='head')
+                print("   ✓ Database stamped with migration version 'head'")
+                
             print("   → Alembic now knows all migrations have been applied")
         except Exception as e:
-            print(f"   ⚠ Could not stamp migrations: {e}")
+            print(f"   ⚠ Could not fix migrations: {e}")
             print("   → You may need to manually run: flask db stamp head")
         
     print("\n" + "=" * 70)
@@ -168,6 +312,7 @@ try:
     print("\nWhat happened:")
     print("• Database schema has been synchronized with your models")
     print("• Missing columns have been added (if any)")
+    print("• Column types and nullability now match the SQLAlchemy models")
     print("• Migration state has been updated")
     print("• Your deployment can now proceed")
     print("\nYour application is ready to use! 🚀")

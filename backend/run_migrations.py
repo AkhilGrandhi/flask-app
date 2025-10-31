@@ -49,9 +49,30 @@ try:
             print("   ✓ Migrations completed successfully!")
         except Exception as e:
             print(f"   ✗ Migration error: {e}")
-            print("\n   Attempting to create tables manually...")
+            print("\n   Attempting to fix migration conflicts...")
+            
+            # Import and run the fix script logic
+            try:
+                import subprocess
+                result = subprocess.run([sys.executable, 'fix_migration_conflict.py'], 
+                                       capture_output=True, text=True, check=False)
+                print(result.stdout)
+                if result.returncode != 0:
+                    print(result.stderr)
+            except Exception as fix_error:
+                print(f"   ⚠ Fix script error: {fix_error}")
+            
+            print("\n   Creating/updating tables...")
             db.create_all()
             print("   ✓ Tables created successfully!")
+            
+            # Stamp the database with the latest migration version
+            try:
+                from flask_migrate import stamp
+                stamp(revision='head')
+                print("   ✓ Database stamped with latest migration version")
+            except Exception as stamp_error:
+                print(f"   ⚠ Stamp error (non-critical): {stamp_error}")
         
         print("\n4. Verifying database schema...")
         
@@ -72,6 +93,45 @@ try:
                     print("     ✓ f1_type column exists")
                 else:
                     print("     ✗ WARNING: f1_type column missing!")
+        
+        # Verify critical tables exist
+        critical_tables = ['user', 'candidate', 'candidate_assigned_users']
+        missing_tables = [t for t in critical_tables if t not in tables]
+        if missing_tables:
+            print(f"\n   ⚠ WARNING: Missing critical tables: {', '.join(missing_tables)}")
+            print("   → Attempting to create missing tables now...")
+            
+            # Try to create the candidate_assigned_users table if missing
+            if 'candidate_assigned_users' in missing_tables:
+                try:
+                    from sqlalchemy import text
+                    print("   → Creating candidate_assigned_users table...")
+                    create_table_sql = """
+                    CREATE TABLE IF NOT EXISTS candidate_assigned_users (
+                        candidate_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        PRIMARY KEY (candidate_id, user_id),
+                        FOREIGN KEY (candidate_id) REFERENCES candidate(id) ON DELETE CASCADE,
+                        FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE
+                    )
+                    """
+                    db.session.execute(text(create_table_sql))
+                    db.session.commit()
+                    print("   ✓ candidate_assigned_users table created!")
+                except Exception as create_error:
+                    print(f"   ⚠ Could not create table: {create_error}")
+            
+            # Re-check
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            missing_tables = [t for t in critical_tables if t not in tables]
+            if missing_tables:
+                print(f"   ⚠ Still missing: {', '.join(missing_tables)}")
+            else:
+                print(f"   ✓ All critical tables now exist!")
+        else:
+            print(f"\n   ✓ All critical tables exist")
         
         print("\n5. Checking users...")
         user_count = User.query.count()

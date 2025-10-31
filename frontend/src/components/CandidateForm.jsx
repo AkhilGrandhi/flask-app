@@ -150,6 +150,7 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
               error={!!errors.email} 
               helperText={errors.email}
               variant="outlined"
+              autoComplete="off"
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -202,6 +203,33 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
                   </InputAdornment>
                 )
               }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField 
+              label="Role" 
+              value={v.role||""} 
+              onChange={set("role")}
+              required 
+              fullWidth 
+              error={!!errors.role} 
+              helperText={errors.role}
+              variant="outlined"
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField 
+              label="SSN Number" 
+              value={v.ssn||""} 
+              onChange={set("ssn")}
+              required 
+              fullWidth 
+              error={!!errors.ssn} 
+              helperText={errors.ssn || "4-10 characters"}
+              variant="outlined"
+              inputProps={{ minLength: 4, maxLength: 10 }}
             />
           </Grid>
 
@@ -340,20 +368,6 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
             options={["Yes","No"]}
             error={errors.family_in_org}/>
           </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <TextField 
-              label="SSN Number" 
-              value={v.ssn||""} 
-              onChange={set("ssn")}
-              required 
-              fullWidth 
-              error={!!errors.ssn} 
-              helperText={errors.ssn || "4-10 characters"}
-              variant="outlined"
-              inputProps={{ minLength: 4, maxLength: 10 }}
-            />
-          </Grid>
           
         </Grid>
 
@@ -478,52 +492,6 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
         </Grid>
       </Paper>
 
-      {/* ONLINE */}
-      <Paper 
-        elevation={2} 
-        sx={{ 
-          p: 3, 
-          borderRadius: 2,
-          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
-        }}
-      >
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            mb: 2.5, 
-            fontWeight: 600,
-            color: "primary.main",
-            display: "flex",
-            alignItems: "center",
-            "&:before": {
-              content: '""',
-              display: "inline-block",
-              width: 4,
-              height: 24,
-              backgroundColor: "primary.main",
-              marginRight: 1.5,
-              borderRadius: 1
-            }
-          }}
-        >
-          Online Presence
-        </Typography>
-        <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={4}>
-            <TextField size="small" type="url" label="Personal Website (Optional)" value={v.personal_website||""} onChange={set("personal_website")}
-              fullWidth error={!!errors.personal_website} helperText={errors.personal_website}/>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField size="small" type="url" label="LinkedIn (Optional)" value={v.linkedin||""} onChange={set("linkedin")}
-              fullWidth error={!!errors.linkedin} helperText={errors.linkedin}/>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <TextField size="small" type="url" label="GitHub (Optional)" value={v.github||""} onChange={set("github")}
-              fullWidth error={!!errors.github} helperText={errors.github}/>
-          </Grid>
-        </Grid>
-      </Paper>
-
       {/* ADDITIONAL */}
       <Paper 
         elevation={2} 
@@ -608,6 +576,52 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
               helperText={errors.certificates || "Optional"}
               variant="outlined"
             />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* ONLINE PRESENCE - Moved to last */}
+      <Paper 
+        elevation={2} 
+        sx={{ 
+          p: 3, 
+          borderRadius: 2,
+          background: "linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)"
+        }}
+      >
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            mb: 2.5, 
+            fontWeight: 600,
+            color: "primary.main",
+            display: "flex",
+            alignItems: "center",
+            "&:before": {
+              content: '""',
+              display: "inline-block",
+              width: 4,
+              height: 24,
+              backgroundColor: "primary.main",
+              marginRight: 1.5,
+              borderRadius: 1
+            }
+          }}
+        >
+          Online Presence
+        </Typography>
+        <Grid container spacing={2.5}>
+          <Grid item xs={12} sm={4}>
+            <TextField size="small" type="url" label="Personal Website (Optional)" value={v.personal_website||""} onChange={set("personal_website")}
+              fullWidth error={!!errors.personal_website} helperText={errors.personal_website}/>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField size="small" type="url" label="LinkedIn (Optional)" value={v.linkedin||""} onChange={set("linkedin")}
+              fullWidth error={!!errors.linkedin} helperText={errors.linkedin}/>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField size="small" type="url" label="GitHub (Optional)" value={v.github||""} onChange={set("github")}
+              fullWidth error={!!errors.github} helperText={errors.github}/>
           </Grid>
         </Grid>
       </Paper>

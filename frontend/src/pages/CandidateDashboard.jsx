@@ -3,19 +3,23 @@ import {
   Container, Box, Typography, Paper, Table, TableHead,
   TableRow, TableCell, TableBody, Button, Avatar, Stack, Grid,
   Dialog, DialogTitle, DialogContent, DialogActions, Chip, Divider, TextField, Alert,
-  FormControl, InputLabel, Select, MenuItem, CircularProgress
+  FormControl, InputLabel, Select, MenuItem, CircularProgress, Snackbar, Menu, IconButton, Tooltip
 } from "@mui/material";
 import {
-  PersonOutline, EmailOutlined, PhoneOutlined,
+  PersonOutline, PhoneOutlined,
   WorkOutlineOutlined, VisibilityOutlined, Download, WorkspacePremium, Add
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext";
 import { getMyCandidateProfile, updateMyCandidateProfile, addCandidateJob, generateResume, deleteCandidateJob } from "../api";
+import LoadingSpinner from "../components/LoadingSpinner";
 import {
   OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
   WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
   COUNTRY_OPTIONS
 } from "../constants/options";
+
+const RESUME_DAILY_LIMIT = 50;
+const DAILY_LIMIT_MESSAGE = "Your daily resume limit has been exceeded. Please try again tomorrow.";
 
 // EditSelectField component for the edit form
 function EditSelectField({ label, value, onChange, options }) {
@@ -85,12 +89,30 @@ export default function CandidateDashboard() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [editError, setEditError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
   
   // Generate Resume state (for Silver subscribers)
   const [jobId, setJobId] = useState("");
   const [jobDesc, setJobDesc] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
+  const [resumeCountToday, setResumeCountToday] = useState(0);
+  
+  // Filter states for job applications
+  const [jobDateFilter, setJobDateFilter] = useState("");
+  const [jobIdFilter, setJobIdFilter] = useState("");
+  const [jobDescFilter, setJobDescFilter] = useState("");
+  
+  // Profile menu state
+  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
+  const profileMenuOpen = Boolean(profileMenuAnchor);
+
+  const limitReached = resumeCountToday >= RESUME_DAILY_LIMIT;
+  const remainingResumes = Math.max(0, RESUME_DAILY_LIMIT - resumeCountToday);
+  const limitMessage = limitReached
+    ? DAILY_LIMIT_MESSAGE
+    : `You can generate ${remainingResumes} more resume${remainingResumes === 1 ? '' : 's'} today (limit ${RESUME_DAILY_LIMIT}).`;
 
   const load = async () => {
     try {
@@ -98,8 +120,23 @@ export default function CandidateDashboard() {
       setError("");
       const data = await getMyCandidateProfile();
       setCandidate(data);
+
+      const today = new Date();
+      const jobs = Array.isArray(data?.jobs) ? data.jobs : [];
+      const generatedToday = jobs.filter((job) => {
+        if (!job?.resume_content || !job?.created_at) return false;
+        const createdAt = new Date(job.created_at);
+        return (
+          createdAt.getFullYear() === today.getFullYear() &&
+          createdAt.getMonth() === today.getMonth() &&
+          createdAt.getDate() === today.getDate()
+        );
+      }).length;
+
+      setResumeCountToday(generatedToday);
     } catch (e) {
       setError(e.message);
+      setResumeCountToday(0);
     } finally {
       setLoading(false);
     }
@@ -111,7 +148,11 @@ export default function CandidateDashboard() {
 
   const handleDownloadResume = (job) => {
     if (!job.resume_content) {
-      setError("No resume content available to download");
+      setToast({ 
+        open: true, 
+        message: '⚠️ No resume content available to download', 
+        severity: 'warning' 
+      });
       return;
     }
 
@@ -132,9 +173,19 @@ ${job.resume_content}`;
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      setToast({ 
+        open: true, 
+        message: '✓ Resume downloaded successfully!', 
+        severity: 'success' 
+      });
     } catch (e) {
       console.error("Error downloading resume:", e);
-      setError("Failed to download resume: " + e.message);
+      setToast({ 
+        open: true, 
+        message: `✗ Failed to download resume: ${e.message}`, 
+        severity: 'error' 
+      });
     }
   };
 
@@ -165,6 +216,16 @@ ${job.resume_content}`;
 
   // Generate resume (Silver subscribers only)
   const handleGenerateResume = async () => {
+    if (limitReached) {
+      setGenerateError("");
+      setToast({ 
+        open: true, 
+        message: `⚠️ ${DAILY_LIMIT_MESSAGE}`, 
+        severity: 'warning' 
+      });
+      return;
+    }
+
     let jobRowId = null;
     try {
       setGenerateError("");
@@ -190,9 +251,30 @@ ${job.resume_content}`;
       
       setJobId(""); 
       setJobDesc("");
+      setToast({ 
+        open: true, 
+        message: '✓ Resume generated and downloaded successfully!', 
+        severity: 'success' 
+      });
+      setResumeCountToday((count) => Math.min(RESUME_DAILY_LIMIT, count + 1));
       await load();
     } catch (e) { 
-      setGenerateError(e.message);
+      const messageText = e?.message || "Unknown error";
+      if (messageText.toLowerCase().includes("daily resume limit")) {
+        setGenerateError("");
+      setToast({ 
+        open: true, 
+          message: `⚠️ ${DAILY_LIMIT_MESSAGE}`, 
+          severity: 'warning' 
+        });
+      } else {
+        setGenerateError(messageText);
+        setToast({ 
+          open: true, 
+          message: `✗ Failed to generate resume: ${messageText}`, 
+        severity: 'error' 
+      });
+      }
       
       // If resume generation failed after creating job, delete the job record
       if (jobRowId) {
@@ -209,11 +291,7 @@ ${job.resume_content}`;
   };
 
   if (loading) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Typography>Loading...</Typography>
-      </Container>
-    );
+    return <LoadingSpinner message="Loading your profile..." />;
   }
 
   if (error) {
@@ -225,375 +303,462 @@ ${job.resume_content}`;
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Header */}
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
+      {/* Compact Header */}
+      <Box sx={{ 
+        bgcolor: 'white',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        zIndex: 1100,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        flexShrink: 0
+      }}>
+        <Container maxWidth="lg">
       <Box sx={{ 
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center", 
-        mb: 3,
-        pb: 2,
-        borderBottom: "2px solid",
-        borderColor: "primary.main"
+            py: 1
       }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {/* Logo and Brand */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
             src="/only_logo.png" 
             alt="Data Fyre Logo" 
-            style={{ height: "60px", width: "auto", objectFit: "contain" }}
+                style={{ height: "36px", width: "auto", objectFit: "contain" }}
           />
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
-              My Dashboard
+                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', lineHeight: 1.1, fontSize: '1.1rem' }}>
+                  Data Fyre
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Welcome back, {candidate?.first_name}!
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  Candidate Portal
             </Typography>
           </Box>
         </Box>
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Box sx={{ textAlign: "right", mr: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
-              Candidate Portal
-            </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+
+            {/* User Menu */}
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Chip 
+                label={candidate?.subscription_type === "Gold" ? "🥇 Gold" : "🥈 Silver"} 
+                sx={{ 
+                  bgcolor: candidate?.subscription_type === "Gold" ? "#FFD700" : "#C0C0C0",
+                  color: 'white',
+                  fontWeight: 600,
+                  fontSize: '0.7rem',
+                  height: 24
+                }}
+                size="small"
+              />
+              <Box sx={{ textAlign: "right", display: { xs: 'none', sm: 'block' } }}>
+                <Typography variant="body2" sx={{ fontSize: "0.8rem", fontWeight: 600, lineHeight: 1.2 }}>
               {candidate?.first_name} {candidate?.last_name}
             </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                  {candidate?.email}
+                </Typography>
           </Box>
-          <Avatar sx={{ 
-            width: 48, 
-            height: 48, 
+              <Avatar 
+                onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
+                sx={{ 
+                  width: 32, 
+                  height: 32, 
             bgcolor: "primary.main", 
-            fontSize: "1.2rem",
-            fontWeight: 600
-          }}>
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)'
+                  }
+                }}
+              >
             {candidate?.first_name?.[0]}{candidate?.last_name?.[0]}
           </Avatar>
-          <Button onClick={logout} variant="outlined" color="error">
-            Logout
-          </Button>
-        </Stack>
-      </Box>
-
-      {/* Profile Overview Card */}
-      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", mb: 3 }}>
-        <Box sx={{ 
-          px: 2.5,
-          py: 2, 
-          bgcolor: "grey.50",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
-            Profile Overview
-          </Typography>
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<VisibilityOutlined />}
-              onClick={() => setDetailsOpen(true)}
-              sx={{ textTransform: "none" }}
-            >
-              View Full Details
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
+              <Menu
+                anchorEl={profileMenuAnchor}
+                open={profileMenuOpen}
+                onClose={() => setProfileMenuAnchor(null)}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                sx={{ mt: 1 }}
+              >
+                <MenuItem 
+                  onClick={() => {
+                    setDetailsOpen(true);
+                    setProfileMenuAnchor(null);
+                  }}
+                  sx={{ gap: 1, py: 1, px: 2, minWidth: 160 }}
+                >
+                  <VisibilityOutlined sx={{ fontSize: 18 }} />
+                  <Typography variant="body2">View Profile</Typography>
+                </MenuItem>
+                <MenuItem 
               onClick={() => {
                 setEditForm(candidate);
                 setEditError("");
                 setEditOpen(true);
-              }}
-              sx={{ textTransform: "none" }}
-            >
-              Edit Details
-            </Button>
-          </Stack>
-        </Box>
-
-        <Box sx={{ p: 3, display: "flex", justifyContent: "space-between", gap: 3 }}>
-          {/* Full Name */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
-            <Avatar sx={{ bgcolor: "primary.main", mr: 1.5, width: 36, height: 36, flexShrink: 0 }}>
-              <PersonOutline sx={{ fontSize: 20 }} />
-            </Avatar>
-            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Full Name
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {candidate?.first_name} {candidate?.last_name}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Email Address */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
-            <Avatar sx={{ bgcolor: "success.main", mr: 1.5, width: 36, height: 36, flexShrink: 0 }}>
-              <EmailOutlined sx={{ fontSize: 20 }} />
-            </Avatar>
-            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Email Address
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {candidate?.email || "Not provided"}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Mobile Number */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
-            <Avatar sx={{ bgcolor: "warning.main", mr: 1.5, width: 36, height: 36, flexShrink: 0 }}>
-              <PhoneOutlined sx={{ fontSize: 20 }} />
-            </Avatar>
-            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Mobile Number
-              </Typography>
-              <Typography variant="body1" sx={{ fontWeight: 600, fontSize: "0.95rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {candidate?.phone || "Not provided"}
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Subscription Type */}
-          <Box sx={{ display: "flex", alignItems: "center", flex: "1", minWidth: 0 }}>
-            <Avatar sx={{ 
-              bgcolor: candidate?.subscription_type === "Gold" ? "#FFD700" : candidate?.subscription_type === "Silver" ? "#C0C0C0" : "info.main",
-              mr: 1.5, 
-              width: 36, 
-              height: 36,
-              flexShrink: 0,
-              boxShadow: candidate?.subscription_type === "Gold" ? "0 0 12px rgba(255, 215, 0, 0.5)" : candidate?.subscription_type === "Silver" ? "0 0 12px rgba(192, 192, 192, 0.5)" : "none"
-            }}>
-              <WorkspacePremium sx={{ fontSize: 20, color: candidate?.subscription_type ? "white" : undefined }} />
-            </Avatar>
-            <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Subscription Type
-              </Typography>
-              <Typography 
-                variant="body1" 
+                    setProfileMenuAnchor(null);
+                  }}
+                  sx={{ gap: 1, py: 1, px: 2 }}
+                >
+                  <PersonOutline sx={{ fontSize: 18 }} />
+                  <Typography variant="body2">Edit Profile</Typography>
+                </MenuItem>
+              </Menu>
+              <Button 
+                onClick={logout} 
+                variant="outlined" 
+                size="small"
                 sx={{ 
+                  borderRadius: 2,
+                  textTransform: 'none',
                   fontWeight: 600, 
-                  fontSize: "0.95rem",
-                  color: candidate?.subscription_type === "Gold" ? "#FFD700" : candidate?.subscription_type === "Silver" ? "#757575" : "text.primary",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 0.5,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap"
+                  py: 0.5,
+                  px: 1.5,
+                  fontSize: '0.8rem'
                 }}
               >
-                {candidate?.subscription_type === "Gold" && "🥇 "}
-                {candidate?.subscription_type === "Silver" && "🥈 "}
-                {candidate?.subscription_type || "Not provided"}
-              </Typography>
+                Logout
+              </Button>
+            </Stack>
             </Box>
+        </Container>
           </Box>
-        </Box>
-      </Paper>
 
+      {/* Main Content */}
+      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 1, md: 1.25 }, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1.5, overflow: 'hidden' }}>
       {/* Generate Resume Section - Only for Silver Subscribers */}
       {candidate?.subscription_type === "Silver" && (
-        <Paper elevation={3} sx={{ borderRadius: 2, overflow: "hidden", mb: 3, border: "2px solid #C0C0C0" }}>
+        <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 2, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>
           <Box sx={{ 
-            px: 2.5,
-            py: 2, 
-            bgcolor: "#f5f5f5",
-            borderBottom: "2px solid #C0C0C0",
+            px: 2,
+            py: 0.75, 
+            bgcolor: "success.main",
+            color: "white",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
+            gap: 2,
+            flexWrap: { xs: "wrap", sm: "nowrap" }
           }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.05rem", color: "#757575" }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
               🚀 Generate Resume
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <Typography 
+                variant="body2" 
+                sx={{ fontWeight: 500, fontSize: "0.8rem", opacity: 0.95, textAlign: "right" }}
+              >
+                {limitMessage}
             </Typography>
             <Button 
               variant="contained" 
               size="small"
               onClick={handleGenerateResume} 
-              disabled={generating || !jobId || !jobDesc}
-              startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <Add />}
+                disabled={generating || !jobId || !jobDesc || limitReached}
+              startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <Add />}
               sx={{ 
                 fontWeight: 600,
-                fontSize: "0.8rem",
+                fontSize: "0.75rem",
                 textTransform: "none",
-                bgcolor: "#757575",
-                "&:hover": { bgcolor: "#616161" },
+                bgcolor: "white",
+                color: "success.main",
+                px: 1.5,
+                height: 32,
+                "&:hover": { 
+                  bgcolor: "rgba(255,255,255,0.9)"
+                },
                 "&.Mui-disabled": {
-                  bgcolor: "#e0e0e0",
-                  color: "#9e9e9e"
+                  bgcolor: "rgba(255,255,255,0.6)",
+                  color: "rgba(0,0,0,0.4)"
                 }
               }}
             >
-              {generating ? "Generating..." : "+ Generate"}
+              {generating ? "Generating..." : "Generate"}
             </Button>
+            </Box>
           </Box>
           
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: 1.25 }}>
             {generateError && (
-              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setGenerateError("")}>
+              <Alert severity="error" sx={{ mb: 1.25 }} onClose={() => setGenerateError("")}>
                 {generateError}
               </Alert>
             )}
             
-            <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start" }}>
-              <Box sx={{ width: "30%" }}>
-                <TextField
-                  label="Job ID"
-                  value={jobId}
-                  onChange={(e) => setJobId(e.target.value)}
-                  fullWidth
-                  disabled={generating}
-                  required
-                  variant="outlined"
-                  size="small"
-                />
-              </Box>
-              <Box sx={{ width: "70%" }}>
-                <TextField
-                  label="Job Description"
-                  value={jobDesc}
-                  onChange={(e) => setJobDesc(e.target.value)}
-                  fullWidth
-                  multiline
-                  rows={2}
-                  disabled={generating}
-                  required
-                  variant="outlined"
-                  size="small"
-                  sx={{ minWidth: 500 }}
-                />
-              </Box>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 1.5,
+                alignItems: "stretch",
+                flexDirection: { xs: "column", sm: "row" }
+              }}
+            >
+              <TextField
+                label="Job ID"
+                placeholder="Enter or paste the Job ID"
+                value={jobId}
+                onChange={(e) => setJobId(e.target.value)}
+                disabled={generating || limitReached}
+                required
+                variant="outlined"
+                size="small"
+                fullWidth
+                multiline
+                minRows={3}
+                maxRows={3}
+                inputProps={{ style: { overflowY: 'auto' } }}
+              />
+              <TextField
+                label="Job Description"
+                placeholder="Paste the Job Description"
+                value={jobDesc}
+                onChange={(e) => setJobDesc(e.target.value)}
+                disabled={generating || limitReached}
+                required
+                variant="outlined"
+                size="small"
+                fullWidth
+                multiline
+                minRows={3}
+                maxRows={3}
+                inputProps={{ style: { overflowY: 'auto' } }}
+              />
             </Box>
           </Box>
         </Paper>
       )}
 
-      {/* Jobs Applied Section */}
-      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+      {/* Jobs Applied Section - Compact */}
+      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: '1px solid', borderColor: 'divider', flexShrink: 1, display: 'flex', flexDirection: 'column', minHeight: { xs: 'auto', md: 420 } }}>
         <Box sx={{ 
-          px: 2.5,
-          py: 2, 
-          bgcolor: "grey.50",
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          px: 2,
+          py: 0.75, 
+          bgcolor: "primary.main",
+          color: "white",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center"
+          alignItems: "center",
+          gap: 2,
+          flexShrink: 0
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
-            Jobs Applied
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
+              💼 Jobs Applied
           </Typography>
-          {candidate?.jobs && candidate.jobs.length > 0 && (
-            <Chip
-              label={`${candidate.jobs.length} Application${candidate.jobs.length !== 1 ? 's' : ''}`}
-              color="primary"
+          
+          {/* Filters */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, justifyContent: "flex-end" }}>
+            <TextField
+              type="date"
               size="small"
-              sx={{ fontWeight: 600 }}
+              value={jobDateFilter}
+              onChange={(e) => setJobDateFilter(e.target.value)}
+              placeholder="Date"
+              autoComplete="off"
+              InputLabelProps={{ shrink: true }}
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
             />
-          )}
+            
+            <TextField
+              size="small"
+              value={jobIdFilter}
+              onChange={(e) => setJobIdFilter(e.target.value)}
+              placeholder="Job ID"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={jobDescFilter}
+              onChange={(e) => setJobDescFilter(e.target.value)}
+              placeholder="Description"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            {(jobDateFilter || jobIdFilter || jobDescFilter) && (
+              <Button 
+                size="small" 
+                variant="contained"
+                onClick={() => {
+                  setJobDateFilter("");
+                  setJobIdFilter("");
+                  setJobDescFilter("");
+                }}
+                sx={{ 
+                  height: 32,
+                  bgcolor: "white",
+                  color: "primary.main",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  minWidth: "auto",
+                  px: 1.5,
+                  "&:hover": {
+                    bgcolor: "rgba(255,255,255,0.9)"
+                  }
+                }}
+              >
+                Clear
+              </Button>
+            )}
+          </Box>
         </Box>
 
-        {candidate?.jobs && candidate.jobs.length > 0 ? (
-          <Table size="small">
+        {(() => {
+          const filteredJobs = (candidate?.jobs || []).filter(j => {
+            if (jobDateFilter) {
+              const jobDate = new Date(j.created_at).toISOString().split('T')[0];
+              if (jobDate !== jobDateFilter) return false;
+            }
+            if (jobIdFilter && !j.job_id.toLowerCase().includes(jobIdFilter.toLowerCase())) {
+              return false;
+            }
+            if (jobDescFilter && !j.job_description.toLowerCase().includes(jobDescFilter.toLowerCase())) {
+              return false;
+            }
+            return true;
+          });
+          return filteredJobs.length > 0 ? (
+          <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', maxHeight: { xs: 'unset', md: 440 } }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 960 }}>
             <TableHead>
-              <TableRow sx={{ bgcolor: "grey.100" }}>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job ID</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Job Description</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Resume Content</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }}>Applied Date</TableCell>
-                <TableCell sx={{ fontWeight: 600, py: 1.25 }} align="center">Actions</TableCell>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Job ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Job Description</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Resume Content</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Applied Date</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {candidate.jobs.map((job) => (
+              {filteredJobs.map((job) => (
                 <TableRow 
                   key={job.id} 
                   hover
                   sx={{ 
-                    "&:hover": { bgcolor: "primary.lighter" },
-                    "& td": { py: 1.5 }
+                    "&:hover": { 
+                      bgcolor: "primary.lighter",
+                      cursor: "pointer"
+                    },
+                    transition: "all 0.2s",
+                    "& td": { py: 0.75 }
                   }}
                 >
-                  <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 600, color: "primary.main" }}>
-                    {job.job_id}
+                  <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 500 }}>
+                    <Tooltip title={job.job_id} arrow placement="top">
+                      <span style={{ color: '#1976d2', fontWeight: 600 }}>
+                        {job.job_id.length > 15 ? job.job_id.substring(0, 15) + '...' : job.job_id}
+                      </span>
+                    </Tooltip>
                   </TableCell>
-                  <TableCell sx={{ maxWidth: 300 }}>
+                  <TableCell sx={{ maxWidth: 350 }}>
                     <Typography variant="body2">
-                      {job.job_description.length > 80
-                        ? job.job_description.substring(0, 80) + "..."
+                      {job.job_description.length > 100
+                        ? job.job_description.substring(0, 100) + "..."
                         : job.job_description}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ maxWidth: 200 }}>
-                    {job.resume_content ? (
-                      <Typography variant="body2" color="text.secondary">
-                        {job.resume_content.length > 60
-                          ? job.resume_content.substring(0, 60) + "..."
-                          : job.resume_content}
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary" fontStyle="italic">
-                        Not generated
-                      </Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
+                  <TableCell sx={{ maxWidth: 250 }}>
+                    <Stack direction="row" spacing={0.75} alignItems="center">
                       {job.resume_content ? (
-                        <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {job.resume_content.length > 80
+                            ? job.resume_content.substring(0, 80) + "..."
+                            : job.resume_content}
+                        </Typography>
                       ) : (
-                        <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600 }} />
+                        <Typography variant="body2" color="text.secondary" fontStyle="italic">
+                          Not generated
+                        </Typography>
                       )}
                       {job.resume_content && (
-                        <Button
-                          size="small"
-                          variant="text"
-                          startIcon={<Download />}
-                          onClick={() => handleDownloadResume(job)}
-                          sx={{ 
-                            textTransform: "none", 
-                            fontWeight: 500,
-                            minWidth: "auto",
-                            px: 1
-                          }}
-                        >
-                          Download
-                        </Button>
+                        <Tooltip title="Download Resume" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDownloadResume(job)}
+                            sx={{ 
+                              color: 'primary.main',
+                              p: 0.5,
+                              '&:hover': {
+                                bgcolor: 'primary.lighter'
+                              }
+                            }}
+                          >
+                            <Download sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </Tooltip>
                       )}
                     </Stack>
+                  </TableCell>
+                  <TableCell>
+                    {job.resume_content ? (
+                      <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
+                    ) : (
+                      <Chip label="Pending" size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: '0.7rem', height: 22 }} />
+                    )}
                   </TableCell>
                   <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary" }}>
                     {new Date(job.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell align="center">
-                    <Button
+                    <Tooltip title="View Details">
+                      <IconButton
                       size="small"
-                      variant="outlined"
+                        color="primary"
                       onClick={() => {
                         setSelectedJob(job);
                         setResumeOpen(true);
                       }}
-                      sx={{ textTransform: "none", fontWeight: 500 }}
                     >
-                      View
-                    </Button>
+                        <VisibilityOutlined fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </Box>
         ) : (
-          <Box sx={{ textAlign: "center", py: 8 }}>
+          <Box sx={{ 
+            textAlign: "center", 
+            py: 6,
+            px: 2
+          }}>
             <Avatar sx={{ 
               width: 80, 
               height: 80, 
@@ -601,16 +766,19 @@ ${job.resume_content}`;
               mb: 2,
               bgcolor: "primary.lighter"
             }}>
-              <WorkOutlineOutlined sx={{ fontSize: 40, color: "primary.main" }} />
+              <Typography variant="h3">💼</Typography>
             </Avatar>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              No Jobs Applied Yet
+              {(jobDateFilter || jobIdFilter || jobDescFilter) ? "No Matching Applications" : "No Jobs Applied Yet"}
             </Typography>
-            <Typography color="text.secondary">
-              You haven't applied to any jobs yet. Check back later!
+            <Typography color="text.secondary" sx={{ mb: 3 }}>
+              {(jobDateFilter || jobIdFilter || jobDescFilter)
+                ? "Try adjusting your filters"
+                : "You haven't applied to any jobs yet. Check back later!"}
             </Typography>
           </Box>
-        )}
+        );
+        })()}
       </Paper>
 
       {/* Edit Details Dialog */}
@@ -1010,11 +1178,12 @@ ${job.resume_content}`;
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
-          <Button onClick={() => setEditOpen(false)} variant="outlined">Cancel</Button>
+          <Button onClick={() => setEditOpen(false)} variant="outlined" disabled={submitting}>Cancel</Button>
           <Button
             variant="contained"
             onClick={async () => {
               try {
+                setSubmitting(true);
                 setEditError("");
                 
                 // Clean the data before sending - remove fields that shouldn't be updated
@@ -1030,15 +1199,29 @@ ${job.resume_content}`;
                 
                 setCandidate(response.candidate);
                 setEditOpen(false);
+                setToast({ 
+                  open: true, 
+                  message: '✓ Profile updated successfully!', 
+                  severity: 'success' 
+                });
                 await load();
               } catch (e) {
                 console.error("Update error:", e);
                 setEditError(e.message || "Failed to update profile");
+                setToast({ 
+                  open: true, 
+                  message: `✗ Failed to update profile: ${e.message}`, 
+                  severity: 'error' 
+                });
+              } finally {
+                setSubmitting(false);
               }
             }}
+            disabled={submitting}
+            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
             sx={{ px: 4 }}
           >
-            Save Changes
+            {submitting ? "Saving..." : "Save Changes"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1503,7 +1686,173 @@ ${job.resume_content}`;
           </Button>
         </DialogActions>
       </Dialog>
+
     </Container>
+
+      {/* Enhanced Footer */}
+      <Box 
+        component="footer" 
+        sx={{ 
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+          borderTop: '1px solid rgba(148, 163, 184, 0.25)',
+          color: 'rgba(226,232,240,0.9)',
+          py: 1.75,
+          mt: 'auto',
+          flexShrink: 0,
+          boxShadow: '0 -6px 18px rgba(15, 23, 42, 0.25)'
+        }}
+      >
+        <Container maxWidth="lg">
+          <Stack 
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={{ xs: 1, md: 3 }}
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ width: '100%' }}
+          >
+            {/* Left: Logo & Copyright */}
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Box sx={{ 
+                bgcolor: 'rgba(255,255,255,0.08)', 
+                p: 0.75, 
+                borderRadius: 1.5, 
+                display: 'flex', 
+                alignItems: 'center',
+                boxShadow: '0 4px 16px rgba(15,23,42,0.35)'
+              }}>
+                <img 
+                  src="/only_logo.png" 
+                  alt="Data Fyre" 
+                  style={{ height: "22px", width: "auto" }}
+                />
+              </Box>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  fontWeight: 600,
+                  letterSpacing: 0.3
+                }}
+              >
+                © {new Date().getFullYear()} Data Fyre. All rights reserved.
+              </Typography>
+            </Stack>
+
+            {/* Center: Links */}
+            <Stack 
+              direction="row" 
+              spacing={2.5} 
+              alignItems="center"
+              sx={{ display: { xs: 'none', md: 'flex' } }}
+            >
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'rgba(226,232,240,0.9)',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    color: 'white'
+                  } 
+                }}
+              >
+                About
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                Privacy
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                Terms
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                Help
+              </Typography>
+            </Stack>
+
+            {/* Right: Contact */}
+            <Stack direction="row" spacing={0.75} alignItems="center">
+              <Box sx={{ 
+                bgcolor: 'rgba(148,163,184,0.18)', 
+                p: 0.85, 
+                borderRadius: 1.5,
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    letterSpacing: 0.2
+                  }}
+                >
+                  📧 support@datafyre.com
+                </Typography>
+              </Box>
+            </Stack>
+          </Stack>
+        </Container>
+      </Box>
+
+      {/* Toast Notification */}
+      <Snackbar 
+        open={toast.open} 
+        autoHideDuration={4000} 
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setToast({ ...toast, open: false })} 
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
 

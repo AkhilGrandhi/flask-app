@@ -1,11 +1,22 @@
 # app/ai.py
 import os, json, re
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from openai import OpenAI
 from .models import Candidate
 from .utils import model_to_dict
+from . import limiter
 
 bp = Blueprint("ai", __name__)
+
+def is_admin():
+    """Check if current user is admin"""
+    claims = get_jwt()
+    return claims.get("role") == "admin"
+
+def current_user_id():
+    """Get current user's ID as integer"""
+    return int(get_jwt_identity())
 
 def _client():
     api_key = os.getenv("OPENAI_API_KEY")
@@ -80,10 +91,12 @@ def _naive_map(form: dict, cand: dict) -> dict:
     return mapping
 
 @bp.post("/map-fields")
+@jwt_required()
+@limiter.limit("20 per minute")  # Limit AI requests to prevent abuse and cost overruns
 def map_fields():
+    uid = current_user_id()
     payload = request.get_json() or {}
     form = payload.get("form")         # dict of { field_key: {type,label,...} }
-    # print(form)
     cand_id = payload.get("candidate_id")
     candidate = payload.get("candidate")
 
@@ -93,6 +106,11 @@ def map_fields():
     # Load candidate if only id was provided
     if candidate is None and cand_id:
         cobj = Candidate.query.get_or_404(int(cand_id))
+        
+        # Authorization: users can only map their own candidates
+        if not is_admin() and cobj.created_by_user_id != uid:
+            return {"message": "Access denied"}, 403
+        
         candidate = model_to_dict(cobj, exclude=set())
 
     if not isinstance(candidate, dict):

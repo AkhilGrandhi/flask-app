@@ -2,26 +2,43 @@ import { useEffect, useState } from "react";
 import {
   Container, Box, Typography, Button, Paper,
   Table, TableHead, TableRow, TableCell, TableBody,
-  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Stack, Grid, Alert
+  Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Stack, Grid, Alert,
+  Snackbar, CircularProgress, TextField, IconButton, Tooltip
 } from "@mui/material";
+import { Visibility as ViewIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import { listMyCandidates, createCandidate, updateCandidate, deleteCandidate } from "../api";
 import CandidateForm from "../components/CandidateForm";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { fullName, initials } from "../utils/display";
 
 export default function UserDashboard() {
   const { user, logout } = useAuth();
   const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({});
   const [err, setErr] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+  
+  // Filter states
+  const [nameFilter, setNameFilter] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
 
   const load = async () => {
-    const d = await listMyCandidates();
-    setRows(d.candidates);
+    setLoading(true);
+    try {
+      const d = await listMyCandidates();
+      setRows(d.candidates);
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -147,6 +164,7 @@ export default function UserDashboard() {
 
   const submit = async () => {
     try {
+      setSubmitting(true);
       setErr("");
       setFieldErrors({});
       
@@ -221,11 +239,22 @@ export default function UserDashboard() {
       
       if (editing) await updateCandidate(editing.id, dataToSend);
       else await createCandidate(dataToSend);
+      
       setOpen(false);
       setFieldErrors({});
+      setToast({ 
+        open: true, 
+        message: editing ? '✓ Candidate updated successfully!' : '✓ Candidate created successfully!', 
+        severity: 'success' 
+      });
       await load();
     } catch (e) { 
       setErr(e.message);
+      setToast({ 
+        open: true, 
+        message: `✗ Failed to ${editing ? 'update' : 'create'} candidate: ${e.message}`, 
+        severity: 'error' 
+      });
       // Also check if backend returned duplicate errors
       if (e.message.includes("email already exists")) {
         setFieldErrors({ ...fieldErrors, email: e.message });
@@ -233,6 +262,8 @@ export default function UserDashboard() {
       if (e.message.includes("phone number already exists")) {
         setFieldErrors({ ...fieldErrors, phone: e.message });
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -242,94 +273,97 @@ export default function UserDashboard() {
     await load();
   };
 
+  if (loading) {
+    return <LoadingSpinner message="Loading your candidates..." />;
+  }
+
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
       {/* Header Section */}
       <Box sx={{ 
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center", 
-        mb: 1.5,
-        pb: 2,
-        borderBottom: "2px solid",
-        borderColor: "primary.main"
+        mb: 2,
+        pb: 1.5,
+        borderBottom: "1px solid",
+        borderColor: "divider"
       }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
             src="/only_logo.png" 
             alt="Data Fyre Logo" 
-            style={{ height: "70px", width: "auto", objectFit: "contain" }}
+            style={{ height: "40px", width: "auto", objectFit: "contain" }}
           />
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 600, mb: 0.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.2, fontSize: "1.25rem" }}>
               My Candidates
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
               Manage and track all your candidates
             </Typography>
           </Box>
         </Box>
 
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Box sx={{ textAlign: "right", mr: 1 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box sx={{ textAlign: "right", mr: 0.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
               Welcome back
             </Typography>
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>
               {fullName(user)}
             </Typography>
           </Box>
           <Avatar sx={{ 
-            width: 48, 
-            height: 48, 
+            width: 36, 
+            height: 36, 
             bgcolor: "primary.main",
-            fontSize: "1.2rem",
+            fontSize: "0.95rem",
             fontWeight: 600
           }}>
             {initials(user)}
           </Avatar>
-          <Button onClick={logout} variant="outlined" color="error">
+          <Button onClick={logout} variant="outlined" color="error" size="small" sx={{ fontSize: "0.8rem" }}>
             Logout
           </Button>
         </Stack>
       </Box>
 
-      {/* Stats Cards */}
-      <Box sx={{ mb: 5.5 }}>
-        <Grid container spacing={2}>
+      {/* Stats Cards - Compact */}
+      <Box sx={{ mb: 1.5 }}>
+        <Grid container spacing={1.5}>
           {/* Total Candidates Card */}
           <Grid item xs={12} sm={6}>
             <Paper 
-              elevation={2} 
+              elevation={1} 
               sx={{ 
-                p: 2, 
+                p: 1.5, 
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                 color: "white",
                 borderRadius: 2,
-                height: "100%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between"
               }}
             >
               <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.25 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.1, fontSize: "1.5rem" }}>
                   {rows.length}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
+                <Typography variant="caption" sx={{ opacity: 0.9, fontSize: "0.75rem" }}>
                   Total Candidates
                 </Typography>
               </Box>
               <Box 
                 sx={{ 
-                  width: 50, 
-                  height: 50, 
+                  width: 36, 
+                  height: 36, 
                   borderRadius: "50%", 
                   bgcolor: "rgba(255,255,255,0.25)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "1.6rem"
+                  fontSize: "1.2rem"
                 }}
               >
                 👥
@@ -340,20 +374,19 @@ export default function UserDashboard() {
           {/* Total Applications Card */}
           <Grid item xs={12} sm={6}>
             <Paper 
-              elevation={2} 
+              elevation={1} 
               sx={{ 
-                p: 2, 
+                p: 1.5, 
                 background: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
                 color: "white",
                 borderRadius: 2,
-                height: "100%",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between"
               }}
             >
               <Box>
-                <Typography variant="h4" sx={{ fontWeight: 700, mb: 0.25 }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.1, fontSize: "1.5rem" }}>
                   {(() => {
                     const jobIds = new Set();
                     rows.forEach(candidate => {
@@ -364,20 +397,20 @@ export default function UserDashboard() {
                     return jobIds.size;
                   })()}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9, fontSize: "0.85rem" }}>
+                <Typography variant="caption" sx={{ opacity: 0.9, fontSize: "0.75rem" }}>
                   Total Applications
                 </Typography>
               </Box>
               <Box 
                 sx={{ 
-                  width: 50, 
-                  height: 50, 
+                  width: 36, 
+                  height: 36, 
                   borderRadius: "50%", 
                   bgcolor: "rgba(255,255,255,0.25)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "1.6rem"
+                  fontSize: "1.2rem"
                 }}
               >
                 💼
@@ -388,53 +421,171 @@ export default function UserDashboard() {
       </Box>
 
       {/* Candidates Table */}
-      <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: "1px solid", borderColor: "divider" }}>
         <Box sx={{ 
-          px: 2.5,
-          py: 1.5, 
-          bgcolor: "grey.50",
-          borderBottom: "1px solid",
-          borderColor: "divider",
+          px: 2,
+          py: 1, 
+          bgcolor: "primary.main",
+          color: "white",
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center"
+          alignItems: "center",
+          gap: 2
         }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "1.1rem" }}>
-            Candidates List
+          <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
+            📋 Candidates List
           </Typography>
-          <Button 
-            variant="contained" 
-            onClick={startAdd}
-            size="small"
-            sx={{ 
-              fontWeight: 600,
-              px: 2.5,
-              py: 0.75,
-              boxShadow: 2,
-              "&:hover": {
-                transform: "translateY(-1px)",
-                boxShadow: 4
-              },
-              transition: "all 0.3s"
-            }}
-          >
-            Add Candidate
-          </Button>
+          
+          {/* Filters */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, justifyContent: "flex-end" }}>
+            <TextField
+              size="small"
+              value={nameFilter}
+              onChange={(e) => setNameFilter(e.target.value)}
+              placeholder="Name"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={emailFilter}
+              onChange={(e) => setEmailFilter(e.target.value)}
+              placeholder="Email"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={phoneFilter}
+              onChange={(e) => setPhoneFilter(e.target.value)}
+              placeholder="Phone"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            <TextField
+              size="small"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              placeholder="Role"
+              autoComplete="off"
+              sx={{
+                bgcolor: "white",
+                borderRadius: 1,
+                width: 120,
+                "& .MuiOutlinedInput-root": {
+                  height: 32,
+                  fontSize: "0.8rem"
+                }
+              }}
+            />
+            
+            {(nameFilter || emailFilter || phoneFilter || roleFilter) && (
+              <Button 
+                size="small" 
+                variant="contained"
+                onClick={() => {
+                  setNameFilter("");
+                  setEmailFilter("");
+                  setPhoneFilter("");
+                  setRoleFilter("");
+                }}
+                sx={{ 
+                  height: 32,
+                  bgcolor: "white",
+                  color: "primary.main",
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  minWidth: "auto",
+                  px: 1.5,
+                  "&:hover": {
+                    bgcolor: "rgba(255,255,255,0.9)"
+                  }
+                }}
+              >
+                Clear
+              </Button>
+            )}
+            
+            <Button 
+              variant="contained" 
+              size="small"
+              startIcon={<Typography sx={{ fontSize: "1rem" }}>👤</Typography>}
+              onClick={startAdd}
+              sx={{ 
+                fontWeight: 600,
+                bgcolor: "white",
+                color: "primary.main",
+                fontSize: "0.75rem",
+                px: 1.5,
+                height: 32,
+                "&:hover": {
+                  bgcolor: "rgba(255,255,255,0.9)"
+                }
+              }}
+            >
+              Add Candidate
+            </Button>
+          </Box>
         </Box>
 
-        {rows.length > 0 ? (
-          <Table size="small">
+        {(() => {
+          const filteredRows = rows.filter(r => {
+            const name = fullName(r).toLowerCase();
+            const email = (r.email || "").toLowerCase();
+            const phone = (r.phone || "").toLowerCase();
+            const role = (r.role || "").toLowerCase();
+            
+            if (nameFilter && !name.includes(nameFilter.toLowerCase())) return false;
+            if (emailFilter && !email.includes(emailFilter.toLowerCase())) return false;
+            if (phoneFilter && !phone.includes(phoneFilter.toLowerCase())) return false;
+            if (roleFilter && !role.includes(roleFilter.toLowerCase())) return false;
+            
+            return true;
+          });
+
+          return filteredRows.length > 0 ? (
+          <Box sx={{ maxHeight: 'calc(100vh - 320px)', overflow: 'auto' }}>
+          <Table size="small" stickyHeader>
             <TableHead>
-              <TableRow sx={{ bgcolor: "grey.100" }}>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>ID</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Email</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Phone</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600, color: "text.primary", py: 1.25 }}>Actions</TableCell>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>ID</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Email</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Phone</TableCell>
+                <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Role</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}># Applications</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, color: "text.primary", py: 1.25, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map(r => (
+              {filteredRows.map(r => (
                 <TableRow 
                   key={r.id} 
                   hover
@@ -451,77 +602,89 @@ export default function UserDashboard() {
                     #{r.id}
                   </TableCell>
 
-                  {/* Name as a link to details page */}
+                  {/* Name with Avatar */}
                   <TableCell>
-                    <Button
-                      component={RouterLink}
-                      to={`/candidates/${r.id}`}
-                      sx={{ 
-                        textTransform: "none", 
-                        p: 0, 
-                        minWidth: 0,
-                        fontWeight: 600,
-                        fontSize: "0.95rem",
-                        color: "primary.main",
-                        "&:hover": {
-                          textDecoration: "underline",
-                          bgcolor: "transparent"
-                        }
-                      }}
-                    >
-                      {r.first_name} {r.last_name}
-                    </Button>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Avatar sx={{ 
+                        bgcolor: "primary.main", 
+                        width: 32, 
+                        height: 32,
+                        fontSize: "0.85rem",
+                        fontWeight: 600
+                      }}>
+                        {initials(r)}
+                      </Avatar>
+                      <Typography sx={{ fontWeight: 500 }}>
+                        {fullName(r)}
+                      </Typography>
+                    </Box>
                   </TableCell>
 
                   <TableCell sx={{ color: "text.secondary" }}>
-                    {r.email}
+                    {r.email || "—"}
                   </TableCell>
                   <TableCell sx={{ color: "text.secondary" }}>
-                    {r.phone}
+                    {r.phone || "—"}
                   </TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <Button
-                        component={RouterLink}
-                        to={`/candidates/${r.id}`}
-                        size="small"
-                        variant="outlined"
-                        sx={{ 
-                          textTransform: "none",
-                          fontWeight: 500
-                        }}
-                      >
-                        View
-                      </Button>
-                      <Button 
-                        size="small" 
-                        variant="contained"
-                        onClick={() => startEdit(r)}
-                        sx={{ 
-                          textTransform: "none",
-                          fontWeight: 500
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button 
-                        size="small" 
-                        variant="outlined"
-                        color="error" 
-                        onClick={() => remove(r.id)}
-                        sx={{ 
-                          textTransform: "none",
-                          fontWeight: 500
-                        }}
-                      >
-                        Delete
-                      </Button>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {r.role || "—"}
+                  </TableCell>
+
+                  <TableCell align="center">
+                    <Box sx={{ 
+                      display: "inline-flex", 
+                      alignItems: "center", 
+                      justifyContent: "center",
+                      bgcolor: "primary.lighter",
+                      color: "primary.main",
+                      fontWeight: 600,
+                      fontSize: "0.85rem",
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 1,
+                      minWidth: 32
+                    }}>
+                      {r.jobs?.length || 0}
+                    </Box>
+                  </TableCell>
+
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={0.5} justifyContent="center">
+                      <Tooltip title="View Details">
+                        <IconButton
+                          component={RouterLink}
+                          to={`/candidates/${r.id}`}
+                          size="small"
+                          color="primary"
+                        >
+                          <ViewIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Edit">
+                        <IconButton 
+                          size="small" 
+                          color="primary"
+                          onClick={() => startEdit(r)}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton 
+                          size="small" 
+                          color="error" 
+                          onClick={() => remove(r.id)}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </Stack>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </Box>
         ) : (
           <Box sx={{ 
             textAlign: "center", 
@@ -538,21 +701,24 @@ export default function UserDashboard() {
               <Typography variant="h3">👥</Typography>
             </Avatar>
             <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-              No Candidates Yet
+              {(nameFilter || emailFilter || phoneFilter) ? "No Matching Candidates" : "No Candidates Yet"}
             </Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
-              Start by adding your first candidate to the system
+              {(nameFilter || emailFilter || phoneFilter) ? "Try adjusting your filters" : "Start by adding your first candidate to the system"}
             </Typography>
-            <Button 
-              variant="contained" 
-              size="large"
-              onClick={startAdd}
-              sx={{ fontWeight: 600 }}
-            >
-              Add Your First Candidate
-            </Button>
+            {!(nameFilter || emailFilter || phoneFilter) && (
+              <Button 
+                variant="contained" 
+                size="large"
+                onClick={startAdd}
+                sx={{ fontWeight: 600 }}
+              >
+                Add Your First Candidate
+              </Button>
+            )}
           </Box>
-        )}
+        );
+        })()}
       </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="lg" fullWidth>
@@ -573,17 +739,94 @@ export default function UserDashboard() {
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
-          <Button onClick={() => setOpen(false)} variant="outlined">Cancel</Button>
+          <Button onClick={() => setOpen(false)} variant="outlined" disabled={submitting}>Cancel</Button>
           <Button 
             variant="contained" 
             onClick={submit}
-            disabled={Object.keys(fieldErrors).length > 0}
+            disabled={submitting || Object.keys(fieldErrors).length > 0}
+            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
             sx={{ px: 4 }}
           >
-            {editing ? "Save Changes" : "Create Candidate"}
+            {submitting ? (editing ? "Saving..." : "Creating...") : (editing ? "Save Changes" : "Create Candidate")}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Toast Notification */}
+      <Snackbar 
+        open={toast.open} 
+        autoHideDuration={4000} 
+        onClose={() => setToast({ ...toast, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setToast({ ...toast, open: false })} 
+          severity={toast.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
+
+      {/* Footer */}
+      <Box 
+        component="footer" 
+        sx={{ 
+          bgcolor: 'white',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          py: 1.2,
+          mt: 3
+        }}
+      >
+        <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', md: 'row' },
+            justifyContent: 'space-between', 
+            alignItems: { xs: 'center', md: 'center' },
+            gap: 1.2
+          }}>
+            {/* Logo & Copyright */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+              <img 
+                src="/only_logo.png" 
+                alt="Data Fyre Logo" 
+                style={{ height: "20px", width: "auto", objectFit: "contain" }}
+              />
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                © {new Date().getFullYear()} Data Fyre. All rights reserved.
+              </Typography>
+            </Box>
+
+            {/* Links */}
+            <Stack direction="row" spacing={1.8} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                About
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Help
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Privacy
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
+                Terms
+              </Typography>
+            </Stack>
+
+            {/* Contact */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                  📧 support@datafyre.com
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </Container>
   );
 }
