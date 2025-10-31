@@ -18,6 +18,9 @@ import {
   COUNTRY_OPTIONS
 } from "../constants/options";
 
+const RESUME_DAILY_LIMIT = 50;
+const DAILY_LIMIT_MESSAGE = "Your daily resume limit has been exceeded. Please try again tomorrow.";
+
 // EditSelectField component for the edit form
 function EditSelectField({ label, value, onChange, options }) {
   const labelId = useId();
@@ -94,6 +97,7 @@ export default function CandidateDashboard() {
   const [jobDesc, setJobDesc] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState("");
+  const [resumeCountToday, setResumeCountToday] = useState(0);
   
   // Filter states for job applications
   const [jobDateFilter, setJobDateFilter] = useState("");
@@ -104,14 +108,35 @@ export default function CandidateDashboard() {
   const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
   const profileMenuOpen = Boolean(profileMenuAnchor);
 
+  const limitReached = resumeCountToday >= RESUME_DAILY_LIMIT;
+  const remainingResumes = Math.max(0, RESUME_DAILY_LIMIT - resumeCountToday);
+  const limitMessage = limitReached
+    ? DAILY_LIMIT_MESSAGE
+    : `You can generate ${remainingResumes} more resume${remainingResumes === 1 ? '' : 's'} today (limit ${RESUME_DAILY_LIMIT}).`;
+
   const load = async () => {
     try {
       setLoading(true);
       setError("");
       const data = await getMyCandidateProfile();
       setCandidate(data);
+
+      const today = new Date();
+      const jobs = Array.isArray(data?.jobs) ? data.jobs : [];
+      const generatedToday = jobs.filter((job) => {
+        if (!job?.resume_content || !job?.created_at) return false;
+        const createdAt = new Date(job.created_at);
+        return (
+          createdAt.getFullYear() === today.getFullYear() &&
+          createdAt.getMonth() === today.getMonth() &&
+          createdAt.getDate() === today.getDate()
+        );
+      }).length;
+
+      setResumeCountToday(generatedToday);
     } catch (e) {
       setError(e.message);
+      setResumeCountToday(0);
     } finally {
       setLoading(false);
     }
@@ -191,6 +216,16 @@ ${job.resume_content}`;
 
   // Generate resume (Silver subscribers only)
   const handleGenerateResume = async () => {
+    if (limitReached) {
+      setGenerateError("");
+      setToast({ 
+        open: true, 
+        message: `⚠️ ${DAILY_LIMIT_MESSAGE}`, 
+        severity: 'warning' 
+      });
+      return;
+    }
+
     let jobRowId = null;
     try {
       setGenerateError("");
@@ -221,14 +256,25 @@ ${job.resume_content}`;
         message: '✓ Resume generated and downloaded successfully!', 
         severity: 'success' 
       });
+      setResumeCountToday((count) => Math.min(RESUME_DAILY_LIMIT, count + 1));
       await load();
     } catch (e) { 
-      setGenerateError(e.message);
+      const messageText = e?.message || "Unknown error";
+      if (messageText.toLowerCase().includes("daily resume limit")) {
+        setGenerateError("");
       setToast({ 
         open: true, 
-        message: `✗ Failed to generate resume: ${e.message}`, 
+          message: `⚠️ ${DAILY_LIMIT_MESSAGE}`, 
+          severity: 'warning' 
+        });
+      } else {
+        setGenerateError(messageText);
+        setToast({ 
+          open: true, 
+          message: `✗ Failed to generate resume: ${messageText}`, 
         severity: 'error' 
       });
+      }
       
       // If resume generation failed after creating job, delete the job record
       if (jobRowId) {
@@ -388,27 +434,36 @@ ${job.resume_content}`;
           </Box>
 
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ flex: 1, py: 1.5, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 1, md: 1.25 }, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1.5, overflow: 'hidden' }}>
       {/* Generate Resume Section - Only for Silver Subscribers */}
       {candidate?.subscription_type === "Silver" && (
         <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 2, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>
           <Box sx={{ 
             px: 2,
-            py: 1, 
+            py: 0.75, 
             bgcolor: "success.main",
             color: "white",
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center"
+            alignItems: "center",
+            gap: 2,
+            flexWrap: { xs: "wrap", sm: "nowrap" }
           }}>
             <Typography variant="h6" sx={{ fontWeight: 600, fontSize: "0.95rem" }}>
               🚀 Generate Resume
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <Typography 
+                variant="body2" 
+                sx={{ fontWeight: 500, fontSize: "0.8rem", opacity: 0.95, textAlign: "right" }}
+              >
+                {limitMessage}
             </Typography>
             <Button 
               variant="contained" 
               size="small"
               onClick={handleGenerateResume} 
-              disabled={generating || !jobId || !jobDesc}
+                disabled={generating || !jobId || !jobDesc || limitReached}
               startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <Add />}
               sx={{ 
                 fontWeight: 600,
@@ -429,9 +484,10 @@ ${job.resume_content}`;
             >
               {generating ? "Generating..." : "Generate"}
             </Button>
+            </Box>
           </Box>
           
-          <Box sx={{ p: 1.5 }}>
+          <Box sx={{ p: 1.25 }}>
             {generateError && (
               <Alert severity="error" sx={{ mb: 1.25 }} onClose={() => setGenerateError("")}>
                 {generateError}
@@ -451,28 +507,30 @@ ${job.resume_content}`;
                 placeholder="Enter or paste the Job ID"
                 value={jobId}
                 onChange={(e) => setJobId(e.target.value)}
-                disabled={generating}
+                disabled={generating || limitReached}
                 required
                 variant="outlined"
                 size="small"
                 fullWidth
                 multiline
-                minRows={2}
-                maxRows={4}
+                minRows={3}
+                maxRows={3}
+                inputProps={{ style: { overflowY: 'auto' } }}
               />
               <TextField
                 label="Job Description"
                 placeholder="Paste the Job Description"
                 value={jobDesc}
                 onChange={(e) => setJobDesc(e.target.value)}
-                disabled={generating}
+                disabled={generating || limitReached}
                 required
                 variant="outlined"
                 size="small"
                 fullWidth
                 multiline
-                minRows={2}
-                maxRows={6}
+                minRows={3}
+                maxRows={3}
+                inputProps={{ style: { overflowY: 'auto' } }}
               />
             </Box>
           </Box>
@@ -480,10 +538,10 @@ ${job.resume_content}`;
       )}
 
       {/* Jobs Applied Section - Compact */}
-      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: '1px solid', borderColor: 'divider', flexShrink: 0 }}>
+      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: '1px solid', borderColor: 'divider', flexShrink: 1, display: 'flex', flexDirection: 'column', minHeight: { xs: 'auto', md: 420 } }}>
         <Box sx={{ 
           px: 2,
-          py: 1, 
+          py: 0.75, 
           bgcolor: "primary.main",
           color: "white",
           display: "flex",
@@ -594,8 +652,8 @@ ${job.resume_content}`;
             return true;
           });
           return filteredJobs.length > 0 ? (
-          <Box sx={{ maxHeight: '372px', overflow: 'auto' }}>
-          <Table size="small" stickyHeader>
+          <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', maxHeight: { xs: 'unset', md: 440 } }}>
+          <Table size="small" stickyHeader sx={{ minWidth: 960 }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={{ fontWeight: 600, color: "text.primary", py: 1, bgcolor: 'grey.100', position: 'sticky', top: 0, zIndex: 1 }}>Job ID</TableCell>
@@ -698,7 +756,7 @@ ${job.resume_content}`;
         ) : (
           <Box sx={{ 
             textAlign: "center", 
-            py: 8,
+            py: 6,
             px: 2
           }}>
             <Avatar sx={{ 
@@ -1635,14 +1693,13 @@ ${job.resume_content}`;
       <Box 
         component="footer" 
         sx={{ 
-          bgcolor: 'linear-gradient(to right, #667eea 0%, #764ba2 100%)',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderTop: '2px solid',
-          borderColor: 'primary.main',
-          py: 1.5,
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+          borderTop: '1px solid rgba(148, 163, 184, 0.25)',
+          color: 'rgba(226,232,240,0.9)',
+          py: 1.75,
           mt: 'auto',
           flexShrink: 0,
-          boxShadow: '0 -2px 10px rgba(0,0,0,0.05)'
+          boxShadow: '0 -6px 18px rgba(15, 23, 42, 0.25)'
         }}
       >
         <Container maxWidth="lg">
@@ -1651,21 +1708,22 @@ ${job.resume_content}`;
             spacing={{ xs: 1, md: 3 }}
             alignItems="center"
             justifyContent="space-between"
+            sx={{ width: '100%' }}
           >
             {/* Left: Logo & Copyright */}
             <Stack direction="row" spacing={1} alignItems="center">
               <Box sx={{ 
-                bgcolor: 'white', 
-                p: 0.5, 
-                borderRadius: 1, 
+                bgcolor: 'rgba(255,255,255,0.08)', 
+                p: 0.75, 
+                borderRadius: 1.5, 
                 display: 'flex', 
                 alignItems: 'center',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                boxShadow: '0 4px 16px rgba(15,23,42,0.35)'
               }}>
                 <img 
                   src="/only_logo.png" 
                   alt="Data Fyre" 
-                  style={{ height: "20px", width: "auto" }}
+                  style={{ height: "22px", width: "auto" }}
                 />
               </Box>
               <Typography 
@@ -1673,7 +1731,7 @@ ${job.resume_content}`;
                 sx={{ 
                   fontSize: '0.85rem', 
                   fontWeight: 600,
-                  color: 'white'
+                  letterSpacing: 0.3
                 }}
               >
                 © {new Date().getFullYear()} Data Fyre. All rights reserved.
@@ -1692,12 +1750,12 @@ ${job.resume_content}`;
                 sx={{ 
                   fontSize: '0.85rem', 
                   cursor: 'pointer',
-                  color: 'white',
+                  color: 'rgba(226,232,240,0.9)',
                   fontWeight: 500,
                   transition: 'all 0.2s',
                   '&:hover': { 
                     transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
+                    color: 'white'
                   } 
                 }}
               >
@@ -1756,9 +1814,9 @@ ${job.resume_content}`;
             {/* Right: Contact */}
             <Stack direction="row" spacing={0.75} alignItems="center">
               <Box sx={{ 
-                bgcolor: 'rgba(255,255,255,0.2)', 
-                p: 0.75, 
-                borderRadius: 1,
+                bgcolor: 'rgba(148,163,184,0.18)', 
+                p: 0.85, 
+                borderRadius: 1.5,
                 display: 'flex',
                 alignItems: 'center'
               }}>
@@ -1766,8 +1824,8 @@ ${job.resume_content}`;
                   variant="body2" 
                   sx={{ 
                     fontSize: '0.85rem',
-                    color: 'white',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    letterSpacing: 0.2
                   }}
                 >
                   📧 support@datafyre.com

@@ -3,6 +3,7 @@ Async resume generation endpoints
 """
 from flask import Blueprint, request, jsonify, send_file
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime, timedelta
 from app.models import db, Candidate, CandidateJob, ResumeGenerationJob
 from io import BytesIO
 import base64
@@ -70,8 +71,35 @@ def generate_resume_async():
         if file_type not in ['word', 'pdf']:
             return jsonify({"message": "Invalid file_type. Use 'word' or 'pdf'"}), 400
         
+        try:
+            candidate_id = int(candidate_id)
+        except (TypeError, ValueError):
+            return jsonify({"message": "Invalid candidate_id"}), 400
+
         # Get candidate
         candidate = Candidate.query.get_or_404(candidate_id)
+        if (candidate.subscription_type or "").lower() == "silver":
+            start_of_day = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            next_day = start_of_day + timedelta(days=1)
+            generated_today = (
+                CandidateJob.query
+                .filter(
+                    CandidateJob.candidate_id == candidate_id,
+                    CandidateJob.resume_content.isnot(None),
+                    CandidateJob.created_at >= start_of_day,
+                    CandidateJob.created_at < next_day,
+                )
+                .count()
+            )
+
+            if generated_today >= 50:
+                return jsonify({"message": "Your daily resume limit has been exceeded. Please try again tomorrow."}), 429
+
+        if job_row_id is not None:
+            try:
+                job_row_id = int(job_row_id)
+            except (TypeError, ValueError):
+                return jsonify({"message": "Invalid job_row_id"}), 400
         
         # Create job row if not provided
         if not job_row_id:
