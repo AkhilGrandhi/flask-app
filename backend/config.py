@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -59,6 +60,5 @@ class Config:
     JWT_COOKIE_SAMESITE = "Lax" if is_development else "None"
     JWT_COOKIE_CSRF_PROTECT = False
 
-    # (optional) make tokens last longer while testing
-    # from datetime import timedelta
-    # JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=12)
+    # Access tokens expire after 4 hours of inactivity
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=4)
