@@ -7,7 +7,8 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { loginUser, meApi } from "../api";
 import { useAuth } from "../AuthContext";
-import logo from "../assets/zero2hirelogo.png";
+import LoginHeader from "../components/LoginHeader";
+import Footer from "../components/Footer";
 
 export default function LoginUser() {
   const [mobile, setMobile] = useState("");
@@ -31,18 +32,10 @@ export default function LoginUser() {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 8, mb: 8 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 1.5, mb: 3 }}>
-          <img 
-            src={logo} 
-            alt="Zero2Hire Logo" 
-            style={{ height: "40px", width: "auto", objectFit: "contain" }}
-          />
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', fontSize: '1.5rem' }}>
-            Zero2Hire
-          </Typography>
-        </Box>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
+      <LoginHeader />
+      <Container maxWidth="sm" sx={{ mt: 4, mb: 4, flex: 1 }}>
+        <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" sx={{ mb: 1, textAlign: "center", fontWeight: 600 }}>
           User Login
         </Typography>
@@ -107,6 +100,8 @@ export default function LoginUser() {
           </Button>
         </Box>
       </Paper>
-    </Container>
+      </Container>
+      <Footer />
+    </Box>
   );
 }

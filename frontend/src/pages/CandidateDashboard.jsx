@@ -17,8 +17,8 @@ import {
   WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
   COUNTRY_OPTIONS
 } from "../constants/options";
-import logo from "../assets/zero2hirelogo.png";
-import datafyreLogo from "../assets/datafyrelogo.png";
+import CandidateHeader from "../components/CandidateHeader";
+import Footer from "../components/Footer";
 
 const RESUME_DAILY_LIMIT = 50;
 const DAILY_LIMIT_MESSAGE = "Your daily resume limit has been exceeded. Please try again tomorrow.";
@@ -105,10 +105,6 @@ export default function CandidateDashboard() {
   const [jobDateFilter, setJobDateFilter] = useState("");
   const [jobIdFilter, setJobIdFilter] = useState("");
   const [jobDescFilter, setJobDescFilter] = useState("");
-  
-  // Profile menu state
-  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
-  const profileMenuOpen = Boolean(profileMenuAnchor);
 
   const limitReached = resumeCountToday >= RESUME_DAILY_LIMIT;
   const remainingResumes = Math.max(0, RESUME_DAILY_LIMIT - resumeCountToday);
@@ -301,136 +297,16 @@ export default function CandidateDashboard() {
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
-      {/* Compact Header */}
-      <Box sx={{ 
-        bgcolor: 'white',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        zIndex: 1100,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-        flexShrink: 0
-      }}>
-        <Container maxWidth="lg">
-      <Box sx={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-            py: 1
-      }}>
-            {/* Logo and Brand */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <img 
-            src={logo} 
-            alt="Zero2Hire Logo" 
-                style={{ height: "36px", width: "auto", objectFit: "contain" }}
-          />
-          <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', lineHeight: 1.1, fontSize: '1.1rem' }}>
-                  Zero2Hire
-            </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  Candidate Portal
-            </Typography>
-          </Box>
-        </Box>
-
-            {/* User Menu */}
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Chip 
-                label={candidate?.subscription_type === "Gold" ? "🥇 Gold" : "🥈 Silver"} 
-                sx={{ 
-                  bgcolor: candidate?.subscription_type === "Gold" ? "#FFD700" : "#C0C0C0",
-                  color: 'white',
-                  fontWeight: 600,
-                  fontSize: '0.7rem',
-                  height: 24
-                }}
-                size="small"
-              />
-              <Box sx={{ textAlign: "right", display: { xs: 'none', sm: 'block' } }}>
-                <Typography variant="body2" sx={{ fontSize: "0.8rem", fontWeight: 600, lineHeight: 1.2 }}>
-              {candidate?.first_name} {candidate?.last_name}
-            </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {candidate?.email}
-                </Typography>
-          </Box>
-              <Avatar 
-                onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
-                sx={{ 
-                  width: 32, 
-                  height: 32, 
-            bgcolor: "primary.main", 
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    transform: 'scale(1.1)',
-                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)'
-                  }
-                }}
-              >
-            {candidate?.first_name?.[0]}{candidate?.last_name?.[0]}
-          </Avatar>
-              <Menu
-                anchorEl={profileMenuAnchor}
-                open={profileMenuOpen}
-                onClose={() => setProfileMenuAnchor(null)}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                sx={{ mt: 1 }}
-              >
-                <MenuItem 
-                  onClick={() => {
-                    setDetailsOpen(true);
-                    setProfileMenuAnchor(null);
-                  }}
-                  sx={{ gap: 1, py: 1, px: 2, minWidth: 160 }}
-                >
-                  <VisibilityOutlined sx={{ fontSize: 18 }} />
-                  <Typography variant="body2">View Profile</Typography>
-                </MenuItem>
-                {candidate?.subscription_type !== "Gold" && (
-                  <MenuItem 
-                    onClick={() => {
-                      setEditForm(candidate);
-                      setEditError("");
-                      setEditOpen(true);
-                      setProfileMenuAnchor(null);
-                    }}
-                    sx={{ gap: 1, py: 1, px: 2 }}
-                  >
-                    <PersonOutline sx={{ fontSize: 18 }} />
-                    <Typography variant="body2">Edit Profile</Typography>
-                  </MenuItem>
-                )}
-              </Menu>
-              <Button 
-                onClick={logout} 
-                variant="outlined" 
-                size="small"
-                sx={{ 
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 600, 
-                  py: 0.5,
-                  px: 1.5,
-                  fontSize: '0.8rem'
-                }}
-              >
-                Logout
-              </Button>
-            </Stack>
-            </Box>
-        </Container>
-          </Box>
+      <CandidateHeader 
+        candidate={candidate}
+        logout={logout}
+        onViewProfile={() => setDetailsOpen(true)}
+        onEditProfile={() => {
+          setEditForm(candidate);
+          setEditError("");
+          setEditOpen(true);
+        }}
+      />
 
       {/* Main Content */}
       <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 1, md: 1.25 }, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1.5, overflow: 'hidden' }}>
@@ -678,14 +554,14 @@ export default function CandidateDashboard() {
                   <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 500 }}>
                     <Tooltip title={job.job_id} arrow placement="top">
                       <span style={{ color: '#1976d2', fontWeight: 600 }}>
-                        {job.job_id.length > 15 ? job.job_id.substring(0, 15) + '...' : job.job_id}
+                        {job.job_id.length > 25 ? job.job_id.substring(0, 25) + '...' : job.job_id}
                       </span>
                     </Tooltip>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 350 }}>
                     <Typography variant="body2">
-                      {job.job_description.length > 100
-                        ? job.job_description.substring(0, 100) + "..."
+                      {job.job_description.length > 50
+                        ? job.job_description.substring(0, 50) + "..."
                         : job.job_description}
                     </Typography>
                   </TableCell>
@@ -693,8 +569,8 @@ export default function CandidateDashboard() {
                     <Stack direction="row" spacing={0.75} alignItems="center">
                       {job.resume_content ? (
                         <Typography variant="body2" color="text.secondary">
-                          {job.resume_content.length > 80
-                            ? job.resume_content.substring(0, 80) + "..."
+                          {job.resume_content.length > 50
+                            ? job.resume_content.substring(0, 50) + "..."
                             : job.resume_content}
                         </Typography>
                       ) : (
@@ -1686,207 +1562,6 @@ export default function CandidateDashboard() {
 
     </Container>
 
-      {/* Enhanced Footer */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-          borderTop: '1px solid rgba(148, 163, 184, 0.25)',
-          color: 'rgba(226,232,240,0.9)',
-          py: 1.75,
-          mt: 'auto',
-          flexShrink: 0,
-          boxShadow: '0 -6px 18px rgba(15, 23, 42, 0.25)'
-        }}
-      >
-        <Container maxWidth="lg">
-          <Stack 
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={{ xs: 1, md: 3 }}
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ width: '100%' }}
-          >
-            {/* Left: Logo & Copyright */}
-            <Stack spacing={0.4}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Box sx={{ 
-                  bgcolor: 'rgba(255,255,255,0.08)', 
-                  p: 0.75, 
-                  borderRadius: 1.5, 
-                  display: 'flex', 
-                  alignItems: 'center',
-                  boxShadow: '0 4px 16px rgba(15,23,42,0.35)'
-                }}>
-                  <img 
-                    src={datafyreLogo} 
-                    alt="Data Fyre" 
-                    style={{ height: "22px", width: "auto" }}
-                  />
-                </Box>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.85rem', 
-                    fontWeight: 600,
-                    letterSpacing: 0.3
-                  }}
-                >
-                  © {new Date().getFullYear()} Data Fyre. All rights reserved.
-                </Typography>
-              </Stack>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  fontSize: '0.75rem',
-                  opacity: 0.7,
-                  ml: 11
-                }}
-              >
-                Powered By Data Fyre PVT LTD
-              </Typography>
-            </Stack>
-
-            {/* Center: Links */}
-            <Stack 
-              direction="row" 
-              spacing={2.5} 
-              alignItems="center"
-              sx={{ display: { xs: 'none', md: 'flex' } }}
-            >
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'rgba(226,232,240,0.9)',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    color: 'white'
-                  } 
-                }}
-              >
-                About
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'white',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
-                  } 
-                }}
-              >
-                Privacy
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'white',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
-                  } 
-                }}
-              >
-                Terms
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'white',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
-                  } 
-                }}
-              >
-                Help
-              </Typography>
-            </Stack>
-
-            {/* Right: Contact */}
-            <Stack spacing={0.5} alignItems="flex-end">
-              <Box sx={{ 
-                bgcolor: 'rgba(148,163,184,0.18)', 
-                p: 0.85, 
-                borderRadius: 1.5,
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    letterSpacing: 0.2
-                  }}
-                >
-                  📧 support@zero2hire.com
-                </Typography>
-              </Box>
-              <Stack direction="row" spacing={1}>
-                <Typography 
-                  component="a" 
-                  href="https://wa.me/18179662996" 
-                  target="_blank"
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'rgba(226,232,240,0.9)',
-                    transition: 'all 0.2s',
-                    '&:hover': { 
-                      color: 'white',
-                      transform: 'translateY(-2px)'
-                    } 
-                  }}
-                >
-                  📱 +1 817 966 2996
-                </Typography>
-                <Typography 
-                  component="a" 
-                  href="https://wa.me/19378562492" 
-                  target="_blank"
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'rgba(226,232,240,0.9)',
-                    transition: 'all 0.2s',
-                    '&:hover': { 
-                      color: 'white',
-                      transform: 'translateY(-2px)'
-                    } 
-                  }}
-                >
-                  📱 (937) 856-2492
-                </Typography>
-              </Stack>
-            </Stack>
-          </Stack>
-        </Container>
-      </Box>
-
       {/* Toast Notification */}
       <Snackbar 
         open={toast.open} 
@@ -1903,6 +1578,8 @@ export default function CandidateDashboard() {
           {toast.message}
         </Alert>
       </Snackbar>
+      
+      <Footer />
     </Box>
   );
 }

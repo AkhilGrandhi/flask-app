@@ -8,12 +8,14 @@ import {
 } from "@mui/material";
 import { ArrowBack, Person, Email, Phone, Work, Add, Download, Visibility as ViewIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume, generateResumeAsync, getJobStatus, downloadResumeAsync, formatResume } from "../api";
+import DashboardHeader from "../components/DashboardHeader";
+import Footer from "../components/Footer";
+import { useAuth } from "../AuthContext";
 import { fullName } from "../utils/display";
-import logo from "../assets/zero2hirelogo.png";
-import datafyreLogo from "../assets/datafyrelogo.png";
 
 export default function CandidateDetail() {
   const { id } = useParams();
+  const { user, logout } = useAuth();
   const [cand, setCand] = useState(null);
   const [jobId, setJobId] = useState("");
   const [jobDesc, setJobDesc] = useState("");
@@ -309,43 +311,15 @@ export default function CandidateDetail() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
-      {/* Header */}
-      <Box sx={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        mb: 2,
-        pb: 1.5,
-        borderBottom: "1px solid",
-        borderColor: "divider"
-      }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <img 
-            src={logo} 
-            alt="Zero2Hire Logo" 
-            style={{ height: "40px", width: "auto", objectFit: "contain" }}
-          />
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.2, fontSize: "1.25rem" }}>
-              Candidate Job Applications
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
-              Manage Job Applications and Generate Resumes
-            </Typography>
-          </Box>
-        </Box>
-        <Button 
-          component={RouterLink} 
-          to="/" 
-          variant="outlined"
-          size="small"
-          startIcon={<ArrowBack />}
-          sx={{ fontWeight: 600, fontSize: "0.85rem" }}
-        >
-          Back to Dashboard
-        </Button>
-      </Box>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
+      <DashboardHeader 
+        user={user}
+        logout={logout}
+        title="Candidate Job Applications"
+        subtitle="Manage Job Applications and Generate Resumes"
+      />
+      
+      <Container maxWidth="lg" sx={{ mt: 2, mb: 2, flex: 1 }}>
 
       {/* Candidate Info Card */}
       <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 1.5, border: "1px solid", borderColor: "divider" }}>
@@ -680,14 +654,14 @@ export default function CandidateDetail() {
                   <TableCell sx={{ whiteSpace:"nowrap", fontWeight: 600, color: "primary.main" }}>
                     <Tooltip title={j.job_id} arrow placement="top">
                       <span>
-                        {j.job_id.length > 15 ? j.job_id.substring(0, 15) + '...' : j.job_id}
+                        {j.job_id.length > 25 ? j.job_id.substring(0, 25) + '...' : j.job_id}
                       </span>
                     </Tooltip>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 400 }}>
                     <Typography variant="body2">
-                      {j.job_description.length > 80 
-                        ? j.job_description.substring(0, 80) + '...' 
+                      {j.job_description.length > 50 
+                        ? j.job_description.substring(0, 50) + '...' 
                         : j.job_description}
                     </Typography>
                   </TableCell>
@@ -707,20 +681,15 @@ export default function CandidateDetail() {
                         // Job completed
                         <>
                           <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
-                          <Button
-                            size="small"
-                            variant="text"
-                            startIcon={<Download />}
-                            onClick={() => handleDownloadResume(j)}
-                            sx={{ 
-                              textTransform: "none", 
-                              fontWeight: 500,
-                              minWidth: "auto",
-                              px: 1
-                            }}
-                          >
-                            Download
-                          </Button>
+                          <Tooltip title="Download Resume">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDownloadResume(j)}
+                            >
+                              <Download />
+                            </IconButton>
+                          </Tooltip>
                         </>
                       ) : (
                         // Job created but no resume yet
@@ -959,206 +928,9 @@ export default function CandidateDetail() {
         </DialogActions>
       </Dialog>
 
-      {/* Enhanced Footer */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-          borderTop: '1px solid rgba(148, 163, 184, 0.25)',
-          color: 'rgba(226,232,240,0.9)',
-          py: 1.75,
-          mt: 'auto',
-          flexShrink: 0,
-          boxShadow: '0 -6px 18px rgba(15, 23, 42, 0.25)'
-        }}
-      >
-        <Container maxWidth="lg">
-          <Stack 
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={{ xs: 1, md: 3 }}
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ width: '100%' }}
-          >
-            {/* Left: Logo & Copyright */}
-            <Stack spacing={0.4}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Box sx={{ 
-                  bgcolor: 'rgba(255,255,255,0.08)', 
-                  p: 0.75, 
-                  borderRadius: 1.5, 
-                  display: 'flex', 
-                  alignItems: 'center',
-                  boxShadow: '0 4px 16px rgba(15,23,42,0.35)'
-                }}>
-                  <img 
-                    src={datafyreLogo} 
-                    alt="Data Fyre" 
-                    style={{ height: "22px", width: "auto" }}
-                  />
-                </Box>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.85rem', 
-                    fontWeight: 600,
-                    letterSpacing: 0.3
-                  }}
-                >
-                  © {new Date().getFullYear()} Data Fyre. All rights reserved.
-                </Typography>
-              </Stack>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  fontSize: '0.75rem',
-                  opacity: 0.7,
-                  ml: 11
-                }}
-              >
-                Powered By Data Fyre PVT LTD
-              </Typography>
-            </Stack>
-
-            {/* Center: Links */}
-            <Stack 
-              direction="row" 
-              spacing={2.5} 
-              alignItems="center"
-              sx={{ display: { xs: 'none', md: 'flex' } }}
-            >
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'rgba(226,232,240,0.9)',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    color: 'white'
-                  } 
-                }}
-              >
-                About
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'white',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
-                  } 
-                }}
-              >
-                Privacy
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'white',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
-                  } 
-                }}
-              >
-                Terms
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'white',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
-                  } 
-                }}
-              >
-                Help
-              </Typography>
-            </Stack>
-
-            {/* Right: Contact */}
-            <Stack spacing={0.5} alignItems="flex-end">
-              <Box sx={{ 
-                bgcolor: 'rgba(148,163,184,0.18)', 
-                p: 0.85, 
-                borderRadius: 1.5,
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    letterSpacing: 0.2
-                  }}
-                >
-                  📧 support@zero2hire.com
-                </Typography>
-              </Box>
-              <Stack direction="row" spacing={1}>
-                <Typography 
-                  component="a" 
-                  href="https://wa.me/18179662996" 
-                  target="_blank"
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'rgba(226,232,240,0.9)',
-                    transition: 'all 0.2s',
-                    '&:hover': { 
-                      color: 'white',
-                      transform: 'translateY(-2px)'
-                    } 
-                  }}
-                >
-                  📱 +1 817 966 2996
-                </Typography>
-                <Typography 
-                  component="a" 
-                  href="https://wa.me/19378562492" 
-                  target="_blank"
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.85rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    textDecoration: 'none',
-                    color: 'rgba(226,232,240,0.9)',
-                    transition: 'all 0.2s',
-                    '&:hover': { 
-                      color: 'white',
-                      transform: 'translateY(-2px)'
-                    } 
-                  }}
-                >
-                  📱 (937) 856-2492
-                </Typography>
-              </Stack>
-            </Stack>
-          </Stack>
-        </Container>
-      </Box>
-    </Container>
+      </Container>
+      
+      <Footer />
+    </Box>
   );
 }
