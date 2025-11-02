@@ -9,7 +9,7 @@ export default function LoginHeader() {
         borderBottom: '1px solid',
         borderColor: 'divider',
         width: '100%',
-        py: 2,
+        py: 1.5,
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}
     >

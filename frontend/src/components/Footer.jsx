@@ -12,7 +12,7 @@ export default function Footer() {
         background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
         borderTop: '1px solid rgba(148, 163, 184, 0.15)',
         color: 'rgba(226, 232, 240, 0.9)',
-        py: 2.7,
+        py: 2.565,
         mt: 'auto',
         flexShrink: 0,
         boxShadow: '0 -4px 20px rgba(15, 23, 42, 0.3)',

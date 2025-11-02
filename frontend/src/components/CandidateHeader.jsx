@@ -21,14 +21,14 @@ export default function CandidateHeader({ candidate, logout, onViewProfile, onEd
           display: "flex", 
           justifyContent: "space-between", 
           alignItems: "center",
-          py: 1
+          py: 1.5
         }}>
           {/* Logo and Brand */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <img 
               src={logo} 
               alt="Zero2Hire Logo" 
-              style={{ height: "36px", width: "auto", objectFit: "contain" }}
+              style={{ height: "40px", width: "auto", objectFit: "contain" }}
             />
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', lineHeight: 1.1, fontSize: '1.1rem' }}>
@@ -64,11 +64,11 @@ export default function CandidateHeader({ candidate, logout, onViewProfile, onEd
             <Avatar 
               onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
               sx={{ 
-                width: 32, 
-                height: 32, 
+                width: 36, 
+                height: 36, 
                 bgcolor: "primary.main", 
                 fontWeight: 600,
-                fontSize: '0.9rem',
+                fontSize: '0.95rem',
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 '&:hover': {
