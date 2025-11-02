@@ -49,12 +49,15 @@ export default function LoginCandidate() {
   return (
     <Container maxWidth="sm" sx={{ mt: 8, mb: 8 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 1.5, mb: 3 }}>
           <img 
             src={logo} 
             alt="Zero2Hire Logo" 
-            style={{ maxWidth: "200px", height: "auto" }}
+            style={{ height: "40px", width: "auto", objectFit: "contain" }}
           />
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', fontSize: '1.5rem' }}>
+            Zero2Hire
+          </Typography>
         </Box>
         <Typography variant="h4" sx={{ mb: 1, textAlign: "center", fontWeight: 600 }}>
           Candidate Login

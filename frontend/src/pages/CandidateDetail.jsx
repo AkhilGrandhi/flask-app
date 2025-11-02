@@ -10,6 +10,7 @@ import { ArrowBack, Person, Email, Phone, Work, Add, Download, Visibility as Vie
 import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume, generateResumeAsync, getJobStatus, downloadResumeAsync, formatResume } from "../api";
 import { fullName } from "../utils/display";
 import logo from "../assets/zero2hirelogo.png";
+import datafyreLogo from "../assets/datafyrelogo.png";
 
 export default function CandidateDetail() {
   const { id } = useParams();
@@ -958,67 +959,178 @@ export default function CandidateDetail() {
         </DialogActions>
       </Dialog>
 
-      {/* Footer */}
+      {/* Enhanced Footer */}
       <Box 
         component="footer" 
         sx={{ 
-          bgcolor: 'white',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          py: 1.2,
-          mt: 2
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+          borderTop: '1px solid rgba(148, 163, 184, 0.25)',
+          color: 'rgba(226,232,240,0.9)',
+          py: 1.75,
+          mt: 'auto',
+          flexShrink: 0,
+          boxShadow: '0 -6px 18px rgba(15, 23, 42, 0.25)'
         }}
       >
-        <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between', 
-            alignItems: { xs: 'center', md: 'center' },
-            gap: 1.2
-          }}>
-            {/* Logo & Copyright */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                © {new Date().getFullYear()} Data Fyre. All rights reserved.
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
+        <Container maxWidth="lg">
+          <Stack 
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={{ xs: 1, md: 3 }}
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ width: '100%' }}
+          >
+            {/* Left: Logo & Copyright */}
+            <Stack spacing={0.4}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box sx={{ 
+                  bgcolor: 'rgba(255,255,255,0.08)', 
+                  p: 0.75, 
+                  borderRadius: 1.5, 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  boxShadow: '0 4px 16px rgba(15,23,42,0.35)'
+                }}>
+                  <img 
+                    src={datafyreLogo} 
+                    alt="Data Fyre" 
+                    style={{ height: "22px", width: "auto" }}
+                  />
+                </Box>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: '0.85rem', 
+                    fontWeight: 600,
+                    letterSpacing: 0.3
+                  }}
+                >
+                  © {new Date().getFullYear()} Data Fyre. All rights reserved.
+                </Typography>
+              </Stack>
+              <Typography 
+                variant="caption" 
+                sx={{ 
+                  fontSize: '0.75rem',
+                  opacity: 0.7,
+                  ml: 11
+                }}
+              >
                 Powered By Data Fyre PVT LTD
-              </Typography>
-            </Box>
-
-            {/* Links */}
-            <Stack direction="row" spacing={1.8} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                About
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Help
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Privacy
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Terms
               </Typography>
             </Stack>
 
-            {/* Contact */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                <Email sx={{ fontSize: 13, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  support@zero2hire.com
+            {/* Center: Links */}
+            <Stack 
+              direction="row" 
+              spacing={2.5} 
+              alignItems="center"
+              sx={{ display: { xs: 'none', md: 'flex' } }}
+            >
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'rgba(226,232,240,0.9)',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    color: 'white'
+                  } 
+                }}
+              >
+                About
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                Privacy
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                Terms
+              </Typography>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  fontSize: '0.85rem', 
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': { 
+                    transform: 'translateY(-2px)',
+                    textDecoration: 'underline'
+                  } 
+                }}
+              >
+                Help
+              </Typography>
+            </Stack>
+
+            {/* Right: Contact */}
+            <Stack spacing={0.5} alignItems="flex-end">
+              <Box sx={{ 
+                bgcolor: 'rgba(148,163,184,0.18)', 
+                p: 0.85, 
+                borderRadius: 1.5,
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    letterSpacing: 0.2
+                  }}
+                >
+                  📧 support@zero2hire.com
                 </Typography>
               </Box>
-              <Stack direction="row" spacing={1.5}>
+              <Stack direction="row" spacing={1}>
                 <Typography 
                   component="a" 
                   href="https://wa.me/18179662996" 
                   target="_blank"
                   variant="body2" 
-                  color="text.secondary" 
-                  sx={{ fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                  sx={{ 
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    color: 'rgba(226,232,240,0.9)',
+                    transition: 'all 0.2s',
+                    '&:hover': { 
+                      color: 'white',
+                      transform: 'translateY(-2px)'
+                    } 
+                  }}
                 >
                   📱 +1 817 966 2996
                 </Typography>
@@ -1027,15 +1139,25 @@ export default function CandidateDetail() {
                   href="https://wa.me/19378562492" 
                   target="_blank"
                   variant="body2" 
-                  color="text.secondary" 
-                  sx={{ fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                  sx={{ 
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    color: 'rgba(226,232,240,0.9)',
+                    transition: 'all 0.2s',
+                    '&:hover': { 
+                      color: 'white',
+                      transform: 'translateY(-2px)'
+                    } 
+                  }}
                 >
                   📱 (937) 856-2492
                 </Typography>
               </Stack>
-            </Box>
-          </Box>
-        </Box>
+            </Stack>
+          </Stack>
+        </Container>
       </Box>
     </Container>
   );

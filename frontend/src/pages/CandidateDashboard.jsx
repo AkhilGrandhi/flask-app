@@ -18,6 +18,7 @@ import {
   COUNTRY_OPTIONS
 } from "../constants/options";
 import logo from "../assets/zero2hirelogo.png";
+import datafyreLogo from "../assets/datafyrelogo.png";
 
 const RESUME_DAILY_LIMIT = 50;
 const DAILY_LIMIT_MESSAGE = "Your daily resume limit has been exceeded. Please try again tomorrow.";
@@ -1718,8 +1719,8 @@ export default function CandidateDashboard() {
                   boxShadow: '0 4px 16px rgba(15,23,42,0.35)'
                 }}>
                   <img 
-                    src={logo} 
-                    alt="Zero2Hire" 
+                    src={datafyreLogo} 
+                    alt="Data Fyre" 
                     style={{ height: "22px", width: "auto" }}
                   />
                 </Box>
