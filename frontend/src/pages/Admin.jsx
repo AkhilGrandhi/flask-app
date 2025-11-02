@@ -199,45 +199,48 @@ export default function Admin() {
         </Grid>
       </Box>
 
-      {/* Quick Actions Bar */}
-      <Box sx={{ mb: 2 }}>
-        <Button
-          variant="outlined"
-          startIcon={<CreditCard />}
-          onClick={() => navigate("/admin/subscriptions")}
-          sx={{ textTransform: 'none' }}
-        >
-          Manage Subscriptions
-        </Button>
-      </Box>
-
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        <Tabs 
-          value={tab} 
-          onChange={(_,v)=>setTab(v)} 
-          centered
-          sx={{
-            bgcolor: "grey.50",
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            flexShrink: 0,
-            "& .MuiTab-root": {
-              fontWeight: 600,
-              fontSize: "0.95rem",
-              py: 1.5,
-              minHeight: 48,
-              "&.Mui-selected": {
-                color: "primary.main"
+        {/* Custom Header with Tabs and Manage Subscriptions Button */}
+        <Box sx={{ 
+          bgcolor: "grey.50", 
+          borderBottom: "1px solid", 
+          borderColor: "divider", 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center",
+          pr: 2
+        }}>
+          <Tabs 
+            value={tab} 
+            onChange={(_,v)=>setTab(v)} 
+            sx={{
+              flexShrink: 0,
+              "& .MuiTab-root": {
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                py: 1.5,
+                minHeight: 48,
+                "&.Mui-selected": {
+                  color: "primary.main"
+                }
+              },
+              "& .MuiTabs-indicator": {
+                height: 3
               }
-            },
-            "& .MuiTabs-indicator": {
-              height: 3
-            }
-          }}
-        >
-          <Tab label="👥 Users" />
-          <Tab label="📋 Candidates" />
-        </Tabs>
+            }}
+          >
+            <Tab label="👥 Users" />
+            <Tab label="📋 Candidates" />
+          </Tabs>
+          <Button
+            variant="outlined"
+            startIcon={<CreditCard />}
+            onClick={() => navigate("/admin/subscriptions")}
+            sx={{ textTransform: 'none' }}
+          >
+            Manage Subscriptions
+          </Button>
+        </Box>
         <Box sx={{ p: 2, pt: 1.5, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {tab === 0 ? (
             <UsersTab 

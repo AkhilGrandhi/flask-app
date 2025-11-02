@@ -165,11 +165,15 @@ class Candidate(db.Model):
         }
 
         if include_creator:
-            d["created_by"] = {
-                "id": self.creator.id,
-                "email": self.creator.email,
-                "name": self.creator.name,
-            }
+            # Handle case where creator might be None (deleted user, migration issue, etc.)
+            if self.creator:
+                d["created_by"] = {
+                    "id": self.creator.id,
+                    "email": self.creator.email,
+                    "name": self.creator.name,
+                }
+            else:
+                d["created_by"] = None
             # Include assigned users (backward compatible - handle if table doesn't exist)
             try:
                 # Check if the association table exists before querying
