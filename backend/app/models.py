@@ -38,7 +38,7 @@ class User(db.Model):
         return {
             "id": self.id, "name": self.name, "email": self.email,
             "mobile": self.mobile, "role": self.role,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }
 
 
@@ -161,7 +161,7 @@ class Candidate(db.Model):
             "family_in_org": self.family_in_org,
             "availability": self.availability,
 
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
         if include_creator:
@@ -200,7 +200,7 @@ class Candidate(db.Model):
                     "job_id": j.job_id,
                     "job_description": j.job_description,
                     "resume_content": j.resume_content,
-                    "created_at": j.created_at.isoformat(),
+                    "created_at": j.created_at.isoformat() if j.created_at else None,
                 }
                 for j in sorted(self.jobs, key=lambda x: x.id, reverse=True)
             ]

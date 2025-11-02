@@ -131,9 +131,17 @@ def get_user_candidates(user_id):
 @bp.get("/candidates")
 @jwt_required()
 def list_all_candidates():
-    require_admin()
-    cs = Candidate.query.order_by(Candidate.id.desc()).all()
-    return {"candidates":[c.to_dict(include_creator=True, include_jobs=True) for c in cs]}
+    try:
+        require_admin()
+        cs = Candidate.query.order_by(Candidate.id.desc()).all()
+        return {"candidates":[c.to_dict(include_creator=True, include_jobs=True) for c in cs]}
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        import traceback
+        logging.error(f"Error listing all candidates: {e}")
+        logging.error(traceback.format_exc())
+        return {"message": f"Failed to list candidates: {str(e)}"}, 500
 
 @bp.put("/candidates/<int:cand_id>")
 @jwt_required()
