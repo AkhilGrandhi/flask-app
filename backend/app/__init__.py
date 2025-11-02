@@ -64,7 +64,7 @@ def create_app():
         allowed_origins = [frontend_url] if frontend_url else []
     
     # Log CORS configuration for debugging
-    print(f"🔐 CORS Configuration:")
+    print(f"CORS Configuration:")
     print(f"   - Environment: {'Development' if is_dev else 'Production'}")
     print(f"   - Frontend URL: {frontend_url}")
     print(f"   - Allowed Origins: {allowed_origins}")
@@ -104,6 +104,8 @@ def create_app():
     from .public import bp as public_bp
     from .candidateresumebuilder import bp as resume_bp
     from .resume_async import bp as resume_async_bp
+    from .subscriptions import bp as subscriptions_bp
+    from .transactions import bp as transactions_bp
 
     app.register_blueprint(auth_bp,  url_prefix="/api/auth")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
@@ -112,6 +114,8 @@ def create_app():
     app.register_blueprint(public_bp, url_prefix="/api/public")
     app.register_blueprint(resume_bp, url_prefix="/api/resume")
     app.register_blueprint(resume_async_bp, url_prefix="/api/resume-async")
+    app.register_blueprint(subscriptions_bp, url_prefix="/api/admin")
+    app.register_blueprint(transactions_bp, url_prefix="/api/admin")
 
     @app.get("/api/healthz")
     def health():
@@ -155,7 +159,7 @@ def create_app():
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
-    # One-time dev bootstrap: seed admin user
+    # One-time dev bootstrap: seed admin user and migrate candidates to subscriptions
     with app.app_context():
         # Use migrations instead of create_all() to avoid conflicts
         # Only run create_all() in development if no migrations exist
@@ -176,6 +180,47 @@ def create_app():
                 db.session.add(admin)
                 db.session.commit()
                 app.logger.info(f"Default admin created: {email}")
+            
+            # Migrate existing candidates with subscription_type to subscriptions table
+            try:
+                from .models import Candidate, Subscription
+                from datetime import datetime, timedelta
+                
+                candidates_with_subscription = Candidate.query.filter(
+                    Candidate.subscription_type.in_(['Gold', 'Silver'])
+                ).all()
+                
+                migrated_count = 0
+                for candidate in candidates_with_subscription:
+                    # Check if subscription already exists
+                    existing_sub = Subscription.query.filter_by(candidate_id=candidate.id).first()
+                    if not existing_sub:
+                        # Determine price based on tier
+                        price = 150.0 if candidate.subscription_type == 'Gold' else 50.0
+                        
+                        # Create subscription with expiry date (30 days from now)
+                        now = datetime.utcnow()
+                        subscription = Subscription(
+                            candidate_id=candidate.id,
+                            tier=candidate.subscription_type,
+                            status='active',
+                            billing_cycle='monthly',
+                            price=price,
+                            activated_at=now,
+                            expires_at=now + timedelta(days=30),
+                            payment_method='manual',
+                            notes='Migrated from existing candidate subscription_type'
+                        )
+                        db.session.add(subscription)
+                        migrated_count += 1
+                        app.logger.info(f"Creating subscription for candidate {candidate.id} ({candidate.subscription_type})")
+                
+                if migrated_count > 0:
+                    db.session.commit()
+                    app.logger.info(f"Migrated {migrated_count} candidates to subscriptions")
+            except Exception as e:
+                app.logger.warning(f"Could not migrate candidates to subscriptions: {e}")
+                db.session.rollback()
         except Exception as e:
             app.logger.error(f"Error creating admin user: {e}")
             # If tables don't exist yet, create them (development only)

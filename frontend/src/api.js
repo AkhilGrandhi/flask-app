@@ -477,5 +477,23 @@ export const getMyJobs = () =>
 export const cancelJob = (jobId) => 
   api(`/resume-async/job/${jobId}`, { method: "DELETE" });
 
+// Subscriptions
+export const listSubscriptions = (params = {}) => {
+  const queryParams = new URLSearchParams(params).toString();
+  return api(`/admin/subscriptions${queryParams ? `?${queryParams}` : ''}`);
+};
+export const getSubscription = (candidateId) => api(`/admin/subscriptions/${candidateId}`);
+export const createSubscription = (payload) => api('/admin/subscriptions', { method: 'POST', body: payload });
+export const activateSubscription = (candidateId, payload = {}) => api(`/admin/subscriptions/${candidateId}/activate`, { method: 'PUT', body: payload });
+export const deactivateSubscription = (candidateId) => api(`/admin/subscriptions/${candidateId}`, { method: 'DELETE' });
+export const updateSubscription = (candidateId, payload) => api(`/admin/subscriptions/${candidateId}`, { method: 'PUT', body: payload });
+
+// Transactions
+export const listCandidateTransactions = (candidateId) => api(`/admin/candidates/${candidateId}/transactions`);
+export const getTransaction = (transactionId) => api(`/admin/transactions/${transactionId}`);
+export const createTransaction = (candidateId, payload) => api(`/admin/candidates/${candidateId}/transactions`, { method: 'POST', body: payload });
+export const updateTransaction = (transactionId, payload) => api(`/admin/transactions/${transactionId}`, { method: 'PUT', body: payload });
+export const deleteTransaction = (transactionId) => api(`/admin/transactions/${transactionId}`, { method: 'DELETE' });
+
 // Export cache for manual control if needed (e.g., force refresh button)
 export const apiCache = intelligentCache;

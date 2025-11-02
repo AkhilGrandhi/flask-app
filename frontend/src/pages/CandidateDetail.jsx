@@ -708,7 +708,7 @@ export default function CandidateDetail() {
                     </Stack>
                   </TableCell>
                   <TableCell sx={{ whiteSpace:"nowrap", color: "text.secondary" }}>
-                    {new Date(j.created_at).toLocaleDateString()}
+                    {new Date(j.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   </TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={0.5} justifyContent="center">

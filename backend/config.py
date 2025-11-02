@@ -53,7 +53,6 @@ class Config:
         # Check if we're likely running on localhost
         database_uri = SQLALCHEMY_DATABASE_URI or ""
         if "localhost" in database_uri or "127.0.0.1" in database_uri:
-            print("⚠️  Auto-detected localhost database - enabling development mode for JWT cookies")
             is_development = True
     
     JWT_COOKIE_SECURE = not is_development  # True in production, False in dev

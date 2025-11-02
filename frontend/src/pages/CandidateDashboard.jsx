@@ -617,7 +617,7 @@ export default function CandidateDashboard() {
                     )}
                   </TableCell>
                   <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary" }}>
-                    {new Date(job.created_at).toLocaleDateString()}
+                    {new Date(job.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   </TableCell>
                   <TableCell align="center">
                     <Tooltip title="View Details">
@@ -1294,7 +1294,7 @@ export default function CandidateDashboard() {
                         Birthdate
                       </Typography>
                       <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
-                        {candidate.birthdate ? new Date(candidate.birthdate).toLocaleDateString() : "Not provided"}
+                        {candidate.birthdate ? new Date(candidate.birthdate).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : "Not provided"}
                       </Typography>
                     </Box>
                   </Grid>

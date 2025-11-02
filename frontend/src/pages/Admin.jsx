@@ -6,8 +6,8 @@ import {
   TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert, Autocomplete,
   Snackbar, CircularProgress, Tooltip, Stack, Avatar
 } from "@mui/material";
-import { Visibility, VisibilityOff, RemoveRedEye, Edit, Delete, Email } from "@mui/icons-material";
-import { Link as RouterLink } from "react-router-dom";
+import { Visibility, VisibilityOff, RemoveRedEye, Edit, Delete, Email, CreditCard } from "@mui/icons-material";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../AuthContext";
 
@@ -26,6 +26,7 @@ import Footer from "../components/Footer";
 
 export default function Admin() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState(0);
   const [stats, setStats] = useState({ users: 0, candidates: 0, applications: 0 });
   const [pendingCandidateAction, setPendingCandidateAction] = useState(null);
@@ -196,6 +197,18 @@ export default function Admin() {
             </Paper>
           </Grid>
         </Grid>
+      </Box>
+
+      {/* Quick Actions Bar */}
+      <Box sx={{ mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<CreditCard />}
+          onClick={() => navigate("/admin/subscriptions")}
+          sx={{ textTransform: 'none' }}
+        >
+          Manage Subscriptions
+        </Button>
       </Box>
 
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", display: "flex", flexDirection: "column" }}>
@@ -1162,7 +1175,14 @@ function CandidatesTab({ refreshStats, externalAction, onExternalActionHandled =
     setEditing(r);
     // Ensure birthdate is YYYY-MM-DD for the date input (if present)
     const bd = r.birthdate ? r.birthdate.slice(0,10) : "";
-    setForm({ ...r, birthdate: bd });
+    // Ensure subscription_start_date is YYYY-MM-DD for the date input (if present)
+    const ssd = r.subscription_start_date ? r.subscription_start_date.slice(0,10) : "";
+    setForm({ 
+      ...r, 
+      birthdate: bd,
+      subscription_start_date: ssd,
+      role: r.role || "" // Ensure role is explicitly set
+    });
     // Set the assigned user to the current creator
     setAssignedUserId(r.created_by?.id || "");
     // Set the assigned users from the assigned_users array
@@ -1227,7 +1247,7 @@ function CandidatesTab({ refreshStats, externalAction, onExternalActionHandled =
       let required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
                         "address_line1", "city", "state", "postal_code", "country",
-                        "work_experience", "education", "subscription_type", "ssn"];
+                        "work_experience", "education", "subscription_type", "subscription_start_date", "role", "ssn"];
       
       // Password is only required when creating, not when editing
       if (!editing) {
@@ -1804,18 +1824,18 @@ function CandidatesTab({ refreshStats, externalAction, onExternalActionHandled =
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             {editing ? "Edit Candidate" : "Add Candidate"}
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+          {err && (
+            <Alert severity="error" sx={{ mt: 1.5, mb: 0 }}>
+              {err}
+            </Alert>
+          )}
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: err ? 1.5 : 0.5 }}>
             {editing 
               ? `Update candidate information • Created by: ${editing?.created_by?.email || "Unknown"}`
               : "Fill in all required fields to add a new candidate"}
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
-          {err && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {err}
-            </Alert>
-          )}
           
           {/* Assign User (Creator) and Additional Users - Side by side */}
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>

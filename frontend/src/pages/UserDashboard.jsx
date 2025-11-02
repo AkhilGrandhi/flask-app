@@ -134,7 +134,14 @@ export default function UserDashboard() {
     setEditing(r);
     // Ensure birthdate is YYYY-MM-DD for the date input (if present)
     const bd = r.birthdate ? r.birthdate.slice(0,10) : "";
-    setForm({ ...r, birthdate: bd });
+    // Ensure subscription_start_date is YYYY-MM-DD for the date input (if present)
+    const ssd = r.subscription_start_date ? r.subscription_start_date.slice(0,10) : "";
+    setForm({ 
+      ...r, 
+      birthdate: bd,
+      subscription_start_date: ssd,
+      role: r.role || "" // Ensure role is explicitly set
+    });
     setFieldErrors({});
     setErr("");
     setOpen(true); 
@@ -165,7 +172,7 @@ export default function UserDashboard() {
       const required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
                         "address_line1", "city", "state", "postal_code", "country",
-                        "work_experience", "education", "subscription_type", "ssn"];
+                        "work_experience", "education", "subscription_type", "subscription_start_date", "role", "ssn"];
       
       const missing = required.filter(f => !form[f] || String(form[f]).trim() === "");
       if (missing.length > 0) {
@@ -637,16 +644,16 @@ export default function UserDashboard() {
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             Edit Candidate
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+          {err && (
+            <Alert severity="error" sx={{ mt: 1.5, mb: 0 }}>
+              {err}
+            </Alert>
+          )}
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: err ? 1.5 : 0.5 }}>
             Update candidate information
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
-          {err && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {err}
-            </Alert>
-          )}
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>

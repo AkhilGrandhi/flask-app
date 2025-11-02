@@ -40,7 +40,7 @@ const required = [
   "willing_relocate","willing_travel","disability_status","veteran_status",
   "military_experience","race_ethnicity",
   "address_line1","address_line2","city","state","postal_code","country",
-  "technical_skills","work_experience"
+  "technical_skills","work_experience","subscription_type","subscription_start_date","role"
 ];
 
 export function validateCandidate(values) {
@@ -88,6 +88,11 @@ export function validateCandidate(values) {
   // Birthdate must be YYYY-MM-DD
   if (values.birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(values.birthdate)) {
     errors.birthdate = "Use YYYY-MM-DD";
+  }
+
+  // Subscription start date must be YYYY-MM-DD
+  if (values.subscription_start_date && !/^\d{4}-\d{2}-\d{2}$/.test(values.subscription_start_date)) {
+    errors.subscription_start_date = "Use YYYY-MM-DD";
   }
 
   return errors;
