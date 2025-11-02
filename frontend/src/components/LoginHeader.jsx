@@ -7,24 +7,42 @@ export default function LoginHeader() {
       sx={{ 
         bgcolor: 'white',
         borderBottom: '1px solid',
-        borderColor: 'divider',
+        borderColor: 'rgba(148, 163, 184, 0.2)',
         width: '100%',
-        py: 1.5,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        py: 2,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        backdropFilter: 'blur(10px)'
       }}
     >
-      <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
+      <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 3 }}>
         <Box sx={{ 
           display: "flex", 
           alignItems: "center", 
           gap: 1.5 
         }}>
-          <img 
+          <Box
+            component="img" 
             src={logo} 
             alt="Zero2Hire Logo" 
-            style={{ height: "40px", width: "auto", objectFit: "contain" }}
+            sx={{ 
+              height: "42px", 
+              width: "auto", 
+              objectFit: "contain",
+              transition: 'transform 0.3s ease',
+              '&:hover': {
+                transform: 'scale(1.05)'
+              }
+            }}
           />
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', fontSize: '1.5rem' }}>
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 700, 
+              color: 'primary.main', 
+              fontSize: '1.6rem',
+              letterSpacing: '-0.02em'
+            }}
+          >
             Zero2Hire
           </Typography>
         </Box>
