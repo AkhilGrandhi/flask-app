@@ -561,7 +561,17 @@ function UsersTab({ refreshStats, onCandidateAction = () => {} }) {
         </Box>
 
         {filteredRows.length > 0 ? (
-          <Box sx={{ maxHeight: 'calc(100vh - 420px)', overflow: 'auto' }}>
+          <Box sx={{ 
+            maxHeight: 'calc(100vh - 420px)', 
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
       <Table size="small" stickyHeader>
         <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
@@ -1520,7 +1530,17 @@ function CandidatesTab({ refreshStats, externalAction, onExternalActionHandled =
         </Box>
 
         {filteredRows.length > 0 ? (
-          <Box sx={{ maxHeight: 'calc(100vh - 420px)', overflow: 'auto' }}>
+          <Box sx={{ 
+            maxHeight: 'calc(100vh - 420px)', 
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
       <Table size="small" stickyHeader>
         <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>

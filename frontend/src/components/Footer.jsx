@@ -15,7 +15,6 @@ export default function Footer() {
         py: 2.565,
         mt: 'auto',
         flexShrink: 0,
-        boxShadow: '0 -4px 20px rgba(15, 23, 42, 0.3)',
         width: '100%'
       }}
     >

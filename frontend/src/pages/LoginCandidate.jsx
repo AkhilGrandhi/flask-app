@@ -159,7 +159,10 @@ export default function LoginCandidate() {
                   bgcolor: '#f8fafc',
                   transition: 'all 0.3s ease',
                   '& input': {
-                    color: '#1e293b'
+                    color: '#000000 !important'
+                  },
+                  '&.MuiInputBase-root': {
+                    color: '#000000'
                   },
                   '& input[type=number]': {
                     MozAppearance: 'textfield'
@@ -180,9 +183,8 @@ export default function LoginCandidate() {
                   },
                   '&.Mui-focused': {
                     bgcolor: '#ffffff',
-                    boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#667eea',
+                      borderColor: '#cbd5e1',
                       borderWidth: '2px'
                     }
                   },
@@ -196,7 +198,7 @@ export default function LoginCandidate() {
                   color: '#64748b'
                 },
                 '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#667eea',
+                  color: '#64748b',
                   fontWeight: 600
                 }
               }}
@@ -213,22 +215,37 @@ export default function LoginCandidate() {
               sx={{
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
-                  bgcolor: '#f8fafc',
+                  bgcolor: '#f8fafc !important',
                   transition: 'all 0.3s ease',
                   '& input': {
-                    color: '#1e293b'
+                    color: '#000000 !important',
+                    backgroundColor: '#f8fafc !important'
+                  },
+                  '& input:-webkit-autofill': {
+                    WebkitBoxShadow: '0 0 0 1000px #f8fafc inset !important',
+                    WebkitTextFillColor: '#000000 !important'
+                  },
+                  '& input:-webkit-autofill:hover': {
+                    WebkitBoxShadow: '0 0 0 1000px #f8fafc inset !important',
+                    WebkitTextFillColor: '#000000 !important'
+                  },
+                  '& input:-webkit-autofill:focus': {
+                    WebkitBoxShadow: '0 0 0 1000px #ffffff inset !important',
+                    WebkitTextFillColor: '#000000 !important'
+                  },
+                  '&.MuiInputBase-root': {
+                    color: '#000000'
                   },
                   '&:hover': {
-                    bgcolor: '#f8fafc',
+                    bgcolor: '#f8fafc !important',
                     '& .MuiOutlinedInput-notchedOutline': {
                       borderColor: '#cbd5e1'
                     }
                   },
                   '&.Mui-focused': {
-                    bgcolor: '#ffffff',
-                    boxShadow: '0 0 0 3px rgba(102, 126, 234, 0.1)',
+                    bgcolor: '#ffffff !important',
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#667eea',
+                      borderColor: '#cbd5e1',
                       borderWidth: '2px'
                     }
                   },
@@ -242,7 +259,7 @@ export default function LoginCandidate() {
                   color: '#64748b'
                 },
                 '& .MuiInputLabel-root.Mui-focused': {
-                  color: '#667eea',
+                  color: '#64748b',
                   fontWeight: 600
                 }
               }}

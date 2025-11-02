@@ -630,7 +630,17 @@ export default function CandidateDetail() {
             return true;
           });
           return filteredJobs.length > 0 ? (
-          <Box sx={{ maxHeight: 'calc(100vh - 420px)', overflow: 'auto' }}>
+          <Box sx={{ 
+            maxHeight: 'calc(100vh - 420px)', 
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
@@ -852,7 +862,14 @@ export default function CandidateDetail() {
                       overflow: 'auto',
                       fontFamily: 'monospace',
                       fontSize: '0.9rem',
-                      borderRadius: 1
+                      borderRadius: 1,
+                      '&::-webkit-scrollbar': {
+                        display: 'none'
+                      },
+                      '&': {
+                        msOverflowStyle: 'none',
+                        scrollbarWidth: 'none'
+                      }
                     }}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>

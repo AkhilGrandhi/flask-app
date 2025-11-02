@@ -482,7 +482,17 @@ export default function UserDashboard() {
           });
 
           return filteredRows.length > 0 ? (
-          <Box sx={{ maxHeight: 'calc(100vh - 320px)', overflow: 'auto' }}>
+          <Box sx={{ 
+            maxHeight: 'calc(100vh - 320px)', 
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>

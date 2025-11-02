@@ -525,7 +525,19 @@ export default function CandidateDashboard() {
             return true;
           });
           return filteredJobs.length > 0 ? (
-          <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', maxHeight: { xs: 'unset', md: candidate?.subscription_type === "Gold" ? 620 : 440 } }}>
+          <Box sx={{ 
+            flex: 1, 
+            overflowX: 'auto', 
+            overflowY: 'auto', 
+            maxHeight: { xs: 'unset', md: candidate?.subscription_type === "Gold" ? 620 : 440 },
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
           <Table size="small" stickyHeader sx={{ minWidth: 960 }}>
             <TableHead>
               <TableRow>
@@ -1179,7 +1191,14 @@ export default function CandidateDashboard() {
                       p: 2, 
                       bgcolor: "grey.50",
                       maxHeight: 400,
-                      overflow: "auto"
+                      overflow: "auto",
+                      '&::-webkit-scrollbar': {
+                        display: 'none'
+                      },
+                      '&': {
+                        msOverflowStyle: 'none',
+                        scrollbarWidth: 'none'
+                      }
                     }}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", fontFamily: "monospace" }}>
