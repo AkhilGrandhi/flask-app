@@ -2,10 +2,12 @@
 import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { CssBaseline } from "@mui/material";
 import { AuthProvider, useAuth } from "./AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 import LoadingSpinner from "./components/LoadingSpinner";
 import ErrorBoundary from "./components/ErrorBoundary";
+import "./index.css";
 
 // Lazy load all page components for better performance
 const LoginUser = lazy(() => import("./pages/LoginUser"));
@@ -134,6 +136,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
       <AuthProvider>
+        <CssBaseline />
         <RouterProvider router={router} />
       </AuthProvider>
     </ErrorBoundary>
