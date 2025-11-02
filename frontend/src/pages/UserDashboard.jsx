@@ -258,7 +258,7 @@ export default function UserDashboard() {
         subtitle="Manage and track all your candidates"
       />
       
-      <Container maxWidth="lg" sx={{ mt: 2, mb: 2, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ mt: 2, mb: 2, flex: 1 }}>
 
       {/* Stats Cards - Compact */}
       <Box sx={{ mb: 1.5 }}>

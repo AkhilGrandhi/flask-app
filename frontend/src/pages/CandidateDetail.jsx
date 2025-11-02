@@ -319,7 +319,7 @@ export default function CandidateDetail() {
         subtitle="Manage Job Applications and Generate Resumes"
       />
       
-      <Container maxWidth="lg" sx={{ mt: 2, mb: 2, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ mt: 2, mb: 2, flex: 1 }}>
 
       {/* Candidate Info Card */}
       <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 1.5, border: "1px solid", borderColor: "divider" }}>

@@ -74,7 +74,7 @@ export default function Admin() {
         subtitle="Manage users and candidates across the entire system"
       />
       
-      <Container maxWidth="lg" sx={{ mt: 2, mb: 2, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ mt: 2, mb: 2, flex: 1 }}>
 
       {/* Stats Cards */}
       <Box sx={{ mb: 1.5 }}>

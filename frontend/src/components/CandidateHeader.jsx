@@ -16,7 +16,7 @@ export default function CandidateHeader({ candidate, logout, onViewProfile, onEd
       boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
       flexShrink: 0
     }}>
-      <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
+      <Box sx={{ maxWidth: 'xl', mx: 'auto', px: 3 }}>
         <Box sx={{ 
           display: "flex", 
           justifyContent: "space-between", 

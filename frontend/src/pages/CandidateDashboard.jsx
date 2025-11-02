@@ -309,7 +309,7 @@ export default function CandidateDashboard() {
       />
 
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 1, md: 1.25 }, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1.5, overflow: 'hidden' }}>
+      <Container maxWidth="xl" sx={{ flex: 1, py: { xs: 1, md: 1.25 }, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1.5, overflow: 'hidden' }}>
       {/* Generate Resume Section - Only for Silver Subscribers */}
       {candidate?.subscription_type === "Silver" && (
         <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 0.5, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>

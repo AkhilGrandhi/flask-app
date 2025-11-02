@@ -14,7 +14,7 @@ export default function DashboardHeader({ user, logout, title, subtitle }) {
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}
     >
-      <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
+      <Box sx={{ maxWidth: 'xl', mx: 'auto', px: 3 }}>
         <Box sx={{ 
           display: "flex", 
           justifyContent: "space-between", 

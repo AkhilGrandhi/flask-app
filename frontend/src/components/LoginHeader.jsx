@@ -14,7 +14,7 @@ export default function LoginHeader() {
         backdropFilter: 'blur(10px)'
       }}
     >
-      <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 3 }}>
+      <Box sx={{ maxWidth: 'xl', mx: 'auto', px: 3 }}>
         <Box sx={{ 
           display: "flex", 
           alignItems: "center", 
