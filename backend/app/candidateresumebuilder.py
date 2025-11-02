@@ -655,3 +655,59 @@ def generate_resume():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"message": f"File generation error: {e}"}), 500
+
+
+@bp.post("/format")
+def format_resume():
+    """
+    Format existing resume content into Word document
+    Takes plain text resume content and converts it to a formatted .docx file
+    
+    Request body:
+    {
+        "resume_content": "PROFESSIONAL SUMMARY\n...",
+        "candidate_name": "John Doe",
+        "job_id": "JOB-123",
+        "generated_date": "2025-01-01"
+    }
+    
+    Returns: Word document download
+    """
+    try:
+        data = request.get_json(force=True, silent=False)
+    except Exception:
+        return jsonify({"message": "Invalid JSON"}), 400
+    
+    resume_content = (data or {}).get("resume_content", "").strip()
+    candidate_name = (data or {}).get("candidate_name", "Candidate")
+    job_id = (data or {}).get("job_id", "")
+    generated_date = (data or {}).get("generated_date", "")
+    
+    if not resume_content:
+        return jsonify({"message": "Missing resume_content"}), 400
+    
+    try:
+        # Create formatted Word document from plain text
+        doc = create_resume_word(resume_content)
+        
+        # Save to BytesIO buffer
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        
+        # Create safe filename
+        safe_name = re.sub(r'[^A-Za-z0-9]+', '_', candidate_name) or "Candidate"
+        filename = f"{safe_name}_Resume.docx"
+        if job_id:
+            safe_job_id = re.sub(r'[^A-Za-z0-9]+', '_', job_id)
+            filename = f"{safe_name}_Resume_{safe_job_id}.docx"
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=filename,
+            mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"message": f"File formatting error: {e}"}), 500

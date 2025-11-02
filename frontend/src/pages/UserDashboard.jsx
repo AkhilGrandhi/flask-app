@@ -8,10 +8,11 @@ import {
 import { Visibility as ViewIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import { listMyCandidates, createCandidate, updateCandidate, deleteCandidate } from "../api";
+import { listMyCandidates, updateCandidate, deleteCandidate } from "../api";
 import CandidateForm from "../components/CandidateForm";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { fullName, initials } from "../utils/display";
+import logo from "../assets/zero2hirelogo.png";
 
 export default function UserDashboard() {
   const { user, logout } = useAuth();
@@ -128,30 +129,6 @@ export default function UserDashboard() {
     setFieldErrors(newFieldErrors);
   };
 
-  const startAdd = () => { 
-    setEditing(null); 
-    // Initialize form with default values to match CandidateForm defaults
-    setForm({
-      gender: "Male",
-      nationality: "India",
-      citizenship_status: "Non-Resident",
-      visa_status: "None",
-      work_authorization: "Authorized",
-      willing_relocate: "Yes",
-      willing_travel: "Yes",
-      disability_status: "No",
-      veteran_status: "Not a Veteran",
-      military_experience: "No",
-      race_ethnicity: "Asian",
-      country: "India",
-      at_least_18: "Yes",
-      family_in_org: "No",
-      subscription_type: "Gold"
-    }); 
-    setFieldErrors({});
-    setErr("");
-    setOpen(true); 
-  };
   const startEdit = (r) => { 
     setEditing(r);
     // Ensure birthdate is YYYY-MM-DD for the date input (if present)
@@ -184,15 +161,10 @@ export default function UserDashboard() {
       }
       
       // Client-side validation
-      let required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
+      const required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
                         "address_line1", "city", "state", "postal_code", "country",
                         "work_experience", "education", "subscription_type", "ssn"];
-      
-      // Password is only required when creating, not when editing
-      if (!editing) {
-        required.push("password");
-      }
       
       const missing = required.filter(f => !form[f] || String(form[f]).trim() === "");
       if (missing.length > 0) {
@@ -231,20 +203,19 @@ export default function UserDashboard() {
         return;
       }
       
-      // Clean data for edit mode - don't send empty password
+      // Clean data - don't send empty password
       const dataToSend = { ...form };
-      if (editing && (!form.password || form.password.trim() === "")) {
+      if (!form.password || form.password.trim() === "") {
         delete dataToSend.password;
       }
       
-      if (editing) await updateCandidate(editing.id, dataToSend);
-      else await createCandidate(dataToSend);
+      await updateCandidate(editing.id, dataToSend);
       
       setOpen(false);
       setFieldErrors({});
       setToast({ 
         open: true, 
-        message: editing ? '✓ Candidate updated successfully!' : '✓ Candidate created successfully!', 
+        message: '✓ Candidate updated successfully!', 
         severity: 'success' 
       });
       await load();
@@ -252,7 +223,7 @@ export default function UserDashboard() {
       setErr(e.message);
       setToast({ 
         open: true, 
-        message: `✗ Failed to ${editing ? 'update' : 'create'} candidate: ${e.message}`, 
+        message: `✗ Failed to update candidate: ${e.message}`, 
         severity: 'error' 
       });
       // Also check if backend returned duplicate errors
@@ -291,8 +262,8 @@ export default function UserDashboard() {
       }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
-            src="/only_logo.png" 
-            alt="Data Fyre Logo" 
+            src={logo} 
+            alt="Zero2Hire Logo" 
             style={{ height: "40px", width: "auto", objectFit: "contain" }}
           />
           <Box>
@@ -532,26 +503,6 @@ export default function UserDashboard() {
                 Clear
               </Button>
             )}
-            
-            <Button 
-              variant="contained" 
-              size="small"
-              startIcon={<Typography sx={{ fontSize: "1rem" }}>👤</Typography>}
-              onClick={startAdd}
-              sx={{ 
-                fontWeight: 600,
-                bgcolor: "white",
-                color: "primary.main",
-                fontSize: "0.75rem",
-                px: 1.5,
-                height: 32,
-                "&:hover": {
-                  bgcolor: "rgba(255,255,255,0.9)"
-                }
-              }}
-            >
-              Add Candidate
-            </Button>
           </Box>
         </Box>
 
@@ -704,18 +655,8 @@ export default function UserDashboard() {
               {(nameFilter || emailFilter || phoneFilter) ? "No Matching Candidates" : "No Candidates Yet"}
             </Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
-              {(nameFilter || emailFilter || phoneFilter) ? "Try adjusting your filters" : "Start by adding your first candidate to the system"}
+              {(nameFilter || emailFilter || phoneFilter) ? "Try adjusting your filters" : "No candidates have been created yet"}
             </Typography>
-            {!(nameFilter || emailFilter || phoneFilter) && (
-              <Button 
-                variant="contained" 
-                size="large"
-                onClick={startAdd}
-                sx={{ fontWeight: 600 }}
-              >
-                Add Your First Candidate
-              </Button>
-            )}
           </Box>
         );
         })()}
@@ -724,10 +665,10 @@ export default function UserDashboard() {
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            {editing ? "Edit Candidate" : "Add Candidate"}
+            Edit Candidate
           </Typography>
           <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-            {editing ? "Update candidate information" : "Fill in all required fields to add a new candidate"}
+            Update candidate information
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
@@ -747,7 +688,7 @@ export default function UserDashboard() {
             startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
             sx={{ px: 4 }}
           >
-            {submitting ? (editing ? "Saving..." : "Creating...") : (editing ? "Save Changes" : "Create Candidate")}
+            {submitting ? "Saving..." : "Save Changes"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -789,14 +730,12 @@ export default function UserDashboard() {
             gap: 1.2
           }}>
             {/* Logo & Copyright */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <img 
-                src="/only_logo.png" 
-                alt="Data Fyre Logo" 
-                style={{ height: "20px", width: "auto", objectFit: "contain" }}
-              />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                 © {new Date().getFullYear()} Data Fyre. All rights reserved.
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
+                Powered By Data Fyre PVT LTD
               </Typography>
             </Box>
 
@@ -817,12 +756,34 @@ export default function UserDashboard() {
             </Stack>
 
             {/* Contact */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  📧 support@datafyre.com
+                  📧 support@zero2hire.com
                 </Typography>
               </Box>
+              <Stack direction="row" spacing={1.5}>
+                <Typography 
+                  component="a" 
+                  href="https://wa.me/18179662996" 
+                  target="_blank"
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                >
+                  📱 +1 817 966 2996
+                </Typography>
+                <Typography 
+                  component="a" 
+                  href="https://wa.me/19378562492" 
+                  target="_blank"
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                >
+                  📱 (937) 856-2492
+                </Typography>
+              </Stack>
             </Box>
           </Box>
         </Box>

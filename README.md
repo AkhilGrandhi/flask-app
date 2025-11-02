@@ -315,7 +315,8 @@ This project is proprietary software of Data Fyre Pvt. Ltd.
 For issues or questions:
 - Check documentation: [DEVELOPER_README.md](DEVELOPER_README.md) or [DEPLOYMENT_README.md](DEPLOYMENT_README.md)
 - Review troubleshooting sections
-- Contact: support@datafyre.com
+- Contact: support@zero2hire.com
+- WhatsApp: +1 817 966 2996 or (937) 856-2492
 
 ## 🎯 Roadmap
 

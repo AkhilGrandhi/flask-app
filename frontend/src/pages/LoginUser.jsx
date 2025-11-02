@@ -7,7 +7,7 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { loginUser, meApi } from "../api";
 import { useAuth } from "../AuthContext";
-import logo from "../assets/logo.png";
+import logo from "../assets/zero2hirelogo.png";
 
 export default function LoginUser() {
   const [mobile, setMobile] = useState("");
@@ -36,7 +36,7 @@ export default function LoginUser() {
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
           <img 
             src={logo} 
-            alt="Data Fyre Logo" 
+            alt="Zero2Hire Logo" 
             style={{ maxWidth: "200px", height: "auto" }}
           />
         </Box>

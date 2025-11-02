@@ -424,6 +424,27 @@ export const generateResume = async (job_desc, candidate_info, file_type = "word
   return res.blob(); // Return blob for download
 };
 
+// Format existing resume content into Word document
+export const formatResume = async (resume_content, candidate_name, job_id = "", generated_date = "") => {
+  const headers = { "Content-Type": "application/json" };
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  
+  const res = await fetch(`${API}/resume/format`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: JSON.stringify({ resume_content, candidate_name, job_id, generated_date })
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.message || res.statusText);
+  }
+  return res.blob(); // Return blob for download
+};
+
 // Resume generation (async - NEW)
 export const generateResumeAsync = (payload) => 
   api("/resume-async/generate-async", { method: "POST", body: payload });

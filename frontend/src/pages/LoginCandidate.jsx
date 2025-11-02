@@ -7,7 +7,7 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { loginCandidate, meApi } from "../api";
 import { useAuth } from "../AuthContext";
-import logo from "../assets/logo.png";
+import logo from "../assets/zero2hirelogo.png";
 
 export default function LoginCandidate() {
   const [phone, setPhone] = useState("");
@@ -52,7 +52,7 @@ export default function LoginCandidate() {
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
           <img 
             src={logo} 
-            alt="Data Fyre Logo" 
+            alt="Zero2Hire Logo" 
             style={{ maxWidth: "200px", height: "auto" }}
           />
         </Box>

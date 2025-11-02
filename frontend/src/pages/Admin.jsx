@@ -21,6 +21,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 
 import { Avatar, Stack } from "@mui/material";
 import { fullName, initials } from "../utils/display";
+import logo from "../assets/zero2hirelogo.png";
 
 
 
@@ -80,8 +81,8 @@ export default function Admin() {
       }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
-            src="/only_logo.png" 
-            alt="Data Fyre Logo" 
+            src={logo} 
+            alt="Zero2Hire Logo" 
             style={{ height: "40px", width: "auto", objectFit: "contain" }}
           />
           <Box>
@@ -303,14 +304,12 @@ export default function Admin() {
             gap: 1.2
           }}>
             {/* Logo & Copyright */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <img 
-                src="/only_logo.png" 
-                alt="Data Fyre Logo" 
-                style={{ height: "20px", width: "auto", objectFit: "contain" }}
-              />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                 © {new Date().getFullYear()} Data Fyre. All rights reserved.
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
+                Powered By Data Fyre PVT LTD
               </Typography>
             </Box>
 
@@ -331,13 +330,35 @@ export default function Admin() {
             </Stack>
 
             {/* Contact */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                 <Email sx={{ fontSize: 13, color: 'text.secondary' }} />
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  support@datafyre.com
+                  support@zero2hire.com
                 </Typography>
               </Box>
+              <Stack direction="row" spacing={1.5}>
+                <Typography 
+                  component="a" 
+                  href="https://wa.me/18179662996" 
+                  target="_blank"
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                >
+                  📱 +1 817 966 2996
+                </Typography>
+                <Typography 
+                  component="a" 
+                  href="https://wa.me/19378562492" 
+                  target="_blank"
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                >
+                  📱 (937) 856-2492
+                </Typography>
+              </Stack>
             </Box>
           </Box>
         </Box>

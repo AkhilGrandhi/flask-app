@@ -7,8 +7,9 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Alert, Chip, Grid, Tooltip, IconButton
 } from "@mui/material";
 import { ArrowBack, Person, Email, Phone, Work, Add, Download, Visibility as ViewIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
-import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume, generateResumeAsync, getJobStatus, downloadResumeAsync } from "../api";
+import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume, generateResumeAsync, getJobStatus, downloadResumeAsync, formatResume } from "../api";
 import { fullName } from "../utils/display";
+import logo from "../assets/zero2hirelogo.png";
 
 export default function CandidateDetail() {
   const { id } = useParams();
@@ -254,25 +255,20 @@ export default function CandidateDetail() {
     }
   };
 
-  const handleDownloadResume = (job) => {
+  const handleDownloadResume = async (job) => {
     if (!job.resume_content) {
       setErr("No resume content available to download");
       return;
     }
 
     try {
-      // Create a Blob with the resume content in a format that Word can open
-      const content = `${cand.first_name} ${cand.last_name} - Resume
-Job ID: ${job.job_id}
-Generated: ${new Date(job.created_at).toLocaleDateString()}
-
-${job.resume_content}`;
-
-      const blob = new Blob([content], { type: 'application/msword' });
+      const candidate_name = `${cand.first_name} ${cand.last_name}`;
+      const blob = await formatResume(job.resume_content, candidate_name, job.job_id, job.created_at);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${cand.first_name}_${cand.last_name}_Resume_${job.job_id}.doc`;
+      a.download = `${cand.first_name}_${cand.last_name}_Resume_${job.job_id}.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -325,8 +321,8 @@ ${job.resume_content}`;
       }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
-            src="/only_logo.png" 
-            alt="Data Fyre Logo" 
+            src={logo} 
+            alt="Zero2Hire Logo" 
             style={{ height: "40px", width: "auto", objectFit: "contain" }}
           />
           <Box>
@@ -480,13 +476,13 @@ ${job.resume_content}`;
               onChange={(e)=>setJobId(e.target.value)}
               fullWidth
               multiline
-              minRows={2}
-              maxRows={4}
+              rows={3}
               disabled={generating}
               required
               variant="outlined"
               size="small"
               placeholder="Enter or paste the Job ID"
+              inputProps={{ style: { overflowY: 'auto' } }}
             />
             <TextField
               label="Job Description"
@@ -494,13 +490,13 @@ ${job.resume_content}`;
               onChange={(e)=>setJobDesc(e.target.value)}
               fullWidth
               multiline
-              minRows={2}
-              maxRows={6}
+              rows={3}
               disabled={generating}
               required
               variant="outlined"
               size="small"
               placeholder="Paste the Job Description"
+              inputProps={{ style: { overflowY: 'auto' } }}
             />
           </Box>
         </Box>
@@ -982,14 +978,12 @@ ${job.resume_content}`;
             gap: 1.2
           }}>
             {/* Logo & Copyright */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <img 
-                src="/only_logo.png" 
-                alt="Data Fyre Logo" 
-                style={{ height: "20px", width: "auto", objectFit: "contain" }}
-              />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
               <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                 © {new Date().getFullYear()} Data Fyre. All rights reserved.
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', opacity: 0.7 }}>
+                Powered By Data Fyre PVT LTD
               </Typography>
             </Box>
 
@@ -1010,13 +1004,35 @@ ${job.resume_content}`;
             </Stack>
 
             {/* Contact */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                 <Email sx={{ fontSize: 13, color: 'text.secondary' }} />
                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  support@datafyre.com
+                  support@zero2hire.com
                 </Typography>
               </Box>
+              <Stack direction="row" spacing={1.5}>
+                <Typography 
+                  component="a" 
+                  href="https://wa.me/18179662996" 
+                  target="_blank"
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                >
+                  📱 +1 817 966 2996
+                </Typography>
+                <Typography 
+                  component="a" 
+                  href="https://wa.me/19378562492" 
+                  target="_blank"
+                  variant="body2" 
+                  color="text.secondary" 
+                  sx={{ fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}
+                >
+                  📱 (937) 856-2492
+                </Typography>
+              </Stack>
             </Box>
           </Box>
         </Box>

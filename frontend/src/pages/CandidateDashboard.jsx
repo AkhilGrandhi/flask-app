@@ -10,13 +10,14 @@ import {
   WorkOutlineOutlined, VisibilityOutlined, Download, WorkspacePremium, Add
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext";
-import { getMyCandidateProfile, updateMyCandidateProfile, addCandidateJob, generateResume, deleteCandidateJob } from "../api";
+import { getMyCandidateProfile, updateMyCandidateProfile, addCandidateJob, generateResume, deleteCandidateJob, formatResume } from "../api";
 import LoadingSpinner from "../components/LoadingSpinner";
 import {
   OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
   WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
   COUNTRY_OPTIONS
 } from "../constants/options";
+import logo from "../assets/zero2hirelogo.png";
 
 const RESUME_DAILY_LIMIT = 50;
 const DAILY_LIMIT_MESSAGE = "Your daily resume limit has been exceeded. Please try again tomorrow.";
@@ -146,7 +147,7 @@ export default function CandidateDashboard() {
     load();
   }, []);
 
-  const handleDownloadResume = (job) => {
+  const handleDownloadResume = async (job) => {
     if (!job.resume_content) {
       setToast({ 
         open: true, 
@@ -157,18 +158,13 @@ export default function CandidateDashboard() {
     }
 
     try {
-      // Create a Blob with the resume content in a format that Word can open
-      const content = `${candidate.first_name} ${candidate.last_name} - Resume
-Job ID: ${job.job_id}
-Generated: ${new Date(job.created_at).toLocaleDateString()}
-
-${job.resume_content}`;
-
-      const blob = new Blob([content], { type: 'application/msword' });
+      const candidate_name = `${candidate.first_name} ${candidate.last_name}`;
+      const blob = await formatResume(job.resume_content, candidate_name, job.job_id, job.created_at);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${candidate.first_name}_${candidate.last_name}_Resume_${job.job_id}.doc`;
+      a.download = `${candidate.first_name}_${candidate.last_name}_Resume_${job.job_id}.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -323,13 +319,13 @@ ${job.resume_content}`;
             {/* Logo and Brand */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <img 
-            src="/only_logo.png" 
-            alt="Data Fyre Logo" 
+            src={logo} 
+            alt="Zero2Hire Logo" 
                 style={{ height: "36px", width: "auto", objectFit: "contain" }}
           />
           <Box>
                 <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', lineHeight: 1.1, fontSize: '1.1rem' }}>
-                  Data Fyre
+                  Zero2Hire
             </Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                   Candidate Portal
@@ -400,18 +396,20 @@ ${job.resume_content}`;
                   <VisibilityOutlined sx={{ fontSize: 18 }} />
                   <Typography variant="body2">View Profile</Typography>
                 </MenuItem>
-                <MenuItem 
-              onClick={() => {
-                setEditForm(candidate);
-                setEditError("");
-                setEditOpen(true);
-                    setProfileMenuAnchor(null);
-                  }}
-                  sx={{ gap: 1, py: 1, px: 2 }}
-                >
-                  <PersonOutline sx={{ fontSize: 18 }} />
-                  <Typography variant="body2">Edit Profile</Typography>
-                </MenuItem>
+                {candidate?.subscription_type !== "Gold" && (
+                  <MenuItem 
+                    onClick={() => {
+                      setEditForm(candidate);
+                      setEditError("");
+                      setEditOpen(true);
+                      setProfileMenuAnchor(null);
+                    }}
+                    sx={{ gap: 1, py: 1, px: 2 }}
+                  >
+                    <PersonOutline sx={{ fontSize: 18 }} />
+                    <Typography variant="body2">Edit Profile</Typography>
+                  </MenuItem>
+                )}
               </Menu>
               <Button 
                 onClick={logout} 
@@ -437,7 +435,7 @@ ${job.resume_content}`;
       <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 1, md: 1.25 }, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1.5, overflow: 'hidden' }}>
       {/* Generate Resume Section - Only for Silver Subscribers */}
       {candidate?.subscription_type === "Silver" && (
-        <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 2, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>
+        <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 0.5, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>
           <Box sx={{ 
             px: 2,
             py: 0.75, 
@@ -513,8 +511,7 @@ ${job.resume_content}`;
                 size="small"
                 fullWidth
                 multiline
-                minRows={3}
-                maxRows={3}
+                rows={3}
                 inputProps={{ style: { overflowY: 'auto' } }}
               />
               <TextField
@@ -528,8 +525,7 @@ ${job.resume_content}`;
                 size="small"
                 fullWidth
                 multiline
-                minRows={3}
-                maxRows={3}
+                rows={3}
                 inputProps={{ style: { overflowY: 'auto' } }}
               />
             </Box>
@@ -538,7 +534,7 @@ ${job.resume_content}`;
       )}
 
       {/* Jobs Applied Section - Compact */}
-      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: '1px solid', borderColor: 'divider', flexShrink: 1, display: 'flex', flexDirection: 'column', minHeight: { xs: 'auto', md: 420 } }}>
+      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: '1px solid', borderColor: 'divider', flexShrink: 1, display: 'flex', flexDirection: 'column', minHeight: { xs: 'auto', md: candidate?.subscription_type === "Gold" ? 600 : 420 } }}>
         <Box sx={{ 
           px: 2,
           py: 0.75, 
@@ -652,7 +648,7 @@ ${job.resume_content}`;
             return true;
           });
           return filteredJobs.length > 0 ? (
-          <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', maxHeight: { xs: 'unset', md: 440 } }}>
+          <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', maxHeight: { xs: 'unset', md: candidate?.subscription_type === "Gold" ? 620 : 440 } }}>
           <Table size="small" stickyHeader sx={{ minWidth: 960 }}>
             <TableHead>
               <TableRow>
@@ -1711,30 +1707,42 @@ ${job.resume_content}`;
             sx={{ width: '100%' }}
           >
             {/* Left: Logo & Copyright */}
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Box sx={{ 
-                bgcolor: 'rgba(255,255,255,0.08)', 
-                p: 0.75, 
-                borderRadius: 1.5, 
-                display: 'flex', 
-                alignItems: 'center',
-                boxShadow: '0 4px 16px rgba(15,23,42,0.35)'
-              }}>
-                <img 
-                  src="/only_logo.png" 
-                  alt="Data Fyre" 
-                  style={{ height: "22px", width: "auto" }}
-                />
-              </Box>
+            <Stack spacing={0.4}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Box sx={{ 
+                  bgcolor: 'rgba(255,255,255,0.08)', 
+                  p: 0.75, 
+                  borderRadius: 1.5, 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  boxShadow: '0 4px 16px rgba(15,23,42,0.35)'
+                }}>
+                  <img 
+                    src={logo} 
+                    alt="Zero2Hire" 
+                    style={{ height: "22px", width: "auto" }}
+                  />
+                </Box>
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: '0.85rem', 
+                    fontWeight: 600,
+                    letterSpacing: 0.3
+                  }}
+                >
+                  © {new Date().getFullYear()} Data Fyre. All rights reserved.
+                </Typography>
+              </Stack>
               <Typography 
-                variant="body2" 
+                variant="caption" 
                 sx={{ 
-                  fontSize: '0.85rem', 
-                  fontWeight: 600,
-                  letterSpacing: 0.3
+                  fontSize: '0.75rem',
+                  opacity: 0.7,
+                  ml: 11
                 }}
               >
-                © {new Date().getFullYear()} Data Fyre. All rights reserved.
+                Powered By Data Fyre PVT LTD
               </Typography>
             </Stack>
 
@@ -1812,7 +1820,7 @@ ${job.resume_content}`;
             </Stack>
 
             {/* Right: Contact */}
-            <Stack direction="row" spacing={0.75} alignItems="center">
+            <Stack spacing={0.5} alignItems="flex-end">
               <Box sx={{ 
                 bgcolor: 'rgba(148,163,184,0.18)', 
                 p: 0.85, 
@@ -1828,9 +1836,51 @@ ${job.resume_content}`;
                     letterSpacing: 0.2
                   }}
                 >
-                  📧 support@datafyre.com
+                  📧 support@zero2hire.com
                 </Typography>
               </Box>
+              <Stack direction="row" spacing={1}>
+                <Typography 
+                  component="a" 
+                  href="https://wa.me/18179662996" 
+                  target="_blank"
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    color: 'rgba(226,232,240,0.9)',
+                    transition: 'all 0.2s',
+                    '&:hover': { 
+                      color: 'white',
+                      transform: 'translateY(-2px)'
+                    } 
+                  }}
+                >
+                  📱 +1 817 966 2996
+                </Typography>
+                <Typography 
+                  component="a" 
+                  href="https://wa.me/19378562492" 
+                  target="_blank"
+                  variant="body2" 
+                  sx={{ 
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    color: 'rgba(226,232,240,0.9)',
+                    transition: 'all 0.2s',
+                    '&:hover': { 
+                      color: 'white',
+                      transform: 'translateY(-2px)'
+                    } 
+                  }}
+                >
+                  📱 (937) 856-2492
+                </Typography>
+              </Stack>
             </Stack>
           </Stack>
         </Container>
