@@ -10,13 +10,15 @@ import {
   WorkOutlineOutlined, VisibilityOutlined, Download, WorkspacePremium, Add
 } from "@mui/icons-material";
 import { useAuth } from "../AuthContext";
-import { getMyCandidateProfile, updateMyCandidateProfile, addCandidateJob, generateResume, deleteCandidateJob } from "../api";
+import { getMyCandidateProfile, updateMyCandidateProfile, addCandidateJob, generateResume, deleteCandidateJob, formatResume } from "../api";
 import LoadingSpinner from "../components/LoadingSpinner";
 import {
   OTHER, GENDER_OPTIONS, CITIZENSHIP_OPTIONS, VISA_OPTIONS,
   WORK_AUTH_OPTIONS, VETERAN_OPTIONS, RACE_ETHNICITY_OPTIONS,
   COUNTRY_OPTIONS
 } from "../constants/options";
+import CandidateHeader from "../components/CandidateHeader";
+import Footer from "../components/Footer";
 
 const RESUME_DAILY_LIMIT = 50;
 const DAILY_LIMIT_MESSAGE = "Your daily resume limit has been exceeded. Please try again tomorrow.";
@@ -103,10 +105,6 @@ export default function CandidateDashboard() {
   const [jobDateFilter, setJobDateFilter] = useState("");
   const [jobIdFilter, setJobIdFilter] = useState("");
   const [jobDescFilter, setJobDescFilter] = useState("");
-  
-  // Profile menu state
-  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
-  const profileMenuOpen = Boolean(profileMenuAnchor);
 
   const limitReached = resumeCountToday >= RESUME_DAILY_LIMIT;
   const remainingResumes = Math.max(0, RESUME_DAILY_LIMIT - resumeCountToday);
@@ -146,7 +144,7 @@ export default function CandidateDashboard() {
     load();
   }, []);
 
-  const handleDownloadResume = (job) => {
+  const handleDownloadResume = async (job) => {
     if (!job.resume_content) {
       setToast({ 
         open: true, 
@@ -157,18 +155,13 @@ export default function CandidateDashboard() {
     }
 
     try {
-      // Create a Blob with the resume content in a format that Word can open
-      const content = `${candidate.first_name} ${candidate.last_name} - Resume
-Job ID: ${job.job_id}
-Generated: ${new Date(job.created_at).toLocaleDateString()}
-
-${job.resume_content}`;
-
-      const blob = new Blob([content], { type: 'application/msword' });
+      const candidate_name = `${candidate.first_name} ${candidate.last_name}`;
+      const blob = await formatResume(job.resume_content, candidate_name, job.job_id, job.created_at);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${candidate.first_name}_${candidate.last_name}_Resume_${job.job_id}.doc`;
+      a.download = `${candidate.first_name}_${candidate.last_name}_Resume_${job.job_id}.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -304,140 +297,22 @@ ${job.resume_content}`;
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
-      {/* Compact Header */}
-      <Box sx={{ 
-        bgcolor: 'white',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        zIndex: 1100,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-        flexShrink: 0
-      }}>
-        <Container maxWidth="lg">
-      <Box sx={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-            py: 1
-      }}>
-            {/* Logo and Brand */}
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <img 
-            src="/only_logo.png" 
-            alt="Data Fyre Logo" 
-                style={{ height: "36px", width: "auto", objectFit: "contain" }}
-          />
-          <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main', lineHeight: 1.1, fontSize: '1.1rem' }}>
-                  Data Fyre
-            </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  Candidate Portal
-            </Typography>
-          </Box>
-        </Box>
-
-            {/* User Menu */}
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Chip 
-                label={candidate?.subscription_type === "Gold" ? "🥇 Gold" : "🥈 Silver"} 
-                sx={{ 
-                  bgcolor: candidate?.subscription_type === "Gold" ? "#FFD700" : "#C0C0C0",
-                  color: 'white',
-                  fontWeight: 600,
-                  fontSize: '0.7rem',
-                  height: 24
-                }}
-                size="small"
-              />
-              <Box sx={{ textAlign: "right", display: { xs: 'none', sm: 'block' } }}>
-                <Typography variant="body2" sx={{ fontSize: "0.8rem", fontWeight: 600, lineHeight: 1.2 }}>
-              {candidate?.first_name} {candidate?.last_name}
-            </Typography>
-                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                  {candidate?.email}
-                </Typography>
-          </Box>
-              <Avatar 
-                onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
-                sx={{ 
-                  width: 32, 
-                  height: 32, 
-            bgcolor: "primary.main", 
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    transform: 'scale(1.1)',
-                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)'
-                  }
-                }}
-              >
-            {candidate?.first_name?.[0]}{candidate?.last_name?.[0]}
-          </Avatar>
-              <Menu
-                anchorEl={profileMenuAnchor}
-                open={profileMenuOpen}
-                onClose={() => setProfileMenuAnchor(null)}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'right',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'right',
-                }}
-                sx={{ mt: 1 }}
-              >
-                <MenuItem 
-                  onClick={() => {
-                    setDetailsOpen(true);
-                    setProfileMenuAnchor(null);
-                  }}
-                  sx={{ gap: 1, py: 1, px: 2, minWidth: 160 }}
-                >
-                  <VisibilityOutlined sx={{ fontSize: 18 }} />
-                  <Typography variant="body2">View Profile</Typography>
-                </MenuItem>
-                <MenuItem 
-              onClick={() => {
-                setEditForm(candidate);
-                setEditError("");
-                setEditOpen(true);
-                    setProfileMenuAnchor(null);
-                  }}
-                  sx={{ gap: 1, py: 1, px: 2 }}
-                >
-                  <PersonOutline sx={{ fontSize: 18 }} />
-                  <Typography variant="body2">Edit Profile</Typography>
-                </MenuItem>
-              </Menu>
-              <Button 
-                onClick={logout} 
-                variant="outlined" 
-                size="small"
-                sx={{ 
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 600, 
-                  py: 0.5,
-                  px: 1.5,
-                  fontSize: '0.8rem'
-                }}
-              >
-                Logout
-              </Button>
-            </Stack>
-            </Box>
-        </Container>
-          </Box>
+      <CandidateHeader 
+        candidate={candidate}
+        logout={logout}
+        onViewProfile={() => setDetailsOpen(true)}
+        onEditProfile={() => {
+          setEditForm(candidate);
+          setEditError("");
+          setEditOpen(true);
+        }}
+      />
 
       {/* Main Content */}
-      <Container maxWidth="lg" sx={{ flex: 1, py: { xs: 1, md: 1.25 }, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1.5, overflow: 'hidden' }}>
+      <Container maxWidth="xl" sx={{ flex: 1, py: { xs: 1, md: 1.25 }, display: 'flex', flexDirection: 'column', minHeight: 0, gap: 1.5, overflow: 'hidden' }}>
       {/* Generate Resume Section - Only for Silver Subscribers */}
       {candidate?.subscription_type === "Silver" && (
-        <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 2, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>
+        <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 0.5, border: "1px solid", borderColor: "divider", flexShrink: 0 }}>
           <Box sx={{ 
             px: 2,
             py: 0.75, 
@@ -513,8 +388,7 @@ ${job.resume_content}`;
                 size="small"
                 fullWidth
                 multiline
-                minRows={3}
-                maxRows={3}
+                rows={3}
                 inputProps={{ style: { overflowY: 'auto' } }}
               />
               <TextField
@@ -528,8 +402,7 @@ ${job.resume_content}`;
                 size="small"
                 fullWidth
                 multiline
-                minRows={3}
-                maxRows={3}
+                rows={3}
                 inputProps={{ style: { overflowY: 'auto' } }}
               />
             </Box>
@@ -538,7 +411,7 @@ ${job.resume_content}`;
       )}
 
       {/* Jobs Applied Section - Compact */}
-      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: '1px solid', borderColor: 'divider', flexShrink: 1, display: 'flex', flexDirection: 'column', minHeight: { xs: 'auto', md: 420 } }}>
+      <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", border: '1px solid', borderColor: 'divider', flexShrink: 1, display: 'flex', flexDirection: 'column', minHeight: { xs: 'auto', md: candidate?.subscription_type === "Gold" ? 600 : 420 } }}>
         <Box sx={{ 
           px: 2,
           py: 0.75, 
@@ -652,7 +525,19 @@ ${job.resume_content}`;
             return true;
           });
           return filteredJobs.length > 0 ? (
-          <Box sx={{ flex: 1, overflowX: 'auto', overflowY: 'auto', maxHeight: { xs: 'unset', md: 440 } }}>
+          <Box sx={{ 
+            flex: 1, 
+            overflowX: 'auto', 
+            overflowY: 'auto', 
+            maxHeight: { xs: 'unset', md: candidate?.subscription_type === "Gold" ? 620 : 440 },
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
           <Table size="small" stickyHeader sx={{ minWidth: 960 }}>
             <TableHead>
               <TableRow>
@@ -681,14 +566,14 @@ ${job.resume_content}`;
                   <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 500 }}>
                     <Tooltip title={job.job_id} arrow placement="top">
                       <span style={{ color: '#1976d2', fontWeight: 600 }}>
-                        {job.job_id.length > 15 ? job.job_id.substring(0, 15) + '...' : job.job_id}
+                        {job.job_id.length > 25 ? job.job_id.substring(0, 25) + '...' : job.job_id}
                       </span>
                     </Tooltip>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 350 }}>
                     <Typography variant="body2">
-                      {job.job_description.length > 100
-                        ? job.job_description.substring(0, 100) + "..."
+                      {job.job_description.length > 50
+                        ? job.job_description.substring(0, 50) + "..."
                         : job.job_description}
                     </Typography>
                   </TableCell>
@@ -696,8 +581,8 @@ ${job.resume_content}`;
                     <Stack direction="row" spacing={0.75} alignItems="center">
                       {job.resume_content ? (
                         <Typography variant="body2" color="text.secondary">
-                          {job.resume_content.length > 80
-                            ? job.resume_content.substring(0, 80) + "..."
+                          {job.resume_content.length > 50
+                            ? job.resume_content.substring(0, 50) + "..."
                             : job.resume_content}
                         </Typography>
                       ) : (
@@ -732,7 +617,7 @@ ${job.resume_content}`;
                     )}
                   </TableCell>
                   <TableCell sx={{ whiteSpace: "nowrap", color: "text.secondary" }}>
-                    {new Date(job.created_at).toLocaleDateString()}
+                    {new Date(job.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   </TableCell>
                   <TableCell align="center">
                     <Tooltip title="View Details">
@@ -1306,7 +1191,14 @@ ${job.resume_content}`;
                       p: 2, 
                       bgcolor: "grey.50",
                       maxHeight: 400,
-                      overflow: "auto"
+                      overflow: "auto",
+                      '&::-webkit-scrollbar': {
+                        display: 'none'
+                      },
+                      '&': {
+                        msOverflowStyle: 'none',
+                        scrollbarWidth: 'none'
+                      }
                     }}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", fontFamily: "monospace" }}>
@@ -1402,7 +1294,7 @@ ${job.resume_content}`;
                         Birthdate
                       </Typography>
                       <Typography variant="body1" sx={{ fontWeight: 600, mt: 0.5 }}>
-                        {candidate.birthdate ? new Date(candidate.birthdate).toLocaleDateString() : "Not provided"}
+                        {candidate.birthdate ? new Date(candidate.birthdate).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }) : "Not provided"}
                       </Typography>
                     </Box>
                   </Grid>
@@ -1689,153 +1581,6 @@ ${job.resume_content}`;
 
     </Container>
 
-      {/* Enhanced Footer */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-          borderTop: '1px solid rgba(148, 163, 184, 0.25)',
-          color: 'rgba(226,232,240,0.9)',
-          py: 1.75,
-          mt: 'auto',
-          flexShrink: 0,
-          boxShadow: '0 -6px 18px rgba(15, 23, 42, 0.25)'
-        }}
-      >
-        <Container maxWidth="lg">
-          <Stack 
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={{ xs: 1, md: 3 }}
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ width: '100%' }}
-          >
-            {/* Left: Logo & Copyright */}
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Box sx={{ 
-                bgcolor: 'rgba(255,255,255,0.08)', 
-                p: 0.75, 
-                borderRadius: 1.5, 
-                display: 'flex', 
-                alignItems: 'center',
-                boxShadow: '0 4px 16px rgba(15,23,42,0.35)'
-              }}>
-                <img 
-                  src="/only_logo.png" 
-                  alt="Data Fyre" 
-                  style={{ height: "22px", width: "auto" }}
-                />
-              </Box>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  fontWeight: 600,
-                  letterSpacing: 0.3
-                }}
-              >
-                © {new Date().getFullYear()} Data Fyre. All rights reserved.
-              </Typography>
-            </Stack>
-
-            {/* Center: Links */}
-            <Stack 
-              direction="row" 
-              spacing={2.5} 
-              alignItems="center"
-              sx={{ display: { xs: 'none', md: 'flex' } }}
-            >
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'rgba(226,232,240,0.9)',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    color: 'white'
-                  } 
-                }}
-              >
-                About
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'white',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
-                  } 
-                }}
-              >
-                Privacy
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'white',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
-                  } 
-                }}
-              >
-                Terms
-              </Typography>
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  fontSize: '0.85rem', 
-                  cursor: 'pointer',
-                  color: 'white',
-                  fontWeight: 500,
-                  transition: 'all 0.2s',
-                  '&:hover': { 
-                    transform: 'translateY(-2px)',
-                    textDecoration: 'underline'
-                  } 
-                }}
-              >
-                Help
-              </Typography>
-            </Stack>
-
-            {/* Right: Contact */}
-            <Stack direction="row" spacing={0.75} alignItems="center">
-              <Box sx={{ 
-                bgcolor: 'rgba(148,163,184,0.18)', 
-                p: 0.85, 
-                borderRadius: 1.5,
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    letterSpacing: 0.2
-                  }}
-                >
-                  📧 support@datafyre.com
-                </Typography>
-              </Box>
-            </Stack>
-          </Stack>
-        </Container>
-      </Box>
-
       {/* Toast Notification */}
       <Snackbar 
         open={toast.open} 
@@ -1852,6 +1597,8 @@ ${job.resume_content}`;
           {toast.message}
         </Alert>
       </Snackbar>
+      
+      <Footer />
     </Box>
   );
 }

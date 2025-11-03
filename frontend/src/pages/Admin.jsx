@@ -4,10 +4,10 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Select, MenuItem, IconButton, InputAdornment, Grid, Alert, Autocomplete,
-  Snackbar, CircularProgress, Tooltip
+  Snackbar, CircularProgress, Tooltip, Stack, Avatar
 } from "@mui/material";
-import { Visibility, VisibilityOff, RemoveRedEye, Edit, Delete, Email } from "@mui/icons-material";
-import { Link as RouterLink } from "react-router-dom";
+import { Visibility, VisibilityOff, RemoveRedEye, Edit, Delete, Email, CreditCard } from "@mui/icons-material";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../AuthContext";
 
@@ -19,13 +19,14 @@ import {
 import CandidateForm from "../components/CandidateForm";
 import LoadingSpinner from "../components/LoadingSpinner";
 
-import { Avatar, Stack } from "@mui/material";
-import { fullName, initials } from "../utils/display";
+import DashboardHeader from "../components/DashboardHeader";
+import Footer from "../components/Footer";
 
 
 
 export default function Admin() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [tab, setTab] = useState(0);
   const [stats, setStats] = useState({ users: 0, candidates: 0, applications: 0 });
   const [pendingCandidateAction, setPendingCandidateAction] = useState(null);
@@ -66,57 +67,15 @@ export default function Admin() {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
-      {/* Header Section */}
-      <Box sx={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        mb: 2,
-        pb: 1.5,
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        flexShrink: 0
-      }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <img 
-            src="/only_logo.png" 
-            alt="Data Fyre Logo" 
-            style={{ height: "40px", width: "auto", objectFit: "contain" }}
-          />
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.2, fontSize: "1.25rem" }}>
-              Admin Panel
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
-              Manage users and candidates across the entire system
-            </Typography>
-          </Box>
-        </Box>
-
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box sx={{ textAlign: "right", mr: 0.5 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
-              Admin Dashboard
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>
-              {fullName(user)}
-          </Typography>
-          </Box>
-          <Avatar sx={{ 
-            width: 36, 
-            height: 36, 
-            bgcolor: "error.main",
-            fontSize: "0.95rem",
-            fontWeight: 600
-          }}>
-            {initials(user)}
-          </Avatar>
-          <Button onClick={logout} variant="outlined" color="error" size="small" sx={{ fontSize: "0.8rem" }}>
-            Logout
-          </Button>
-        </Stack>
-      </Box>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
+      <DashboardHeader 
+        user={user}
+        logout={logout}
+        title="Admin Panel"
+        subtitle="Manage users and candidates across the entire system"
+      />
+      
+      <Container maxWidth="xl" sx={{ mt: 2, mb: 2, flex: 1 }}>
 
       {/* Stats Cards */}
       <Box sx={{ mb: 1.5 }}>
@@ -241,32 +200,47 @@ export default function Admin() {
       </Box>
 
       <Paper elevation={2} sx={{ borderRadius: 2, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-        <Tabs 
-          value={tab} 
-          onChange={(_,v)=>setTab(v)} 
-          centered
-          sx={{
-            bgcolor: "grey.50",
-            borderBottom: "1px solid",
-            borderColor: "divider",
-            flexShrink: 0,
-            "& .MuiTab-root": {
-              fontWeight: 600,
-              fontSize: "0.95rem",
-              py: 1.5,
-              minHeight: 48,
-              "&.Mui-selected": {
-                color: "primary.main"
+        {/* Custom Header with Tabs and Manage Subscriptions Button */}
+        <Box sx={{ 
+          bgcolor: "grey.50", 
+          borderBottom: "1px solid", 
+          borderColor: "divider", 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center",
+          pr: 2
+        }}>
+          <Tabs 
+            value={tab} 
+            onChange={(_,v)=>setTab(v)} 
+            sx={{
+              flexShrink: 0,
+              "& .MuiTab-root": {
+                fontWeight: 600,
+                fontSize: "0.95rem",
+                py: 1.5,
+                minHeight: 48,
+                "&.Mui-selected": {
+                  color: "primary.main"
+                }
+              },
+              "& .MuiTabs-indicator": {
+                height: 3
               }
-            },
-            "& .MuiTabs-indicator": {
-              height: 3
-            }
-          }}
-        >
-          <Tab label="👥 Users" />
-          <Tab label="📋 Candidates" />
-        </Tabs>
+            }}
+          >
+            <Tab label="👥 Users" />
+            <Tab label="📋 Candidates" />
+          </Tabs>
+          <Button
+            variant="outlined"
+            startIcon={<CreditCard />}
+            onClick={() => navigate("/admin/subscriptions")}
+            sx={{ textTransform: 'none' }}
+          >
+            Manage Subscriptions
+          </Button>
+        </Box>
         <Box sx={{ p: 2, pt: 1.5, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {tab === 0 ? (
             <UsersTab 
@@ -283,66 +257,10 @@ export default function Admin() {
         </Box>
       </Paper>
 
-      {/* Footer */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          bgcolor: 'white',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          py: 1.2,
-          mt: 2
-        }}
-      >
-        <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between', 
-            alignItems: { xs: 'center', md: 'center' },
-            gap: 1.2
-          }}>
-            {/* Logo & Copyright */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <img 
-                src="/only_logo.png" 
-                alt="Data Fyre Logo" 
-                style={{ height: "20px", width: "auto", objectFit: "contain" }}
-              />
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                © {new Date().getFullYear()} Data Fyre. All rights reserved.
-              </Typography>
-            </Box>
-
-            {/* Links */}
-            <Stack direction="row" spacing={1.8} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                About
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Help
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Privacy
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Terms
-              </Typography>
-            </Stack>
-
-            {/* Contact */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                <Email sx={{ fontSize: 13, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  support@datafyre.com
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </Box>
-    </Container>
+      </Container>
+      
+      <Footer />
+    </Box>
   );
 }
 
@@ -659,7 +577,17 @@ function UsersTab({ refreshStats, onCandidateAction = () => {} }) {
         </Box>
 
         {filteredRows.length > 0 ? (
-          <Box sx={{ maxHeight: 'calc(100vh - 420px)', overflow: 'auto' }}>
+          <Box sx={{ 
+            maxHeight: 'calc(100vh - 420px)', 
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
       <Table size="small" stickyHeader>
         <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
@@ -1250,7 +1178,14 @@ function CandidatesTab({ refreshStats, externalAction, onExternalActionHandled =
     setEditing(r);
     // Ensure birthdate is YYYY-MM-DD for the date input (if present)
     const bd = r.birthdate ? r.birthdate.slice(0,10) : "";
-    setForm({ ...r, birthdate: bd });
+    // Ensure subscription_start_date is YYYY-MM-DD for the date input (if present)
+    const ssd = r.subscription_start_date ? r.subscription_start_date.slice(0,10) : "";
+    setForm({ 
+      ...r, 
+      birthdate: bd,
+      subscription_start_date: ssd,
+      role: r.role || "" // Ensure role is explicitly set
+    });
     // Set the assigned user to the current creator
     setAssignedUserId(r.created_by?.id || "");
     // Set the assigned users from the assigned_users array
@@ -1315,7 +1250,7 @@ function CandidatesTab({ refreshStats, externalAction, onExternalActionHandled =
       let required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
                         "address_line1", "city", "state", "postal_code", "country",
-                        "work_experience", "education", "subscription_type", "ssn"];
+                        "work_experience", "education", "subscription_type", "subscription_start_date", "role", "ssn"];
       
       // Password is only required when creating, not when editing
       if (!editing) {
@@ -1618,7 +1553,17 @@ function CandidatesTab({ refreshStats, externalAction, onExternalActionHandled =
         </Box>
 
         {filteredRows.length > 0 ? (
-          <Box sx={{ maxHeight: 'calc(100vh - 420px)', overflow: 'auto' }}>
+          <Box sx={{ 
+            maxHeight: 'calc(100vh - 420px)', 
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
       <Table size="small" stickyHeader>
         <TableHead>
               <TableRow sx={{ bgcolor: "grey.100" }}>
@@ -1882,18 +1827,18 @@ function CandidatesTab({ refreshStats, externalAction, onExternalActionHandled =
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
             {editing ? "Edit Candidate" : "Add Candidate"}
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
+          {err && (
+            <Alert severity="error" sx={{ mt: 1.5, mb: 0 }}>
+              {err}
+            </Alert>
+          )}
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: err ? 1.5 : 0.5 }}>
             {editing 
               ? `Update candidate information • Created by: ${editing?.created_by?.email || "Unknown"}`
               : "Fill in all required fields to add a new candidate"}
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
-          {err && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {err}
-            </Alert>
-          )}
           
           {/* Assign User (Creator) and Additional Users - Side by side */}
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>

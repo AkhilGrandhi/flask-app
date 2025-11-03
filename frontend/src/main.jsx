@@ -2,10 +2,12 @@
 import React, { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { CssBaseline } from "@mui/material";
 import { AuthProvider, useAuth } from "./AuthContext";
 import ProtectedRoute from "./ProtectedRoute";
 import LoadingSpinner from "./components/LoadingSpinner";
 import ErrorBoundary from "./components/ErrorBoundary";
+import "./index.css";
 
 // Lazy load all page components for better performance
 const LoginUser = lazy(() => import("./pages/LoginUser"));
@@ -15,6 +17,8 @@ const Admin = lazy(() => import("./pages/Admin"));
 const UserDashboard = lazy(() => import("./pages/UserDashboard"));
 const CandidateDashboard = lazy(() => import("./pages/CandidateDashboard"));
 const CandidateDetail = lazy(() => import("./pages/CandidateDetail"));
+const SubscriptionManagement = lazy(() => import("./pages/SubscriptionManagement"));
+const CandidateTransactions = lazy(() => import("./pages/CandidateTransactions"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Role-based redirect component
@@ -84,6 +88,16 @@ const router = createBrowserRouter([
     )
   },
   { 
+    path: "/admin/subscriptions", 
+    element: (
+      <ProtectedRoute role="admin">
+        <Suspense fallback={<LoadingSpinner message="Loading subscriptions..." />}>
+          <SubscriptionManagement />
+        </Suspense>
+      </ProtectedRoute>
+    )
+  },
+  { 
     path: "/candidate", 
     element: (
       <ProtectedRoute role="candidate">
@@ -101,6 +115,16 @@ const router = createBrowserRouter([
       <ProtectedRoute role={["user", "admin"]}>
         <Suspense fallback={<LoadingSpinner message="Loading candidate details..." />}>
           <CandidateDetail />
+        </Suspense>
+      </ProtectedRoute>
+    )
+  },
+  { 
+    path: "/candidates/:candidateId/transactions", 
+    element: (
+      <ProtectedRoute role="admin">
+        <Suspense fallback={<LoadingSpinner message="Loading transactions..." />}>
+          <CandidateTransactions />
         </Suspense>
       </ProtectedRoute>
     )
@@ -134,6 +158,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>
       <AuthProvider>
+        <CssBaseline />
         <RouterProvider router={router} />
       </AuthProvider>
     </ErrorBoundary>

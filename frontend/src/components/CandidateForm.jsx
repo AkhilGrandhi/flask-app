@@ -181,6 +181,21 @@ export default function CandidateForm({ value, onChange, errors = {}, isEditing 
 
           <Grid item xs={12} sm={6}>
             <TextField 
+              label="Subscription Start Date" 
+              type="date"
+              value={v.subscription_start_date||""} 
+              onChange={set("subscription_start_date")}
+              required
+              fullWidth 
+              error={!!errors.subscription_start_date} 
+              helperText={errors.subscription_start_date}
+              variant="outlined"
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={6}>
+            <TextField 
               label={isEditing ? "Password (Leave blank to keep existing)" : "Password"} 
               type={showPassword ? "text" : "password"}
               value={v.password||""} 

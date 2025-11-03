@@ -7,11 +7,15 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Avatar, Alert, Chip, Grid, Tooltip, IconButton
 } from "@mui/material";
 import { ArrowBack, Person, Email, Phone, Work, Add, Download, Visibility as ViewIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
-import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume, generateResumeAsync, getJobStatus, downloadResumeAsync } from "../api";
+import { getCandidate, addCandidateJob, updateCandidateJob, deleteCandidateJob, generateResume, generateResumeAsync, getJobStatus, downloadResumeAsync, formatResume } from "../api";
+import DashboardHeader from "../components/DashboardHeader";
+import Footer from "../components/Footer";
+import { useAuth } from "../AuthContext";
 import { fullName } from "../utils/display";
 
 export default function CandidateDetail() {
   const { id } = useParams();
+  const { user, logout } = useAuth();
   const [cand, setCand] = useState(null);
   const [jobId, setJobId] = useState("");
   const [jobDesc, setJobDesc] = useState("");
@@ -254,25 +258,20 @@ export default function CandidateDetail() {
     }
   };
 
-  const handleDownloadResume = (job) => {
+  const handleDownloadResume = async (job) => {
     if (!job.resume_content) {
       setErr("No resume content available to download");
       return;
     }
 
     try {
-      // Create a Blob with the resume content in a format that Word can open
-      const content = `${cand.first_name} ${cand.last_name} - Resume
-Job ID: ${job.job_id}
-Generated: ${new Date(job.created_at).toLocaleDateString()}
-
-${job.resume_content}`;
-
-      const blob = new Blob([content], { type: 'application/msword' });
+      const candidate_name = `${cand.first_name} ${cand.last_name}`;
+      const blob = await formatResume(job.resume_content, candidate_name, job.job_id, job.created_at);
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${cand.first_name}_${cand.last_name}_Resume_${job.job_id}.doc`;
+      a.download = `${cand.first_name}_${cand.last_name}_Resume_${job.job_id}.docx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -312,43 +311,15 @@ ${job.resume_content}`;
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
-      {/* Header */}
-      <Box sx={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        mb: 2,
-        pb: 1.5,
-        borderBottom: "1px solid",
-        borderColor: "divider"
-      }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <img 
-            src="/only_logo.png" 
-            alt="Data Fyre Logo" 
-            style={{ height: "40px", width: "auto", objectFit: "contain" }}
-          />
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.2, fontSize: "1.25rem" }}>
-              Candidate Job Applications
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
-              Manage Job Applications and Generate Resumes
-            </Typography>
-          </Box>
-        </Box>
-        <Button 
-          component={RouterLink} 
-          to="/" 
-          variant="outlined"
-          size="small"
-          startIcon={<ArrowBack />}
-          sx={{ fontWeight: 600, fontSize: "0.85rem" }}
-        >
-          Back to Dashboard
-        </Button>
-      </Box>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
+      <DashboardHeader 
+        user={user}
+        logout={logout}
+        title="Candidate Job Applications"
+        subtitle="Manage Job Applications and Generate Resumes"
+      />
+      
+      <Container maxWidth="xl" sx={{ mt: 2, mb: 2, flex: 1 }}>
 
       {/* Candidate Info Card */}
       <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden", mb: 1.5, border: "1px solid", borderColor: "divider" }}>
@@ -480,13 +451,13 @@ ${job.resume_content}`;
               onChange={(e)=>setJobId(e.target.value)}
               fullWidth
               multiline
-              minRows={2}
-              maxRows={4}
+              rows={3}
               disabled={generating}
               required
               variant="outlined"
               size="small"
               placeholder="Enter or paste the Job ID"
+              inputProps={{ style: { overflowY: 'auto' } }}
             />
             <TextField
               label="Job Description"
@@ -494,13 +465,13 @@ ${job.resume_content}`;
               onChange={(e)=>setJobDesc(e.target.value)}
               fullWidth
               multiline
-              minRows={2}
-              maxRows={6}
+              rows={3}
               disabled={generating}
               required
               variant="outlined"
               size="small"
               placeholder="Paste the Job Description"
+              inputProps={{ style: { overflowY: 'auto' } }}
             />
           </Box>
         </Box>
@@ -659,7 +630,17 @@ ${job.resume_content}`;
             return true;
           });
           return filteredJobs.length > 0 ? (
-          <Box sx={{ maxHeight: 'calc(100vh - 420px)', overflow: 'auto' }}>
+          <Box sx={{ 
+            maxHeight: 'calc(100vh - 420px)', 
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
@@ -683,14 +664,14 @@ ${job.resume_content}`;
                   <TableCell sx={{ whiteSpace:"nowrap", fontWeight: 600, color: "primary.main" }}>
                     <Tooltip title={j.job_id} arrow placement="top">
                       <span>
-                        {j.job_id.length > 15 ? j.job_id.substring(0, 15) + '...' : j.job_id}
+                        {j.job_id.length > 25 ? j.job_id.substring(0, 25) + '...' : j.job_id}
                       </span>
                     </Tooltip>
                   </TableCell>
                   <TableCell sx={{ maxWidth: 400 }}>
                     <Typography variant="body2">
-                      {j.job_description.length > 80 
-                        ? j.job_description.substring(0, 80) + '...' 
+                      {j.job_description.length > 50 
+                        ? j.job_description.substring(0, 50) + '...' 
                         : j.job_description}
                     </Typography>
                   </TableCell>
@@ -710,20 +691,15 @@ ${job.resume_content}`;
                         // Job completed
                         <>
                           <Chip label="Generated" color="success" size="small" sx={{ fontWeight: 600 }} />
-                          <Button
-                            size="small"
-                            variant="text"
-                            startIcon={<Download />}
-                            onClick={() => handleDownloadResume(j)}
-                            sx={{ 
-                              textTransform: "none", 
-                              fontWeight: 500,
-                              minWidth: "auto",
-                              px: 1
-                            }}
-                          >
-                            Download
-                          </Button>
+                          <Tooltip title="Download Resume">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDownloadResume(j)}
+                            >
+                              <Download />
+                            </IconButton>
+                          </Tooltip>
                         </>
                       ) : (
                         // Job created but no resume yet
@@ -732,7 +708,7 @@ ${job.resume_content}`;
                     </Stack>
                   </TableCell>
                   <TableCell sx={{ whiteSpace:"nowrap", color: "text.secondary" }}>
-                    {new Date(j.created_at).toLocaleDateString()}
+                    {new Date(j.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}
                   </TableCell>
                   <TableCell align="center">
                     <Stack direction="row" spacing={0.5} justifyContent="center">
@@ -886,7 +862,14 @@ ${job.resume_content}`;
                       overflow: 'auto',
                       fontFamily: 'monospace',
                       fontSize: '0.9rem',
-                      borderRadius: 1
+                      borderRadius: 1,
+                      '&::-webkit-scrollbar': {
+                        display: 'none'
+                      },
+                      '&': {
+                        msOverflowStyle: 'none',
+                        scrollbarWidth: 'none'
+                      }
                     }}
                   >
                     <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
@@ -962,65 +945,9 @@ ${job.resume_content}`;
         </DialogActions>
       </Dialog>
 
-      {/* Footer */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          bgcolor: 'white',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          py: 1.2,
-          mt: 2
-        }}
-      >
-        <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between', 
-            alignItems: { xs: 'center', md: 'center' },
-            gap: 1.2
-          }}>
-            {/* Logo & Copyright */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <img 
-                src="/only_logo.png" 
-                alt="Data Fyre Logo" 
-                style={{ height: "20px", width: "auto", objectFit: "contain" }}
-              />
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                © {new Date().getFullYear()} Data Fyre. All rights reserved.
-              </Typography>
-            </Box>
-
-            {/* Links */}
-            <Stack direction="row" spacing={1.8} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                About
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Help
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Privacy
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Terms
-              </Typography>
-            </Stack>
-
-            {/* Contact */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                <Email sx={{ fontSize: 13, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  support@datafyre.com
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </Box>
-    </Container>
+      </Container>
+      
+      <Footer />
+    </Box>
   );
 }

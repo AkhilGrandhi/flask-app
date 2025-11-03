@@ -223,6 +223,32 @@ def create_candidate():
             except (ValueError, AttributeError) as e:
                 return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
 
+        # Handle subscription_start_date - with error handling
+        if data.get("subscription_start_date"):
+            try:
+                from datetime import date
+                start_date_str = str(data["subscription_start_date"]).strip()
+                y, m, d = None, None, None  # Initialize variables
+                # Handle different date formats
+                if "-" in start_date_str:
+                    y, m, d = map(int, start_date_str.split("-"))
+                elif "/" in start_date_str:
+                    # Convert MM/DD/YYYY to YYYY-MM-DD
+                    parts = start_date_str.split("/")
+                    if len(parts) == 3:
+                        m, d, y = map(int, parts)
+                    else:
+                        return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                else:
+                    return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                
+                if y is None or m is None or d is None:
+                    return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                    
+                c.subscription_start_date = date(y, m, d)
+            except (ValueError, AttributeError) as e:
+                return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+
         db.session.add(c)
         db.session.flush()  # Flush to get the candidate ID
         
@@ -254,7 +280,116 @@ def create_candidate():
                 logging.error(f"Could not assign users during creation: {e}")
                 logging.error(traceback.format_exc())
         
+        # Commit candidate first to ensure we have the ID
         db.session.commit()
+        
+        # Auto-create transaction if subscription_start_date is provided
+        if c.subscription_start_date:
+            try:
+                from sqlalchemy import inspect as sql_inspect
+                inspector = sql_inspect(db.engine)
+                if 'transaction' in inspector.get_table_names():
+                    from .models import Transaction
+                    from datetime import date, timedelta, datetime
+                    import uuid
+                    
+                    # Generate unique transaction ID
+                    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+                    unique_id = str(uuid.uuid4())[:8].upper()
+                    transaction_id = f"TXN-{timestamp}-{unique_id}"
+                    
+                    # Calculate end_date (start_date + 30 days)
+                    start_date = c.subscription_start_date
+                    if isinstance(start_date, datetime):
+                        start_date = start_date.date()
+                    end_date = start_date + timedelta(days=30)
+                    
+                    # Create transaction
+                    transaction = Transaction(
+                        candidate_id=c.id,
+                        transaction_id=transaction_id,
+                        original_transaction=None,  # Optional, can be set later
+                        start_date=start_date,
+                        end_date=end_date
+                    )
+                    db.session.add(transaction)
+                    db.session.commit()  # Commit the transaction
+                    
+                    import logging
+                    logging.info(f"Auto-created transaction {transaction_id} for candidate {c.id}")
+                else:
+                    import logging
+                    logging.warning("Transaction table does not exist. Skipping auto-creation.")
+            except Exception as e:
+                # Log error but don't fail the creation
+                import logging
+                import traceback
+                logging.error(f"Could not auto-create transaction during candidate creation: {e}")
+                logging.error(traceback.format_exc())
+                db.session.rollback()
+        
+        # Auto-create subscription if subscription_type is provided
+        if c.subscription_type and c.subscription_start_date:
+            try:
+                from sqlalchemy import inspect as sql_inspect
+                inspector = sql_inspect(db.engine)
+                if 'subscription' in inspector.get_table_names():
+                    from .models import Subscription
+                    from datetime import date, timedelta, datetime
+                    
+                    # Check if subscription already exists
+                    existing_sub = Subscription.query.filter_by(candidate_id=c.id).first()
+                    if existing_sub:
+                        import logging
+                        logging.warning(f"Subscription already exists for candidate {c.id}. Skipping auto-creation.")
+                    else:
+                        # Determine tier from subscription_type
+                        tier = c.subscription_type  # Should be "Gold" or "Silver"
+                        if tier not in ["Gold", "Silver"]:
+                            tier = "Silver"  # Default to Silver if invalid
+                        
+                        # Set default price based on tier
+                        default_price = 150.00 if tier == "Gold" else 50.00
+                        
+                        # Calculate expires_at from subscription_start_date
+                        start_date = c.subscription_start_date
+                        if isinstance(start_date, datetime):
+                            start_date = start_date.date()
+                        
+                        # Calculate expiry (30 days for monthly)
+                        expires_at = datetime.combine(start_date, datetime.min.time()) + timedelta(days=30)
+                        
+                        # Calculate renewal_date (1 day after expiry)
+                        renewal_date = expires_at + timedelta(days=1)
+                        
+                        # Create subscription
+                        subscription = Subscription(
+                            candidate_id=c.id,
+                            tier=tier,
+                            status="active",
+                            billing_cycle="monthly",
+                            price=default_price,
+                            activated_at=datetime.utcnow(),
+                            expires_at=expires_at,
+                            renewal_date=renewal_date,
+                            payment_method="manual"
+                        )
+                        db.session.add(subscription)
+                        db.session.commit()  # Commit the subscription
+                        
+                        import logging
+                        logging.info(f"Auto-created subscription for candidate {c.id} with tier {tier}")
+                else:
+                    import logging
+                    logging.warning("Subscription table does not exist. Skipping auto-creation.")
+            except Exception as e:
+                # Log error but don't fail the creation
+                import logging
+                import traceback
+                logging.error(f"Could not auto-create subscription during candidate creation: {e}")
+                logging.error(traceback.format_exc())
+                db.session.rollback()
+        
         return {"message": "Candidate created", "id": c.id}, 201
     except Exception as e:
         db.session.rollback()
@@ -372,6 +507,35 @@ def update_candidate(cand_id):
                     c.birthdate = None
             except (ValueError, AttributeError) as e:
                 return {"message": "Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+        
+        # subscription_start_date - with error handling
+        if "subscription_start_date" in data:
+            try:
+                from datetime import date
+                if data["subscription_start_date"]:
+                    start_date_str = str(data["subscription_start_date"]).strip()
+                    y, m, d = None, None, None  # Initialize variables
+                    # Handle different date formats
+                    if "-" in start_date_str:
+                        y, m, d = map(int, start_date_str.split("-"))
+                    elif "/" in start_date_str:
+                        # Convert MM/DD/YYYY to YYYY-MM-DD
+                        parts = start_date_str.split("/")
+                        if len(parts) == 3:
+                            m, d, y = map(int, parts)
+                        else:
+                            return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                    else:
+                        return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                    
+                    if y is None or m is None or d is None:
+                        return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                        
+                    c.subscription_start_date = date(y, m, d)
+                else:
+                    c.subscription_start_date = None
+            except (ValueError, AttributeError) as e:
+                return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
         
         # Handle assigned users (admin only) - with defensive check
         if is_admin() and "assigned_user_ids" in data:

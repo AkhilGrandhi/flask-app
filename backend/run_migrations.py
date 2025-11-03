@@ -6,6 +6,11 @@ Run this in the Render Shell to apply database migrations.
 
 import sys
 import os
+import codecs
+
+# Fix Unicode encoding for Windows console
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
 
 # Ensure we're in the backend directory
 if os.path.basename(os.getcwd()) != 'backend':
@@ -18,7 +23,7 @@ print("=" * 60)
 
 try:
     from app import create_app
-    from app.models import db, User, Candidate
+    from app.models import db, User, Candidate, Subscription
     from flask_migrate import upgrade
     
     print("\n1. Creating Flask application...")

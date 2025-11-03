@@ -8,8 +8,8 @@ db = SQLAlchemy()
 # Association table for many-to-many relationship between Candidate and assigned Users
 # Define it but SQLAlchemy will handle it gracefully if it doesn't exist yet
 candidate_assigned_users = db.Table('candidate_assigned_users',
-    db.Column('candidate_id', db.Integer, db.ForeignKey('candidate.id'), primary_key=True),
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('candidate_id', db.Integer, db.ForeignKey('candidate.id', ondelete='CASCADE'), primary_key=True),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), primary_key=True),
     db.Column('assigned_at', db.DateTime, default=datetime.utcnow)
 )
 
@@ -38,7 +38,7 @@ class User(db.Model):
         return {
             "id": self.id, "name": self.name, "email": self.email,
             "mobile": self.mobile, "role": self.role,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }
 
 
@@ -53,6 +53,7 @@ class Candidate(db.Model):
     email = db.Column(db.String(255))
     phone = db.Column(db.String(50))
     subscription_type = db.Column(db.String(50))  # Gold or Silver
+    subscription_start_date = db.Column(db.Date)  # Subscription start date
     password = db.Column(db.String(255))  # Candidate password (minimum 6 characters)
     role = db.Column(db.String(255))  # Role/Position
     ssn = db.Column(db.String(10), unique=True, index=True)  # Social Security Number (unique)
@@ -124,6 +125,7 @@ class Candidate(db.Model):
             "first_name": self.first_name, "last_name": self.last_name,
             "email": self.email, "phone": self.phone,
             "subscription_type": self.subscription_type,
+            "subscription_start_date": self.subscription_start_date.isoformat() if self.subscription_start_date else None,
             "role": self.role,
             "ssn": self.ssn,
             "birthdate": self.birthdate.isoformat() if self.birthdate else None,
@@ -159,15 +161,19 @@ class Candidate(db.Model):
             "family_in_org": self.family_in_org,
             "availability": self.availability,
 
-            "created_at": self.created_at.isoformat(),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
         }
 
         if include_creator:
-            d["created_by"] = {
-                "id": self.creator.id,
-                "email": self.creator.email,
-                "name": self.creator.name,
-            }
+            # Handle case where creator might be None (deleted user, migration issue, etc.)
+            if self.creator:
+                d["created_by"] = {
+                    "id": self.creator.id,
+                    "email": self.creator.email,
+                    "name": self.creator.name,
+                }
+            else:
+                d["created_by"] = None
             # Include assigned users (backward compatible - handle if table doesn't exist)
             try:
                 # Check if the association table exists before querying
@@ -194,7 +200,7 @@ class Candidate(db.Model):
                     "job_id": j.job_id,
                     "job_description": j.job_description,
                     "resume_content": j.resume_content,
-                    "created_at": j.created_at.isoformat(),
+                    "created_at": j.created_at.isoformat() if j.created_at else None,
                 }
                 for j in sorted(self.jobs, key=lambda x: x.id, reverse=True)
             ]
@@ -259,3 +265,105 @@ class ResumeGenerationJob(db.Model):
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
+
+
+# --- NEW: Subscription Management for Candidates ---
+class Subscription(db.Model):
+    """Monthly subscription management for candidates"""
+    __tablename__ = 'subscription'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.id'), unique=True, nullable=False, index=True)
+    
+    # Subscription details
+    tier = db.Column(db.String(50), nullable=False)  # 'Gold' or 'Silver'
+    status = db.Column(db.String(50), nullable=False, default='inactive', index=True)  # 'active', 'inactive', 'paused', 'expired'
+    
+    # Billing cycle
+    billing_cycle = db.Column(db.String(20), default='monthly')  # 'monthly', 'yearly'
+    price = db.Column(db.Numeric(10, 2))  # Price in USD
+    
+    # Dates
+    activated_at = db.Column(db.DateTime)  # When subscription started
+    expires_at = db.Column(db.DateTime, index=True)  # When subscription expires
+    renewal_date = db.Column(db.DateTime)  # When subscription is due for renewal
+    paused_at = db.Column(db.DateTime)  # When subscription was paused
+    deactivated_at = db.Column(db.DateTime)  # When subscription ended
+    
+    # Metadata
+    notes = db.Column(db.Text)  # Admin notes
+    payment_method = db.Column(db.String(100), default='manual')  # 'manual', 'stripe', 'paypal', 'razorpay', etc.
+    transaction_id = db.Column(db.String(255))  # Payment reference
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    candidate = relationship("Candidate", backref=db.backref("subscription", cascade="all, delete-orphan"), lazy=True)
+    
+    def to_dict(self, include_candidate: bool = False):
+        return {
+            "id": self.id,
+            "candidate_id": self.candidate_id,
+            "tier": self.tier,
+            "status": self.status,
+            "billing_cycle": self.billing_cycle,
+            "price": float(self.price) if self.price else None,
+            "activated_at": self.activated_at.isoformat() if self.activated_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "renewal_date": self.renewal_date.isoformat() if self.renewal_date else None,
+            "paused_at": self.paused_at.isoformat() if self.paused_at else None,
+            "deactivated_at": self.deactivated_at.isoformat() if self.deactivated_at else None,
+            "notes": self.notes,
+            "payment_method": self.payment_method,
+            "transaction_id": self.transaction_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# --- Monthly Transactions for Candidates ---
+class Transaction(db.Model):
+    """Monthly transaction records for candidates"""
+    __tablename__ = 'transaction'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.id'), nullable=False, index=True)
+    
+    # Transaction details
+    transaction_id = db.Column(db.String(255), unique=True, nullable=False, index=True)  # Auto-generated unique ID
+    original_transaction = db.Column(db.String(255))  # Optional original transaction reference
+    
+    # Dates
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    
+    # Timestamps
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    candidate = relationship("Candidate", backref=db.backref("transactions", cascade="all, delete-orphan"), lazy=True)
+    
+    def to_dict(self, include_candidate: bool = False):
+        d = {
+            "id": self.id,
+            "candidate_id": self.candidate_id,
+            "transaction_id": self.transaction_id,
+            "original_transaction": self.original_transaction,
+            "start_date": self.start_date.isoformat() if self.start_date else None,
+            "end_date": self.end_date.isoformat() if self.end_date else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+        
+        if include_candidate and self.candidate:
+            d["candidate"] = {
+                "id": self.candidate.id,
+                "first_name": self.candidate.first_name,
+                "last_name": self.candidate.last_name,
+                "email": self.candidate.email,
+            }
+        
+        return d

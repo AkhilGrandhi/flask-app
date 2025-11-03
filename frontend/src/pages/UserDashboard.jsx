@@ -8,9 +8,11 @@ import {
 import { Visibility as ViewIcon, Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../AuthContext";
-import { listMyCandidates, createCandidate, updateCandidate, deleteCandidate } from "../api";
+import { listMyCandidates, updateCandidate, deleteCandidate } from "../api";
 import CandidateForm from "../components/CandidateForm";
 import LoadingSpinner from "../components/LoadingSpinner";
+import DashboardHeader from "../components/DashboardHeader";
+import Footer from "../components/Footer";
 import { fullName, initials } from "../utils/display";
 
 export default function UserDashboard() {
@@ -128,35 +130,18 @@ export default function UserDashboard() {
     setFieldErrors(newFieldErrors);
   };
 
-  const startAdd = () => { 
-    setEditing(null); 
-    // Initialize form with default values to match CandidateForm defaults
-    setForm({
-      gender: "Male",
-      nationality: "India",
-      citizenship_status: "Non-Resident",
-      visa_status: "None",
-      work_authorization: "Authorized",
-      willing_relocate: "Yes",
-      willing_travel: "Yes",
-      disability_status: "No",
-      veteran_status: "Not a Veteran",
-      military_experience: "No",
-      race_ethnicity: "Asian",
-      country: "India",
-      at_least_18: "Yes",
-      family_in_org: "No",
-      subscription_type: "Gold"
-    }); 
-    setFieldErrors({});
-    setErr("");
-    setOpen(true); 
-  };
   const startEdit = (r) => { 
     setEditing(r);
     // Ensure birthdate is YYYY-MM-DD for the date input (if present)
     const bd = r.birthdate ? r.birthdate.slice(0,10) : "";
-    setForm({ ...r, birthdate: bd });
+    // Ensure subscription_start_date is YYYY-MM-DD for the date input (if present)
+    const ssd = r.subscription_start_date ? r.subscription_start_date.slice(0,10) : "";
+    setForm({ 
+      ...r, 
+      birthdate: bd,
+      subscription_start_date: ssd,
+      role: r.role || "" // Ensure role is explicitly set
+    });
     setFieldErrors({});
     setErr("");
     setOpen(true); 
@@ -184,15 +169,10 @@ export default function UserDashboard() {
       }
       
       // Client-side validation
-      let required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
+      const required = ["first_name", "last_name", "email", "phone", "birthdate", "gender", 
                         "nationality", "citizenship_status", "visa_status", "work_authorization",
                         "address_line1", "city", "state", "postal_code", "country",
-                        "work_experience", "education", "subscription_type", "ssn"];
-      
-      // Password is only required when creating, not when editing
-      if (!editing) {
-        required.push("password");
-      }
+                        "work_experience", "education", "subscription_type", "subscription_start_date", "role", "ssn"];
       
       const missing = required.filter(f => !form[f] || String(form[f]).trim() === "");
       if (missing.length > 0) {
@@ -231,20 +211,19 @@ export default function UserDashboard() {
         return;
       }
       
-      // Clean data for edit mode - don't send empty password
+      // Clean data - don't send empty password
       const dataToSend = { ...form };
-      if (editing && (!form.password || form.password.trim() === "")) {
+      if (!form.password || form.password.trim() === "") {
         delete dataToSend.password;
       }
       
-      if (editing) await updateCandidate(editing.id, dataToSend);
-      else await createCandidate(dataToSend);
+      await updateCandidate(editing.id, dataToSend);
       
       setOpen(false);
       setFieldErrors({});
       setToast({ 
         open: true, 
-        message: editing ? '✓ Candidate updated successfully!' : '✓ Candidate created successfully!', 
+        message: '✓ Candidate updated successfully!', 
         severity: 'success' 
       });
       await load();
@@ -252,7 +231,7 @@ export default function UserDashboard() {
       setErr(e.message);
       setToast({ 
         open: true, 
-        message: `✗ Failed to ${editing ? 'update' : 'create'} candidate: ${e.message}`, 
+        message: `✗ Failed to update candidate: ${e.message}`, 
         severity: 'error' 
       });
       // Also check if backend returned duplicate errors
@@ -278,56 +257,15 @@ export default function UserDashboard() {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 2, mb: 0 }}>
-      {/* Header Section */}
-      <Box sx={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center", 
-        mb: 2,
-        pb: 1.5,
-        borderBottom: "1px solid",
-        borderColor: "divider"
-      }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <img 
-            src="/only_logo.png" 
-            alt="Data Fyre Logo" 
-            style={{ height: "40px", width: "auto", objectFit: "contain" }}
-          />
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.2, fontSize: "1.25rem" }}>
-              My Candidates
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.8rem" }}>
-              Manage and track all your candidates
-            </Typography>
-          </Box>
-        </Box>
-
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box sx={{ textAlign: "right", mr: 0.5 }}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem" }}>
-              Welcome back
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>
-              {fullName(user)}
-            </Typography>
-          </Box>
-          <Avatar sx={{ 
-            width: 36, 
-            height: 36, 
-            bgcolor: "primary.main",
-            fontSize: "0.95rem",
-            fontWeight: 600
-          }}>
-            {initials(user)}
-          </Avatar>
-          <Button onClick={logout} variant="outlined" color="error" size="small" sx={{ fontSize: "0.8rem" }}>
-            Logout
-          </Button>
-        </Stack>
-      </Box>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8fafc' }}>
+      <DashboardHeader 
+        user={user}
+        logout={logout}
+        title="My Candidates"
+        subtitle="Manage and track all your candidates"
+      />
+      
+      <Container maxWidth="xl" sx={{ mt: 2, mb: 2, flex: 1 }}>
 
       {/* Stats Cards - Compact */}
       <Box sx={{ mb: 1.5 }}>
@@ -532,26 +470,6 @@ export default function UserDashboard() {
                 Clear
               </Button>
             )}
-            
-            <Button 
-              variant="contained" 
-              size="small"
-              startIcon={<Typography sx={{ fontSize: "1rem" }}>👤</Typography>}
-              onClick={startAdd}
-              sx={{ 
-                fontWeight: 600,
-                bgcolor: "white",
-                color: "primary.main",
-                fontSize: "0.75rem",
-                px: 1.5,
-                height: 32,
-                "&:hover": {
-                  bgcolor: "rgba(255,255,255,0.9)"
-                }
-              }}
-            >
-              Add Candidate
-            </Button>
           </Box>
         </Box>
 
@@ -571,7 +489,17 @@ export default function UserDashboard() {
           });
 
           return filteredRows.length > 0 ? (
-          <Box sx={{ maxHeight: 'calc(100vh - 320px)', overflow: 'auto' }}>
+          <Box sx={{ 
+            maxHeight: 'calc(100vh - 320px)', 
+            overflow: 'auto',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            '&': {
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none'
+            }
+          }}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
@@ -704,18 +632,8 @@ export default function UserDashboard() {
               {(nameFilter || emailFilter || phoneFilter) ? "No Matching Candidates" : "No Candidates Yet"}
             </Typography>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
-              {(nameFilter || emailFilter || phoneFilter) ? "Try adjusting your filters" : "Start by adding your first candidate to the system"}
+              {(nameFilter || emailFilter || phoneFilter) ? "Try adjusting your filters" : "No candidates have been created yet"}
             </Typography>
-            {!(nameFilter || emailFilter || phoneFilter) && (
-              <Button 
-                variant="contained" 
-                size="large"
-                onClick={startAdd}
-                sx={{ fontWeight: 600 }}
-              >
-                Add Your First Candidate
-              </Button>
-            )}
           </Box>
         );
         })()}
@@ -724,18 +642,18 @@ export default function UserDashboard() {
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: "primary.main", color: "white", py: 2.5 }}>
           <Typography variant="h5" sx={{ fontWeight: 600 }}>
-            {editing ? "Edit Candidate" : "Add Candidate"}
+            Edit Candidate
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>
-            {editing ? "Update candidate information" : "Fill in all required fields to add a new candidate"}
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
           {err && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mt: 1.5, mb: 0 }}>
               {err}
             </Alert>
           )}
+          <Typography variant="body2" sx={{ opacity: 0.9, mt: err ? 1.5 : 0.5 }}>
+            Update candidate information
+          </Typography>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3, bgcolor: "grey.50" }}>
           <CandidateForm value={form} onChange={handleFormChange} errors={fieldErrors} isEditing={!!editing} />
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2, bgcolor: "grey.50", borderTop: "1px solid", borderColor: "divider" }}>
@@ -747,7 +665,7 @@ export default function UserDashboard() {
             startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
             sx={{ px: 4 }}
           >
-            {submitting ? (editing ? "Saving..." : "Creating...") : (editing ? "Save Changes" : "Create Candidate")}
+            {submitting ? "Saving..." : "Save Changes"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -769,64 +687,9 @@ export default function UserDashboard() {
         </Alert>
       </Snackbar>
 
-      {/* Footer */}
-      <Box 
-        component="footer" 
-        sx={{ 
-          bgcolor: 'white',
-          borderTop: '1px solid',
-          borderColor: 'divider',
-          py: 1.2,
-          mt: 3
-        }}
-      >
-        <Box sx={{ maxWidth: 'lg', mx: 'auto', px: 2 }}>
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: { xs: 'column', md: 'row' },
-            justifyContent: 'space-between', 
-            alignItems: { xs: 'center', md: 'center' },
-            gap: 1.2
-          }}>
-            {/* Logo & Copyright */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-              <img 
-                src="/only_logo.png" 
-                alt="Data Fyre Logo" 
-                style={{ height: "20px", width: "auto", objectFit: "contain" }}
-              />
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                © {new Date().getFullYear()} Data Fyre. All rights reserved.
-              </Typography>
-            </Box>
-
-            {/* Links */}
-            <Stack direction="row" spacing={1.8} sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                About
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Help
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Privacy
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ cursor: 'pointer', '&:hover': { color: 'primary.main' }, fontSize: '0.8rem' }}>
-                Terms
-              </Typography>
-            </Stack>
-
-            {/* Contact */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-                  📧 support@datafyre.com
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-      </Box>
-    </Container>
+      </Container>
+      
+      <Footer />
+    </Box>
   );
 }

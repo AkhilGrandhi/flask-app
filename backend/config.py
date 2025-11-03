@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -52,13 +53,11 @@ class Config:
         # Check if we're likely running on localhost
         database_uri = SQLALCHEMY_DATABASE_URI or ""
         if "localhost" in database_uri or "127.0.0.1" in database_uri:
-            print("⚠️  Auto-detected localhost database - enabling development mode for JWT cookies")
             is_development = True
     
     JWT_COOKIE_SECURE = not is_development  # True in production, False in dev
     JWT_COOKIE_SAMESITE = "Lax" if is_development else "None"
     JWT_COOKIE_CSRF_PROTECT = False
 
-    # (optional) make tokens last longer while testing
-    # from datetime import timedelta
-    # JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=12)
+    # Access tokens expire after 4 hours of inactivity
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=4)

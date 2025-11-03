@@ -131,9 +131,17 @@ def get_user_candidates(user_id):
 @bp.get("/candidates")
 @jwt_required()
 def list_all_candidates():
-    require_admin()
-    cs = Candidate.query.order_by(Candidate.id.desc()).all()
-    return {"candidates":[c.to_dict(include_creator=True, include_jobs=True) for c in cs]}
+    try:
+        require_admin()
+        cs = Candidate.query.order_by(Candidate.id.desc()).all()
+        return {"candidates":[c.to_dict(include_creator=True, include_jobs=True) for c in cs]}
+    except Exception as e:
+        db.session.rollback()
+        import logging
+        import traceback
+        logging.error(f"Error listing all candidates: {e}")
+        logging.error(traceback.format_exc())
+        return {"message": f"Failed to list candidates: {str(e)}"}, 500
 
 @bp.put("/candidates/<int:cand_id>")
 @jwt_required()
@@ -231,7 +239,7 @@ def _update_candidate_fields(c, data, cand_id):
         "first_name","last_name","email","phone","password","gender","nationality","citizenship_status",
         "visa_status","f1_type","work_authorization","veteran_status","race_ethnicity","address_line1",
         "address_line2","city","state","postal_code","country","personal_website","linkedin",
-        "github","technical_skills","work_experience","subscription_type",
+        "github","technical_skills","work_experience","subscription_type","role",
 
         # NEW
         "expected_wage","contact_current_employer","recent_degree","authorized_work_us",
@@ -277,6 +285,33 @@ def _update_candidate_fields(c, data, cand_id):
                 c.birthdate = date(y, m, d)
         except (ValueError, AttributeError) as e:
             return {"message": f"Invalid birthdate format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+    
+    # subscription_start_date (YYYY-MM-DD) - with error handling
+    if "subscription_start_date" in data and data["subscription_start_date"]:
+        try:
+            from datetime import date
+            start_date_str = str(data["subscription_start_date"]).strip()
+            if start_date_str:
+                y, m, d = None, None, None  # Initialize variables
+                # Handle different date formats
+                if "-" in start_date_str:
+                    y, m, d = map(int, start_date_str.split("-"))
+                elif "/" in start_date_str:
+                    # Convert MM/DD/YYYY to YYYY-MM-DD
+                    parts = start_date_str.split("/")
+                    if len(parts) == 3:
+                        m, d, y = map(int, parts)
+                    else:
+                        return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                else:
+                    return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                
+                if y is None or m is None or d is None:
+                    return {"message": "Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
+                    
+                c.subscription_start_date = date(y, m, d)
+        except (ValueError, AttributeError) as e:
+            return {"message": f"Invalid subscription start date format. Use YYYY-MM-DD or MM/DD/YYYY"}, 400
     
     db.session.commit()
     return {"message":"Candidate updated"}
